@@ -5,10 +5,10 @@ import os
 
 load_dotenv()
 
-_MONGO_URI = os.getenv(
-    "MONGODB_URI", "mongodb://43.200.172.45/ecommerce_ai")
-DB_NAME = os.getenv("DB_NAME", "ai-shop")
-DB_PRODUCT = os.getenv("DB_NAME", "naver_shopping")
+# Docker Compose 환경변수와 일치하도록 수정
+_MONGO_URI = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DB_NAME = os.getenv("MONGODB_DB_NAME", "ecommerce_ai")
+DB_PRODUCT = os.getenv("MONGODB_PRODUCT_DB_NAME", "naver_shopping")
 _client: AsyncIOMotorClient | None = None
 
 

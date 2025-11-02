@@ -25,9 +25,13 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # MongoDB 연결 설정 (환경변수 이름을 database.py와 일치시킴)
       - MONGODB_URL=mongodb://mongodb:27017
       - MONGODB_DB_NAME=ecommerce_ai
+      - MONGODB_PRODUCT_DB_NAME=naver_shopping
+      # 기타 설정
       - DEBUG=True
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
     volumes:
       - ./backend:/app
     depends_on:

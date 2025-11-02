@@ -28,3 +28,15 @@ __pycache__/
 .idea/
 .github/
 ./backend/.env
+
+# Docker 환경 파일 (실제 환경변수 포함)
+.env.docker.local
+.env.local
+.env.production
+
+# Docker 볼륨 및 데이터
+mongodb_data/
+postgres_data/
+
+# Docker 빌드 캐시
+.dockerignore
