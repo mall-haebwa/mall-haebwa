@@ -9,7 +9,8 @@ from .admin_router import router as admin_router
 from .product_router import router as product_router
 app = FastAPI(title="AI Shop API")
 
-origins = [os.getenv("CORS_ORIGINS", "http://localhost:5173")]
+origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+origins = [origin.strip() for origin in origins_str.split(",")]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -24,6 +25,6 @@ async def startup():
     db = get_db()
     await ensure_indexes(db)
 
-app.include_router(auth_router)
-app.include_router(admin_router)
-app.include_router(product_router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
+app.include_router(product_router, prefix="/api")
