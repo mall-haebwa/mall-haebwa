@@ -6,6 +6,7 @@ from .auth_router import router as auth_router
 from .models import ensure_indexes
 import os
 from .admin_router import router as admin_router
+from .product_router import router as product_router
 app = FastAPI(title="AI Shop API")
 
 origins = [os.getenv("CORS_ORIGINS", "http://localhost:5173")]
@@ -25,3 +26,4 @@ async def startup():
 
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(product_router)

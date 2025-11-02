@@ -19,27 +19,37 @@ const categories = [
 
 export function Header() {
   const navigate = useNavigate();
-  const {
-    currentUser,
-    cart,
-    logout,
-    setSearchQuery,
-    setSelectedCategory,
-  } = useAppState();
+  const { currentUser, cart, logout, setSearchQuery, setSelectedCategory } =
+    useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
+    // 폼 제출 시 발생하는 기본 페이지 새로고침을 막는다.
     const trimmed = searchQuery.trim();
+    // 입력값(searchQuery)를 trim()해서 공백제거
     if (!trimmed) return;
     setSearchQuery(trimmed);
+    // 컨텍스트 저장
     setSelectedCategory("all");
+    // 카테고리를 초기화해서 필터 충돌 방지
     navigate("/products");
+    // 페이지 이동
+  };
+
+  const aihandleSearch = () => {
+    setSearchQuery(searchQuery);
+    navigate("/aisearch");
   };
 
   const goTo = (path: string) => {
+    if (path === "/") {
+      setSearchQueryInput("");
+      setSearchQuery("");
+    }
+    // 홈으로 이동 시 쿼리 제거
     navigate(path);
     setShowMobileMenu(false);
   };
@@ -69,10 +79,7 @@ export function Header() {
             >
               고객센터
             </button>
-            <button
-              className="hover:underline"
-              onClick={() => goTo("/admin")}
-            >
+            <button className="hover:underline" onClick={() => goTo("/admin")}>
               판매자센터
             </button>
           </div>
@@ -101,8 +108,11 @@ export function Header() {
                 onChange={(event) => setSearchQueryInput(event.target.value)}
                 className="h-12 w-full rounded-sm border-2 border-gray-900 pl-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <div className="absolute right-[52px] top-1/2 -translate-y-1/2">
-                <Badge className="mx-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+              <div className="absolute inset-y-0 right-[52px] flex items-center">
+                <Badge
+                  onClick={() => aihandleSearch()} // 검색어를 누르고 AI 검색을 누를 시 AI 검색 페이지로 이동하도록 추가
+                  className="mx-[10px] cursor-pointer bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                >
                   <Sparkles className="mr-1 h-3 w-3" />
                   AI
                 </Badge>
