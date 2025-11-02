@@ -30,6 +30,7 @@ __pycache__/
 ./backend/.env
 
 # Docker 환경 파일 (실제 환경변수 포함)
+.env.docker
 .env.docker.local
 .env.local
 .env.production
