@@ -1,5 +1,6 @@
 # FastAPI Core
 pydantic[email]
+email-validator==2.1.0
 pydantic-settings==2.1.0
 
 # Database
