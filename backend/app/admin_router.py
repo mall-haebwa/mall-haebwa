@@ -21,8 +21,9 @@ async def verify_admin(request: Request):
     except Exception:
         raise HTTPException(status_code=401, detail="토큰이 유효하지 않습니다.")
 
-
 # ✅ 관리자 인증 테스트용
+
+
 @router.get("/check")
 async def check_admin(request: Request):
     await verify_admin(request)
