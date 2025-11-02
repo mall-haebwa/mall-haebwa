@@ -14,6 +14,7 @@ import { AddProductPage } from "./components/AddProductPage";
 import { CustomerServicePage } from "./components/CustomerServicePage";
 import { Toaster } from "./components/ui/sonner";
 import { AppStateProvider } from "./context/app-state";
+import { AISearchPage } from "./components/AiSearchPage";
 
 function ScrollToTop() {
   const location = useLocation();
@@ -43,6 +44,7 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />
+          <Route path="/aisearch" element={<AISearchPage />} />
         </Routes>
       </main>
       <Toaster />
