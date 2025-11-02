@@ -8,6 +8,7 @@ pydantic-settings==2.1.0
 # Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
 python-multipart==0.0.6
 
 # CORS
@@ -27,7 +28,7 @@ dnspython==2.8.0
 fastapi==0.120.4
 h11==0.16.0
 idna==3.11
-jwt==1.4.0
+PyJWT==2.8.0
 motor==3.7.1
 pycparser==2.23
 pydantic_core==2.41.4
