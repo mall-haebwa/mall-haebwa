@@ -17,10 +17,14 @@ import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+a
 export function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [agreements, setAgreements] = useState({
     terms: true,
     privacy: true,
@@ -59,27 +63,30 @@ export function SignupPage() {
       return;
     }
 
+    setIsLoading(true);
     try {
-      const res = await axios.post(
-        `/auth/register`, // 백엔드 주소
+      const response = await axios.post(
+        `${API_URL}/api/auth/register`,
         {
           email: form.email,
           password: form.password,
           name: form.name,
-          phone: form.phone,
-          address: form.address,
+          phone: form.phone || undefined,
+          address: form.address || undefined,
         },
-        { withCredentials: true } // 쿠키 허용 시 필요
+        {
+          withCredentials: true, // 쿠키 허용 시 필요
+        }
       );
 
-      toast.success(res.data.message || "가입이 완료되었습니다.");
-      navigate("/login");
-    } catch (err: any) {
-      if (err.response?.status === 409) {
-        toast.error("이미 가입된 이메일입니다.");
-      } else {
-        toast.error("회원가입 중 오류가 발생했습니다.");
-      }
+      toast.success(response.data.message || "가입이 완료되었습니다.");
+      navigate("/login", { state: { email: form.email } });
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      const errorMessage = error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -280,8 +287,10 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="h-11 w-full bg-gray-900 text-white hover:bg-black">
-              가입 완료
+              className="h-11 w-full bg-gray-900 text-white hover:bg-black"
+              disabled={isLoading}
+            >
+              {isLoading ? "가입 처리 중..." : "가입 완료"}
             </Button>
           </form>
 

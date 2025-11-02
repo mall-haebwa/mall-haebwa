@@ -8,6 +8,9 @@ import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -19,23 +22,48 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
-      toast.error("Please enter email and password.");
+      toast.error("이메일과 비밀번호를 입력해주세요.");
       return;
     }
 
-    login({
-      id: "user-1",
-      email,
-      name: "홍길동",
-      phone: "010-1234-5678",
-      address: "서울특별시 강남구",
-    });
-    toast.success("환영합니다!");
-    navigate("/");
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/auth/login`,
+        {
+          email,
+          password,
+          remember: rememberMe,
+        },
+        {
+          withCredentials: true, // 쿠키 전송을 위해 필요
+        }
+      );
+
+      const user = response.data;
+
+      login({
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone || "",
+        address: user.address || "",
+      });
+
+      toast.success(`환영합니다, ${user.name}님!`);
+      navigate("/");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      const errorMessage = error.response?.data?.detail || "로그인에 실패했습니다.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,8 +139,12 @@ export function LoginPage() {
               </button>
             </div>
 
-            <Button type="submit" className="h-11 w-full bg-gray-900 text-white hover:bg-black">
-              로그인
+            <Button
+              type="submit"
+              className="h-11 w-full bg-gray-900 text-white hover:bg-black"
+              disabled={isLoading}
+            >
+              {isLoading ? "로그인 중..." : "로그인"}
             </Button>
           </form>
 
