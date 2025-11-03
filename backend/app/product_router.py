@@ -5,10 +5,12 @@ import re
 from collections import OrderedDict
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .database import get_product_db
+
+from bson import ObjectId
 
 # /products 네임스페이스 아래 상품 관련 엔드포인트를 제공하는 FastAPI 라우터.
 router = APIRouter(prefix="/products", tags=["products"])
@@ -217,3 +219,21 @@ async def search_products(
       # 전체 페이지 수는 total과 limit을 기반으로 계산한다.
       "totalPages": math.ceil(total / limit) if limit else 0,
   }
+
+
+
+@router.get("/{product_id}")
+async def get_product_detail(
+    product_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_product_db),
+):
+    try:
+        obj_id = ObjectId(product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="잘못된 상품 ID입니다.")
+
+    doc = await db["products"].find_one({"_id": obj_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+    return _reshape_product(doc)
