@@ -87,10 +87,10 @@ async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase
 
     # 새 access 토큰에 role 포함
     # DB에서 사용자 role 조회 후 payload에 포함시켜 발급
-    from .models import USERS_COL
-    from bson import ObjectId
+    # from .models import USERS_COL
+    # from bson import ObjectId
     user = await db[USERS_COL].find_one({"_id": ObjectId(uid)})
-    role = user.get("role", "user") if user else "user"
+    role = user.get("role", "user")
 
     access = create_token(uid, extra_payload={"role": role})
     set_cookie(response, COOKIE_ACCESS, access, max_age=15*60)

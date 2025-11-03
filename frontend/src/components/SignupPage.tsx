@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Check, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react";
+import {
+  Check,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  MapPin,
+  Phone,
+  User,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -7,11 +16,15 @@ import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
+import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+a
 export function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [agreements, setAgreements] = useState({
     terms: true,
     privacy: true,
@@ -34,8 +47,9 @@ export function SignupPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (!form.email || !form.password || !form.confirmPassword || !form.name) {
       toast.error("필수 정보를 모두 입력해 주세요.");
       return;
@@ -49,8 +63,31 @@ export function SignupPage() {
       return;
     }
 
-    toast.success("회원가입이 완료되었습니다.");
-    navigate("/login", { state: { email: form.email, justRegistered: true } });
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/auth/register`,
+        {
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          phone: form.phone || undefined,
+          address: form.address || undefined,
+        },
+        {
+          withCredentials: true, // 쿠키 허용 시 필요
+        }
+      );
+
+      toast.success(response.data.message || "가입이 완료되었습니다.");
+      navigate("/login", { state: { email: form.email } });
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      const errorMessage = error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -75,7 +112,9 @@ export function SignupPage() {
                   <Input
                     type="email"
                     value={form.email}
-                    onChange={(event) => handleChange("email", event.target.value)}
+                    onChange={(event) =>
+                      handleChange("email", event.target.value)
+                    }
                     placeholder="you@example.com"
                     className="h-11 pl-10"
                     required
@@ -90,7 +129,9 @@ export function SignupPage() {
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     value={form.name}
-                    onChange={(event) => handleChange("name", event.target.value)}
+                    onChange={(event) =>
+                      handleChange("name", event.target.value)
+                    }
                     placeholder="홍길동"
                     className="h-11 pl-10"
                     required
@@ -109,7 +150,9 @@ export function SignupPage() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     value={form.password}
-                    onChange={(event) => handleChange("password", event.target.value)}
+                    onChange={(event) =>
+                      handleChange("password", event.target.value)
+                    }
                     placeholder="8자 이상 입력해 주세요"
                     className="h-11 pl-10 pr-10"
                     required
@@ -117,9 +160,12 @@ export function SignupPage() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    onClick={() => setShowPassword((prev) => !prev)}>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -142,8 +188,7 @@ export function SignupPage() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  >
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}>
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
@@ -163,7 +208,9 @@ export function SignupPage() {
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     value={form.phone}
-                    onChange={(event) => handleChange("phone", event.target.value)}
+                    onChange={(event) =>
+                      handleChange("phone", event.target.value)
+                    }
                     placeholder="010-1234-5678"
                     className="h-11 pl-10"
                   />
@@ -177,7 +224,9 @@ export function SignupPage() {
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     value={form.address}
-                    onChange={(event) => handleChange("address", event.target.value)}
+                    onChange={(event) =>
+                      handleChange("address", event.target.value)
+                    }
                     placeholder="서울특별시 강남구"
                     className="h-11 pl-10"
                   />
@@ -191,7 +240,11 @@ export function SignupPage() {
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="agree-all"
-                  checked={agreements.terms && agreements.privacy && agreements.marketing}
+                  checked={
+                    agreements.terms &&
+                    agreements.privacy &&
+                    agreements.marketing
+                  }
                   onCheckedChange={(value) => {
                     const checked = Boolean(value);
                     setAgreements({
@@ -201,7 +254,9 @@ export function SignupPage() {
                     });
                   }}
                 />
-                <label htmlFor="agree-all" className="cursor-pointer font-medium text-gray-900">
+                <label
+                  htmlFor="agree-all"
+                  className="cursor-pointer font-medium text-gray-900">
                   전체 동의
                 </label>
               </div>
@@ -233,8 +288,9 @@ export function SignupPage() {
             <Button
               type="submit"
               className="h-11 w-full bg-gray-900 text-white hover:bg-black"
+              disabled={isLoading}
             >
-              가입 완료
+              {isLoading ? "가입 처리 중..." : "가입 완료"}
             </Button>
           </form>
 
@@ -245,8 +301,7 @@ export function SignupPage() {
             <button
               type="button"
               className="font-medium text-gray-900 underline"
-              onClick={() => navigate("/login")}
-            >
+              onClick={() => navigate("/login")}>
               로그인
             </button>
           </div>
