@@ -71,7 +71,7 @@ export function ProductListPage() {
       if (reset) {
         // 필터가 바뀐 경우 이전 목록과 페이지 정보를 초기화.
         setProducts([]);
-          setPage(0);
+        setPage(0);
         hasMoreRef.current = true;
         setHasMore(true);
         setStatus("loading");
@@ -401,8 +401,8 @@ export function ProductListPage() {
                   className="mb-3"
                 />
                 <div className="flex justify-between text-xs text-gray-600">
-                  <span>{priceRange[0].toLocaleString()} KRW</span>
-                  <span>{priceRange[1].toLocaleString()} KRW</span>
+                  <span>{priceRange[0].toLocaleString()} 원</span>
+                  <span>{priceRange[1].toLocaleString()} 원</span>
                 </div>
               </div>
             </div>
@@ -481,12 +481,12 @@ export function ProductListPage() {
                           <span className="text-lg font-semibold text-gray-900">
                             {(product.price ?? 0).toLocaleString()}
                           </span>
-                          <span className="text-xs text-gray-500">KRW</span>
+                          <span className="text-xs text-gray-500">원</span>
                         </div>
                         {product.originalPrice &&
                           product.originalPrice > (product.price ?? 0) && (
                             <p className="text-xs text-gray-400 line-through">
-                              {product.originalPrice.toLocaleString()} KRW
+                              {product.originalPrice.toLocaleString()} 원
                             </p>
                           )}
                         {(product.rating ?? 0) > 0 && (
