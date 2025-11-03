@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Sparkles, Search, TrendingUp } from "lucide-react";
+import { Sparkles, Search, TrendingUp, Loader2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
@@ -20,14 +20,15 @@ const EXAMPLE_SEARCHES = [
 export function AISearchPage() {
   const [searchInput, setSearchInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const isChatting = messages.length > 0;
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     const trimmed = query.trim();
-    if (!trimmed) {
+    if (!trimmed || isLoading) {
       return;
     }
     console.log("AI search query:", trimmed);
@@ -35,14 +36,39 @@ export function AISearchPage() {
     const userMessage: ChatMessage = { role: "user", content: trimmed };
     setMessages((prev) => [...prev, userMessage]);
     setSearchInput("");
+    setIsLoading(true);
 
-    // TODO: 실제 AI 검색 API와 연결하세요.
-    const mockAssistantReply: ChatMessage = {
-      role: "assistant",
-      content:
-        "AI가 사용자의 질문을 분석하고 추천 제품과 검색 인사이트를 준비하고 있어요. 실제 API 응답을 이 자리에서 파싱해 렌더링하면 됩니다.",
-    };
-    setMessages((prev) => [...prev, mockAssistantReply]);
+    try {
+      // 실제 LM Studio API 호출
+      const response = await fetch("/api/test-llm-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      if (!response.ok) {
+        throw new Error("AI 응답 실패");
+      }
+
+      const data = await response.json();
+      const assistantReply: ChatMessage = {
+        role: "assistant",
+        content: data.ai_response || "응답을 받지 못했습니다.",
+      };
+      setMessages((prev) => [...prev, assistantReply]);
+    } catch (error) {
+      console.error("AI 검색 오류:", error);
+      const errorMessage: ChatMessage = {
+        role: "assistant",
+        content:
+          "죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExampleClick = (example: string) => {
@@ -97,9 +123,14 @@ export function AISearchPage() {
               />
               <Button
                 onClick={() => handleSearch(searchInput)}
-                className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
+                disabled={isLoading}
+                className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
               >
-                <Search className="mr-2 h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
                 검색
               </Button>
             </div>
@@ -144,10 +175,20 @@ export function AISearchPage() {
                         : "bg-white text-gray-800 shadow-md"
                     }`}
                   >
-                    {message.content}
+                    <p className="whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] rounded-2xl bg-white px-4 py-3 text-sm shadow-md md:text-base">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>AI가 답변을 생성하고 있습니다...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -167,9 +208,14 @@ export function AISearchPage() {
                 />
                 <Button
                   onClick={() => handleSearch(searchInput)}
-                  className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
+                  disabled={isLoading}
+                  className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
                 >
-                  <Search className="mr-2 h-4 w-4" />
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="mr-2 h-4 w-4" />
+                  )}
                   전송
                 </Button>
               </div>
