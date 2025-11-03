@@ -18,7 +18,7 @@ import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL2 || "http://localhost:8000";
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -83,7 +83,8 @@ export function SignupPage() {
       navigate("/login", { state: { email: form.email } });
     } catch (error: any) {
       console.error("Signup error:", error);
-      const errorMessage = error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
+      const errorMessage =
+        error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -288,8 +289,7 @@ export function SignupPage() {
             <Button
               type="submit"
               className="h-11 w-full bg-gray-900 text-white hover:bg-black"
-              disabled={isLoading}
-            >
+              disabled={isLoading}>
               {isLoading ? "가입 처리 중..." : "가입 완료"}
             </Button>
           </form>
