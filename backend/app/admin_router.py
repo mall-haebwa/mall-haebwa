@@ -1,7 +1,7 @@
 # backend/app/admin_router.py
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from .database import get_db, get_product_db
+from .database import get_db
 from .security import decode_token
 from bson import ObjectId
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -32,7 +32,7 @@ async def check_admin(request: Request):
 
 # ✅ 실제 상품 목록 불러오기
 @router.get("/products")
-async def get_products(request: Request, db: AsyncIOMotorDatabase = Depends(get_product_db)):
+async def get_products(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
     # await verify_admin(request)  # 먼저 관리자 인증
 
     products = await db["products"].find().limit(50).to_list(length=None)
@@ -60,7 +60,7 @@ async def get_products(request: Request, db: AsyncIOMotorDatabase = Depends(get_
 
 
 @router.get("/public/products")
-async def get_public_products(db: AsyncIOMotorDatabase = Depends(get_product_db)):
+async def get_public_products(db: AsyncIOMotorDatabase = Depends(get_db)):
     """일반 사용자용 상품 리스트 (관리자 인증 없음)"""
     products = await db["products"].find().limit(50).to_list(length=None)
     return [
@@ -87,7 +87,7 @@ async def get_public_products(db: AsyncIOMotorDatabase = Depends(get_product_db)
 
 @router.get("/public/products/{product_id}")
 async def get_public_product_detail(
-    product_id: str, db: AsyncIOMotorDatabase = Depends(get_product_db)
+    product_id: str, db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """일반 사용자용 단일 상품 상세 (관리자 인증 없음)"""
     try:
@@ -121,7 +121,7 @@ async def get_public_product_detail(
 async def get_product_detail(
     product_id: str,
     request: Request,
-    db: AsyncIOMotorDatabase = Depends(get_product_db)
+    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     await verify_admin(request)  # 관리자 인증
 
