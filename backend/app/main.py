@@ -10,6 +10,8 @@ from .product_router import router as product_router
 from app.payment_router import router as payment_router
 from app.order_router import router as order_router
 from .cart_router import router as cart_router
+from .product_random_router import router as product_random_router
+from .category_router import router as category_router
 from .llm_client import llm_client
 from pydantic import BaseModel
 
@@ -18,6 +20,7 @@ app = FastAPI(title="AI Shop API")
 
 class ChatRequest(BaseModel):
     message: str
+
 
 origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 origins = [origin.strip() for origin in origins_str.split(",")]
@@ -44,6 +47,8 @@ app.include_router(payment_router, prefix="/api")
 app.include_router(cart_router, prefix="/api")
 
 app.include_router(product_router, prefix="/api")
+app.include_router(product_random_router)
+app.include_router(category_router)
 
 
 async def _test_llm_chat_handler(request: ChatRequest):

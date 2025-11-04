@@ -1,78 +1,12 @@
-import { ChevronRight, Sparkles, Star, TrendingUp, Truck } from "lucide-react";
+import { Sparkles, Star, TrendingUp } from "lucide-react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../context/app-state";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { RandomSections } from "./RandomSections";
 
-const mockProducts = [
-  {
-    id: "1",
-    name: "여름 린넨 반팔 셔츠",
-    price: 29900,
-    originalPrice: 45000,
-    image: "fashion shirt",
-    rating: 4.8,
-    reviewCount: 1234,
-    badge: "베스트",
-    delivery: "무료배송",
-  },
-  {
-    id: "2",
-    name: "편안한 데일리 스니커즈",
-    price: 49900,
-    originalPrice: 79000,
-    image: "casual sneakers",
-    rating: 4.9,
-    reviewCount: 2341,
-    badge: "인기",
-    delivery: "무료배송",
-  },
-  {
-    id: "3",
-    name: "무선 블루투스 이어폰 프리미엄",
-    price: 89000,
-    originalPrice: 120000,
-    image: "wireless earbuds",
-    rating: 4.7,
-    reviewCount: 892,
-    badge: "NEW",
-    delivery: "무료배송",
-  },
-  {
-    id: "4",
-    name: "천연 보습 크림 대용량",
-    price: 24900,
-    originalPrice: 35000,
-    image: "skincare cream",
-    rating: 4.6,
-    reviewCount: 567,
-    badge: "추천",
-    delivery: "무료배송",
-  },
-  {
-    id: "5",
-    name: "가볍고 튼튼한 캐리어 20인치",
-    price: 89000,
-    originalPrice: 150000,
-    image: "luggage suitcase",
-    rating: 4.8,
-    reviewCount: 445,
-    badge: "베스트",
-    delivery: "무료배송",
-  },
-  {
-    id: "6",
-    name: "프리미엄 요가 매트 두께 10mm",
-    price: 39900,
-    originalPrice: 59000,
-    image: "yoga mat",
-    rating: 4.7,
-    reviewCount: 678,
-    badge: "인기",
-    delivery: "무료배송",
-  },
-];
+// Reverted: directly render RandomSections without in-view lazy mount
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -87,6 +21,8 @@ export function HomePage() {
   const goToProduct = (productId: string) => {
     navigate(`/product/${productId}`);
   };
+
+  
 
   return (
     <div className="bg-white">
@@ -138,7 +74,9 @@ export function HomePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
+      <RandomSections />
+
+      {/* <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-xl">베스트 상품</h2>
@@ -146,8 +84,7 @@ export function HomePage() {
           <Button
             variant="ghost"
             onClick={goToAllProducts}
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
+            className="text-sm text-gray-600 hover:text-gray-900">
             전체보기
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
@@ -158,8 +95,7 @@ export function HomePage() {
               key={product.id}
               type="button"
               className="group cursor-pointer text-left"
-              onClick={() => goToProduct(product.id)}
-            >
+              onClick={() => goToProduct(product.id)}>
               <div className="relative mb-2 aspect-square overflow-hidden bg-gray-50">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80"
@@ -169,7 +105,7 @@ export function HomePage() {
                 {product.originalPrice && (
                   <Badge className="absolute left-2 top-2 border-0 bg-red-500 text-xs text-white">
                     {Math.round(
-                      (1 - product.price / product.originalPrice) * 100,
+                      (1 - product.price / product.originalPrice) * 100
                     )}
                     %
                   </Badge>
@@ -205,7 +141,7 @@ export function HomePage() {
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       <div className="border-t border-gray-100 bg-gray-50 py-12">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-6 md:grid-cols-3 md:px-8">

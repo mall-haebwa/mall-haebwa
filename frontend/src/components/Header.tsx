@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, Search, ShoppingCart, Sparkles, User } from "lucide-react";
 import { useAppState } from "../context/app-state";
@@ -24,6 +24,32 @@ export function Header() {
   const [searchQuery, setSearchQueryInput] = useState("");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`/api/products/categories`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        const topLevel = items
+          .map((n: { name: string }) => n?.name)
+          .filter((v: any) => typeof v === "string") as string[];
+        if (isMounted) setCategories(topLevel);
+      } catch (e) {
+        console.error("Failed to load categories:", e);
+        if (isMounted) setCategories([]);
+      }
+    };
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
