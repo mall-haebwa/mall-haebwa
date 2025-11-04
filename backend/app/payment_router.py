@@ -1,12 +1,15 @@
 # backend/app/payment_router.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import httpx
 import os
 import base64
 from datetime import datetime
+from bson import ObjectId
 from .database import get_db
-from .models import ORDERS_COL
+from .models import ORDERS_COL, USERS_COL
+from .auth_router import COOKIE_ACCESS
+from .security import decode_token
 
 router = APIRouter(prefix="/payment", tags=["payment"])
 
@@ -17,6 +20,30 @@ def get_auth_header():
     auth_string = f"{TOSS_SECRET_KEY}:"
     encoded = base64.b64encode(auth_string.encode()).decode()
     return f"Basic {encoded}"
+
+# 현재 사용자 가져오기
+async def get_current_user(
+    request: Request,
+    db = Depends(get_db),
+):
+    token = request.cookies.get(COOKIE_ACCESS)
+    if not token:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    try:
+        payload = decode_token(token)
+        if payload.get("scope") != "access":
+            raise ValueError("Not an access token")
+        user_id = payload["sub"]
+    except Exception:
+        raise HTTPException(status_code=401, detail="토큰이 유효하지 않습니다.")
+
+    user = await db[USERS_COL].find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다.")
+
+    user["_id"] = str(user["_id"])
+    return user
 
 # 임시 주문 저장소 (결제 전 임시 데이터)
 orders = {}
@@ -47,13 +74,17 @@ async def get_payment_config():
     return {"client_key": TOSS_CLIENT_KEY}
 
 @router.post("/orders")
-async def create_order(order: OrderCreate):
+async def create_order(
+    order: OrderCreate,
+    current_user: dict = Depends(get_current_user)
+):
     """주문 생성"""
     import time
     order_id = f"ORDER_{int(time.time() * 1000)}"
 
     orders[order_id] = {
         "order_id": order_id,
+        "user_id": current_user["_id"],  # 사용자 ID 추가
         "amount": order.amount,
         "order_name": order.order_name,
         "customer_name": order.customer_name,
@@ -104,6 +135,7 @@ async def confirm_payment(confirm: PaymentConfirm, db=Depends(get_db)):
             # DB에 주문 정보 저장
             order_document = {
                 "order_id": confirm.order_id,
+                "user_id": saved_order["user_id"],  # 사용자 ID 저장
                 "amount": confirm.amount,
                 "order_name": saved_order["order_name"],
                 "customer_name": saved_order["customer_name"],

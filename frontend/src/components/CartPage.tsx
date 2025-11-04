@@ -153,6 +153,7 @@ export function CartPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include", // 쿠키 전송을 위해 필요
           body: JSON.stringify({
             amount: totals.total,
             order_name: orderName,
