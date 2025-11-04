@@ -4,6 +4,7 @@ import { Header } from "./components/Header";
 import { HomePage } from "./components/HomePage";
 import { ProductListPage } from "./components/ProductListPage";
 import { ProductDetailPage } from "./components/ProductDetailPage";
+import { WishlistPage } from "./components/WishlistPage";
 import { CartPage } from "./components/CartPage";
 import { MyPage } from "./components/MyPage";
 import { LoginPage } from "./components/LoginPage";
@@ -38,6 +39,7 @@ function AppRoutes() {
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductListPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/login" element={<LoginPage />} />

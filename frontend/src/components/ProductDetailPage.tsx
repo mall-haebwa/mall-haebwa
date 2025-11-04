@@ -123,6 +123,7 @@ export function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState(DEFAULT_SIZE);
   const [activeImage, setActiveImage] = useState(0);
   const [wishlist, setWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -158,7 +159,14 @@ export function ProductDetailPage() {
         }
 
         setProduct(normalized);
-        setWishlist(false);
+        if (currentUser) {
+          fetch(`/api/wishlist/check/${normalized.id}`, {
+            credentials: "include",
+          })
+            .then(res => res.ok ? res.json() : { isWishlisted: false })
+            .then(data => setWishlist(data.isWishlisted))
+            .catch(() => setWishlist(false));
+        }
       } catch (err) {
         if (controller.signal.aborted) {
           return;
@@ -399,7 +407,48 @@ export function ProductDetailPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setWishlist((prev) => !prev)}
+                onClick={async () => {
+                  if (!currentUser) {
+                    toast.error("로그인 후 이용하실 수 있어요.");
+                    navigate("/login");
+                    return;
+                  }
+
+                  if (!product) return;
+
+                  setWishlistLoading(true);
+                  try {
+                    if (wishlist) {
+                      // 찜 해제
+                      const res = await fetch(`/api/wishlist/remove/${product.id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                      });
+                      if (!res.ok) throw new Error("찜 해제 실패");
+                      setWishlist(false);
+                      toast.success("찜 목록에서 제거되었습니다.");
+                    } else {
+                      // 찜 추가
+                      const res = await fetch(`/api/wishlist/add`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ product_id: product.id }),
+                      });
+                      if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || "찜 추가 실패");
+                      }
+                      setWishlist(true);
+                      toast.success("찜 목록에 추가되었습니다.");
+                    }
+                  } catch (error: any) {
+                    toast.error(error.message || "오류가 발생했습니다.");
+                  } finally {
+                    setWishlistLoading(false);
+                  }
+                }}
+                disabled={wishlistLoading}
                 className="gap-2"
               >
                 <Heart
@@ -407,8 +456,9 @@ export function ProductDetailPage() {
                     wishlist ? "fill-gray-900 text-gray-900" : ""
                   }`}
                 />
-                찜하기
+                {wishlist ? "찜 완료" : "찜하기"}
               </Button>
+              
               <Button
                 type="button"
                 variant="outline"

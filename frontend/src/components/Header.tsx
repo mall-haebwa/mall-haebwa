@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Search, ShoppingCart, Sparkles, User } from "lucide-react";
+import { Menu, Search, ShoppingCart, Sparkles, User, Heart } from "lucide-react";
 import { useAppState } from "../context/app-state";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -153,6 +153,15 @@ export function Header() {
           </form>
 
           <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => goTo("/wishlist")}
+              className="relative h-9"
+            >
+              <Heart className="h-5 w-5" />
+            </Button>
+            
             <Button
               variant="ghost"
               size="sm"
