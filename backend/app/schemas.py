@@ -38,7 +38,7 @@ class ProductSummary(BaseModel):
     colors: list[str] = Field(default_factory=list)
     sizes: list[str] = Field(default_factory=list)
     stock: int | None = None
-    createdAt: str | None = None
+    createdAt: datetime | None = None
 
 
 class RecentlyViewedProductOut(BaseModel):

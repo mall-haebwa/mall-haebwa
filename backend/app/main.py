@@ -47,9 +47,9 @@ app.include_router(payment_router, prefix="/api")
 app.include_router(order_router, prefix="/api")
 app.include_router(cart_router, prefix="/api")
 app.include_router(product_random_router, prefix="/api")
-app.include_router(product_router, prefix="/api")
 app.include_router(wishlist_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
+app.include_router(product_router, prefix="/api")
 
 
 async def _test_llm_chat_handler(request: ChatRequest):
