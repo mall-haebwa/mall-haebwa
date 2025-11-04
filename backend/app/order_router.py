@@ -4,7 +4,7 @@ from .database import get_db
 from .models import ORDERS_COL
 from typing import List, Dict, Any
 
-router = APIRouter(prefix="/api/orders", tags=["orders"])
+router = APIRouter(prefix="/orders", tags=["orders"])
 
 
 @router.get("")
