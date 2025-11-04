@@ -199,6 +199,39 @@ export function ProductDetailPage() {
     setSelectedSize(product.sizes?.[0] ?? DEFAULT_SIZE);
   }, [product]);
 
+  useEffect(() => {
+    if (!product?.id || !currentUser) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const updateRecentlyViewed = async () => {
+      try {
+        await fetch("/api/users/recently-viewed", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ productId: product.id }),
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        console.error("Failed to update recently viewed:", error);
+      }
+    };
+
+    void updateRecentlyViewed();
+
+    return () => {
+      controller.abort();
+    };
+  }, [product?.id, currentUser]);
+
   const handleCategoryClick = () => {
     if (product?.category) {
       setSelectedCategory(product.category);

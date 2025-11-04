@@ -197,6 +197,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           name: user.name,
           phone: user.phone || "",
           address: user.address || "",
+          points: typeof user.points === "number" ? user.points : 0,
+          recentlyViewed: Array.isArray(user.recentlyViewed)
+            ? user.recentlyViewed
+            : [],
         });
       } catch (error) {
         // 로그인 안 되어 있으면 그냥 무시

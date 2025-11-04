@@ -13,6 +13,7 @@ from .cart_router import router as cart_router
 from .product_random_router import router as product_random_router
 from .category_router import router as category_router
 from .wishlist_router import router as wishlist_router
+from .user_router import router as user_router
 from .llm_client import llm_client
 from pydantic import BaseModel
 
@@ -48,6 +49,7 @@ app.include_router(cart_router, prefix="/api")
 app.include_router(product_random_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
 app.include_router(wishlist_router, prefix="/api")
+app.include_router(user_router, prefix="/api")
 
 
 async def _test_llm_chat_handler(request: ChatRequest):

@@ -51,6 +51,10 @@ export function LoginPage() {
         name: user.name,
         phone: user.phone || "",
         address: user.address || "",
+        points: typeof user.points === "number" ? user.points : 0,
+        recentlyViewed: Array.isArray(user.recentlyViewed)
+          ? user.recentlyViewed
+          : [],
       });
 
       toast.success(`환영합니다, ${user.name}님!`);
