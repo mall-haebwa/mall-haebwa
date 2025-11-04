@@ -18,8 +18,6 @@ import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 export function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -66,7 +64,7 @@ export function SignupPage() {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        `${API_URL}/api/auth/register`,
+        "/api/auth/register",
         {
           email: form.email,
           password: form.password,

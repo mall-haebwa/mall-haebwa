@@ -41,7 +41,7 @@ export function OrderHistoryPage() {
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const response = await fetch("http://localhost:8000/api/orders", {
+        const response = await fetch("/api/orders", {
           credentials: "include",
         });
 

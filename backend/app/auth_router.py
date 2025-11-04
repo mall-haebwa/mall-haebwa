@@ -99,9 +99,9 @@ async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase
 
 @router.post("/logout", response_model=BasicResp)
 async def logout(response: Response):
-    # 쿠키 삭제
-    response.delete_cookie(COOKIE_ACCESS, path="/")
-    response.delete_cookie(COOKIE_REFRESH, path="/")
+    # 쿠키 삭제 - 설정 시와 동일한 속성 사용
+    response.delete_cookie(COOKIE_ACCESS, path="/", samesite="lax", httponly=True)
+    response.delete_cookie(COOKIE_REFRESH, path="/", samesite="lax", httponly=True)
     return {"message": "로그아웃 완료"}
 
 

@@ -53,8 +53,6 @@ type Keyable = {
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 const cartKey = (item: Keyable) =>
   `${item.productId}|${item.selectedColor ?? ""}|${item.selectedSize ?? ""}`;
 
@@ -126,7 +124,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await axios.get(`${API_URL}/api/auth/me`, {
+        const response = await axios.get("/api/auth/me", {
           withCredentials: true,
         });
 
@@ -161,39 +159,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [currentUser, cart]);
 
 
-  // 앱 시작 시 로그인 상태 복구
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const response = await axios.get(`${API_URL}/api/auth/me`, {
-          withCredentials: true,
-        });
-
-        const user = response.data;
-        setCurrentUser({
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          phone: user.phone || "",
-          address: user.address || "",
-        });
-      } catch (error) {
-        // 로그인 안 되어 있으면 그냥 무시
-        console.log("Not logged in");
-      }
-    }
-
-    checkAuth();
-  }, []);
-
-
   const fetchCartFromServer = useCallback(async () => {
     if (!currentUser) {
       return;
     }
     try {
       const response = await axios.get<ServerCartResponse>(
-        `${API_URL}/api/cart`,
+        "/api/cart",
         { withCredentials: true },
       );
       setCart((prev) => mapServerCart(response.data, prev));
@@ -215,7 +187,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       try {
         if (pendingUpload.length) {
           await axios.put(
-            `${API_URL}/api/cart`,
+            "/api/cart",
             {
               items: pendingUpload.map(buildCartItemPayload),
             },
@@ -225,7 +197,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         }
 
         const response = await axios.get<ServerCartResponse>(
-          `${API_URL}/api/cart`,
+          "/api/cart",
           { withCredentials: true },
         );
 
@@ -291,7 +263,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       axios
         .post<ServerCartResponse>(
-          `${API_URL}/api/cart/items`,
+          "/api/cart/items",
           buildCartItemPayload(normalized),
           { withCredentials: true },
         )
@@ -339,7 +311,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       axios
         .patch<ServerCartResponse>(
-          `${API_URL}/api/cart/items/${itemId}`,
+          `/api/cart/items/${itemId}`,
           { quantity },
           { withCredentials: true },
         )
@@ -381,7 +353,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       axios
         .delete<ServerCartResponse>(
-          `${API_URL}/api/cart/items/${itemId}`,
+          `/api/cart/items/${itemId}`,
           { withCredentials: true },
         )
         .then((response) => {
@@ -403,7 +375,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await axios.post(
-        `${API_URL}/api/auth/logout`,
+        "/api/auth/logout",
         {},
         { withCredentials: true },
       );

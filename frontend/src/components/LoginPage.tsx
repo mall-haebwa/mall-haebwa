@@ -10,8 +10,6 @@ import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,7 +32,7 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        `${API_URL}/api/auth/login`,
+        "/api/auth/login",
         {
           email,
           password,
