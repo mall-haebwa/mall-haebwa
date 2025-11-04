@@ -2,11 +2,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import type { CartItem, User } from "../types";
+import axios from "axios";
 
 interface AppStateValue {
   currentUser: User | null;
@@ -24,11 +26,38 @@ interface AppStateValue {
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // 앱 시작 시 로그인 상태 복구
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await axios.get(`${API_URL}/api/auth/me`, {
+          withCredentials: true,
+        });
+
+        const user = response.data;
+        setCurrentUser({
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          phone: user.phone || "",
+          address: user.address || "",
+        });
+      } catch (error) {
+        // 로그인 안 되어 있으면 그냥 무시
+        console.log("Not logged in");
+      }
+    }
+
+    checkAuth();
+  }, []);
 
   const addToCart = useCallback((item: CartItem) => {
     setCart((prevCart) => {
@@ -36,7 +65,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         (ci) =>
           ci.product.id === item.product.id &&
           ci.selectedColor === item.selectedColor &&
-          ci.selectedSize === item.selectedSize,
+          ci.selectedSize === item.selectedSize
       );
 
       if (existingIndex >= 0) {
@@ -106,7 +135,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeFromCart,
       selectedCategory,
       searchQuery,
-    ],
+    ]
   );
 
   return (

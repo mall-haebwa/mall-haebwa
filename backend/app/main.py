@@ -7,6 +7,7 @@ from .models import ensure_indexes
 import os
 from .admin_router import router as admin_router
 from .product_router import router as product_router
+from app.payment_router import router as payment_router
 from .llm_client import llm_client
 from pydantic import BaseModel
 
@@ -35,6 +36,7 @@ async def startup():
 app.include_router(auth_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(product_router)
+app.include_router(payment_router)
 
 
 async def _test_llm_chat_handler(request: ChatRequest):
