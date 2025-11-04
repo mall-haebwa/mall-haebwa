@@ -36,8 +36,8 @@ const parseAmount = (value: unknown, fallback = 0) => {
 };
 // 숫자는 숫자로 문자도 숫자로 변경 시켜주는데 변경 불가능할 경우 기본값 0으로 반환
 
-const normalizerProdectDtail = (raw: any): Product => {
-  const candidate = raw?.product ?? raw ?? {};
+const normalizerProdectDtail = (raw: unknown): Product => {
+  const candidate = (raw as any)?.product ?? raw ?? {};
   // 원본 데이터 추출
 
   const images: string[] =
