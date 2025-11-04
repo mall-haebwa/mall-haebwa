@@ -92,12 +92,20 @@ export default function PaymentSuccess() {
           </div>
         )}
 
-        <button
-          onClick={() => navigate("/")}
-          className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-black"
-        >
-          홈으로 돌아가기
-        </button>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={() => navigate("/orders")}
+            className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-black"
+          >
+            주문 내역 보기
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="bg-white text-gray-900 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50"
+          >
+            홈으로 돌아가기
+          </button>
+        </div>
       </div>
     </div>
   );
