@@ -2,7 +2,12 @@
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        hanalei_regular: ["Hanalei"],
+        nanum: ["Nanum Pen Script"],
+      },
+    },
   },
   plugins: [],
 };

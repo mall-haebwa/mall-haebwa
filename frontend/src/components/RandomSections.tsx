@@ -67,7 +67,8 @@ export function RandomSections() {
               <h2 className="text-3xl font-semibold">
                 {section.title.includes("랜덤") && (
                   <>
-                    <span className="text-blue-600">랜덤 추천</span> 상품
+                    <span className="text-blue-600 font-nanum">랜덤 추천</span>{" "}
+                    상품
                   </>
                 )}
                 {section.title.includes("오늘") && (
