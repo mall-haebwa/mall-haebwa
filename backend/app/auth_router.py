@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from .database import get_db
 from .schemas import UserIn, LoginIn, UserOut, BasicResp
 from .security import hash_password, verify_password, create_token, create_refresh_token, decode_token
-from .models import USERS_COL
+from .models import USERS_COL, ORDERS_COL
 from bson import ObjectId
 # from app.database import get_user_by_email
 from datetime import timedelta
@@ -12,6 +12,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE_ACCESS = "access_token"
 COOKIE_REFRESH = "refresh_token"
+
+
+async def calculate_user_points(user_id: str, db: AsyncIOMotorDatabase) -> int:
+    """사용자의 적립금 계산 (배송완료 주문의 5%)"""
+    try:
+        # 사용자의 배송완료 주문 조회
+        cursor = db[ORDERS_COL].find({"user_id": user_id, "status": "PAID"})
+        orders = await cursor.to_list(length=None)
+
+        # 총 주문 금액 계산
+        total_amount = sum(order.get("amount", 0) for order in orders)
+
+        # 5% 적립
+        points = int(total_amount * 0.05)
+        return points
+    except Exception:
+        return 0
 
 
 def set_cookie(resp: Response, key: str, value: str, max_age: int | None):
@@ -60,6 +77,9 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
     set_cookie(response, COOKIE_REFRESH, refresh, max_age=7 *
                24*60*60 if payload.remember else None)
 
+    # 적립금 계산
+    points = await calculate_user_points(uid, db)
+
     # 프론트가 바로 user 정보 쓰도록 반환
     user_out = {
         "_id": uid,
@@ -67,7 +87,8 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
         "name": user.get("name"),
         "phone": user.get("phone"),
         "address": user.get("address"),
-        "role": user.get("role", "user")
+        "role": user.get("role", "user"),
+        "points": points
     }
     return user_out
 

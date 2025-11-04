@@ -119,7 +119,7 @@ export function MyPage() {
               <div>
                 <p className="text-xs text-gray-500">적립금</p>
                 <p className="mt-1 text-base font-semibold text-gray-900">
-                  12,500P
+                  {(currentUser?.points || 0).toLocaleString()}P
                 </p>
               </div>
               <div>
