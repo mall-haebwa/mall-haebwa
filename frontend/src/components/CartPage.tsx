@@ -12,13 +12,29 @@ import { Separator } from "./ui/separator";
 import { loadTossPayments } from "@tosspayments/payment-sdk"; // 토스페이먼츠 SDK
 import type { CartItem } from "../types";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
+
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, updateCartItem, removeFromCart, currentUser } = useAppState();
+  const { cart, updateCartItem, removeFromCart, currentUser, refreshCart } = useAppState();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [couponCode, setCouponCode] = useState("");
 
   const [tossPayments, setTossPayments] = useState<any>(null); // 토스페이먼츠 인스턴스 상태
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
+
+  // 페이지 마운트 시 장바구니 새로고침
+  useEffect(() => {
+    if (currentUser) {
+      console.log("🔄 장바구니 페이지 마운트 - 서버에서 최신 장바구니 가져오기");
+      refreshCart();
+    }
+  }, [currentUser, refreshCart]);
 
   useEffect(() => {
     setSelectedItems((prev) => {
@@ -88,7 +104,10 @@ export function CartPage() {
   };
 
   const handleQuantity = (index: number, next: number) => {
-    if (next < 1) return;
+    if (next < 1) {
+      removeFromCart(index);
+      return;
+    }
     updateCartItem(index, next);
   };
 
@@ -140,28 +159,33 @@ export function CartPage() {
         selected_size: item.selectedSize ?? "",
       }));
 
+      const purchasedItemIds = selectedCartItems
+        .map((item) => item.id)
+        .filter((id): id is string => Boolean(id));
+
+      console.log("🛒 선택된 장바구니 항목들:", selectedCartItems.map(item => ({ id: item.id, productId: item.productId })));
+      console.log("💾 서버에 전달할 장바구니 ID들:", purchasedItemIds);
+
       console.log("📝 주문 생성 요청...");
       console.log("주문 금액:", totals.total);
       console.log("주문 상품:", orderName);
       console.log("상품 목록:", items);
 
-      // 5. 백엔드에 주문 생성 요청
-      const orderResponse = await fetch(
-        "http://localhost:8000/api/payment/orders",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // 쿠키 전송을 위해 필요
-          body: JSON.stringify({
-            amount: totals.total,
-            order_name: orderName,
-            customer_name: currentUser.name || currentUser.email || "고객",
-            items: items,
-          }),
-        }
-      );
+      // 5. 백엔드에 주문 생성 요청 (장바구니 아이템 ID 포함)
+      const orderResponse = await fetch(withBase("/api/payment/orders"), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: totals.total,
+          order_name: orderName,
+          customer_name: currentUser.name || currentUser.email || "고객",
+          items,
+          cart_item_ids: purchasedItemIds,  // 장바구니 아이템 ID 전달
+        }),
+      });
 
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
@@ -277,12 +301,14 @@ export function CartPage() {
                       <ImageWithFallback
                         src={getItemImage(item)}
                         alt={getItemName(item)}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover cursor-pointer"
+                        onClick={() => handleProductClick(item.productId)}
                       />
                     </div>
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">
+                        <h3 className="text-sm font-medium text-gray-900 cursor-pointer"
+                        onClick={() => handleProductClick(item.productId)}>
                           {getItemName(item)}
                         </h3>
                         <p className="text-xs text-gray-500">
@@ -327,7 +353,7 @@ export function CartPage() {
                           </p>
                           <button
                             type="button"
-                            className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-red-500"
+                            className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 cursor-pointer"
                             onClick={() => removeFromCart(index)}
                           >
                             <Trash2 className="h-3 w-3" />

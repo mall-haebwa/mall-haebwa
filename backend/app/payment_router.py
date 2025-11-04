@@ -7,7 +7,7 @@ import base64
 from datetime import datetime
 from bson import ObjectId
 from .database import get_db
-from .models import ORDERS_COL, USERS_COL
+from .models import ORDERS_COL, USERS_COL, CARTS_COL
 from .auth_router import COOKIE_ACCESS
 from .security import decode_token
 
@@ -62,6 +62,7 @@ class OrderCreate(BaseModel):
     order_name: str
     customer_name: str
     items: list[OrderItem] = []
+    cart_item_ids: list[str] = []  # 장바구니 아이템 ID 목록
 
 class PaymentConfirm(BaseModel):
     payment_key: str
@@ -89,6 +90,7 @@ async def create_order(
         "order_name": order.order_name,
         "customer_name": order.customer_name,
         "items": [item.dict() for item in order.items],
+        "cart_item_ids": order.cart_item_ids,  # 장바구니 아이템 ID 저장
         "status": "READY"
     }
 
@@ -140,6 +142,7 @@ async def confirm_payment(confirm: PaymentConfirm, db=Depends(get_db)):
                 "order_name": saved_order["order_name"],
                 "customer_name": saved_order["customer_name"],
                 "items": saved_order.get("items", []),  # 상품 목록 저장
+                "cart_item_ids": saved_order.get("cart_item_ids", []),  # 장바구니 아이템 ID 저장
                 "status": "PAID",
                 "payment_key": confirm.payment_key,
                 "payment_method": payment_data.get("method", ""),
@@ -153,11 +156,45 @@ async def confirm_payment(confirm: PaymentConfirm, db=Depends(get_db)):
             # 메모리에서 임시 주문 데이터 제거
             orders[confirm.order_id]["status"] = "PAID"
 
+            # 장바구니에서 구매한 상품 삭제
+            cart_item_ids = saved_order.get("cart_item_ids", [])
+            if cart_item_ids:
+                user_id = saved_order["user_id"]
+                print(f"🗑️ 결제 완료 후 장바구니 삭제: user_id={user_id}, cart_item_ids={cart_item_ids}")
+
+                # 삭제 전 장바구니 상태 확인
+                before_cart = await db[CARTS_COL].find_one({"userId": user_id})
+                if before_cart:
+                    print(f"📦 삭제 전 장바구니 아이템 수: {len(before_cart.get('items', []))}")
+                    print(f"📋 삭제 전 아이템 ID 목록: {[item.get('_id') for item in before_cart.get('items', [])]}")
+
+                result = await db[CARTS_COL].update_one(
+                    {"userId": user_id},
+                    {
+                        "$pull": {"items": {"_id": {"$in": cart_item_ids}}},
+                        "$set": {"updatedAt": datetime.utcnow()},
+                    },
+                )
+
+                # 삭제 후 장바구니 상태 확인
+                after_cart = await db[CARTS_COL].find_one({"userId": user_id})
+                if after_cart:
+                    print(f"✅ 삭제 후 장바구니 아이템 수: {len(after_cart.get('items', []))}")
+                    print(f"📋 삭제 후 아이템 ID 목록: {[item.get('_id') for item in after_cart.get('items', [])]}")
+
+                print(f"✅ 장바구니에서 {result.modified_count}개의 문서 수정됨")
+
             return {
                 "success": True,
                 "message": "결제 완료",
-                "payment": payment_data
+                "payment": payment_data,
+                "cart_item_ids": cart_item_ids  # 클라이언트에 전달
             }
 
+        except HTTPException:
+            # HTTPException은 그대로 다시 던짐
+            raise
+        except httpx.RequestError as e:
+            raise HTTPException(500, f"결제 API 요청 실패: {str(e)}")
         except Exception as e:
             raise HTTPException(500, f"서버 오류: {str(e)}")

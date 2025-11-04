@@ -35,11 +35,19 @@ interface Order {
 
 export function OrderHistoryPage() {
   const navigate = useNavigate();
-  const { currentUser } = useAppState();
+  const { currentUser, refreshCart } = useAppState();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // 페이지 마운트 시 장바구니 새로고침
+  useEffect(() => {
+    if (currentUser) {
+      console.log("🔄 주문 내역 페이지 마운트 - 장바구니 새로고침");
+      refreshCart();
+    }
+  }, [currentUser, refreshCart]);
 
   useEffect(() => {
     async function fetchOrders() {
