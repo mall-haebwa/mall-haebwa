@@ -25,10 +25,15 @@ export interface Product {
 }
 
 export interface CartItem {
-  product: Product;
+  id?: string;
+  productId: string;
+  product?: Product;
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
+  priceSnapshot?: number;
+  nameSnapshot?: string;
+  imageSnapshot?: string;
 }
 
 export interface Order {
@@ -51,3 +56,4 @@ export interface Review {
   date: string;
   helpful: number;
 }
+

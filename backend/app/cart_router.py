@@ -52,14 +52,14 @@ async def get_or_create_cart(user_id: str, db: AsyncIOMotorDatabase):
         {
             "userId": user_id,
             "items": [],
-            "updateAt": now,
+            "updatedAt": now,
         }
     )
     return {
         "_id": result.inserted_id,
         "userId": user_id,
         "items": [],
-        "updateAt": now,
+        "updatedAt": now,
     }
 
 def serialize_cart(doc: dict) -> CartOut:
@@ -127,7 +127,7 @@ async def add_cart_item(
 
     now = datetime.utcnow()
     await db[CARTS_COL].update_one(
-        {"useId": current_user["_id"]},
+        {"userId": current_user["_id"]},
         {"$set": {"items": items, "updatedAt": now}},
         upsert=True,
     )

@@ -198,10 +198,14 @@ export function ProductDetailPage() {
     }
 
     addToCart({
+      productId: product.id,
       product,
       quantity,
       selectedColor: product.colors?.length ? selectedColor : undefined,
       selectedSize: product.sizes?.length ? selectedSize : undefined,
+      priceSnapshot: product.price,
+      nameSnapshot: product.name,
+      imageSnapshot: product.image ?? product.images?.[0],
     });
 
     toast.success("장바구니에 상품이 추가되었습니다.", {

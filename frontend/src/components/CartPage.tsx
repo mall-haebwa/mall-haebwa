@@ -10,6 +10,8 @@ import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { loadTossPayments } from "@tosspayments/payment-sdk"; // 토스페이먼츠 SDK
+import type { CartItem } from "../types";
+
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -48,10 +50,17 @@ export function CartPage() {
     initializeTossPayments();
   }, []);
 
+  const getItemName = (item: CartItem) =>
+    item.product?.name ?? item.nameSnapshot ?? "상품";
+  const getItemPrice = (item: CartItem) =>
+    item.product?.price ?? item.priceSnapshot ?? 0;
+  const getItemImage = (item: CartItem) =>
+    item.product?.image ?? item.imageSnapshot ?? item.product?.images?.[0] ?? "";
+
   const totals = useMemo(() => {
     const subtotal = cart
       .filter((_, index) => selectedItems.includes(index))
-      .reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+      .reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0);
     const deliveryFee = subtotal >= 30000 || subtotal === 0 ? 0 : 3000;
     return {
       subtotal,
@@ -59,6 +68,7 @@ export function CartPage() {
       total: subtotal + deliveryFee,
     };
   }, [cart, selectedItems]);
+
 
   const toggleItem = (index: number) => {
     setSelectedItems((prev) =>
@@ -108,7 +118,7 @@ export function CartPage() {
       );
 
       const selectedProducts = selectedCartItems
-        .map((item) => item.product.name)
+        .map((item) => getItemName(item))
         .join(", ");
 
       const orderName =
@@ -118,12 +128,12 @@ export function CartPage() {
 
       // 주문 상품 목록 생성
       const items = selectedCartItems.map((item) => ({
-        product_id: item.product.id,
-        product_name: item.product.name,
+        product_id: item.productId,
+        product_name: getItemName(item),
         quantity: item.quantity,
-        price: item.product.price,
+        price: getItemPrice(item),
         image_url:
-          item.product.image_url ||
+          getItemImage(item) ||
           "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80",
         selected_color: item.selectedColor,
         selected_size: item.selectedSize,
@@ -254,7 +264,7 @@ export function CartPage() {
               <div className="space-y-4">
                 {cart.map((item, index) => (
                   <div
-                    key={`${item.product.id}-${index}`}
+                    key={item.id ?? `${item.productId}-${index}`}
                     className="flex gap-4 border border-gray-200 p-4"
                   >
                     <Checkbox
@@ -263,15 +273,15 @@ export function CartPage() {
                     />
                     <div className="h-20 w-20 shrink-0 overflow-hidden border border-gray-200 bg-gray-50">
                       <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80"
-                        alt={item.product.name}
+                        src={getItemImage(item)}
+                        alt={getItemName(item)}
                         className="h-full w-full object-cover"
                       />
                     </div>
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
-                          {item.product.name}
+                          {getItemName(item)}
                         </h3>
                         <p className="text-xs text-gray-500">
                           {item.selectedColor && `Color: ${item.selectedColor}`}
@@ -310,7 +320,7 @@ export function CartPage() {
                           <p className="text-sm font-semibold text-gray-900">
                             ₩
                             {(
-                              item.product.price * item.quantity
+                              getItemPrice(item) * item.quantity
                             ).toLocaleString()}
                           </p>
                           <button
