@@ -6,7 +6,13 @@ import {
   Settings,
   Star,
   User as UserIcon,
+  TicketPercent as Coupon,
+  History as RecentlyViewed,
+  MessageSquare as Inquiry,
+  Repeat as RepeatPurchase,
+  Store as KeepStores,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAppState } from "../context/app-state";
@@ -14,6 +20,41 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Separator } from "./ui/separator";
+import {
+  ProductPreviewCard,
+  ProductPreviewSkeleton,
+} from "./ProductPreviewCard";
+import type { RecentlyViewedItem, RepeatPurchaseItem } from "./mypage-types";
+
+const PREVIEW_COUNT = 4;
+const MIN_RANDOM_ITEMS = 4;
+const MAX_RANDOM_ITEMS = 10;
+
+const randomBetween = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
+const randomPastDate = (maxDaysAgo: number) => {
+  const now = new Date();
+  const offset = Math.floor(Math.random() * maxDaysAgo);
+  const date = new Date(now);
+  date.setDate(now.getDate() - offset);
+  return date.toISOString();
+};
+
+const formatDate = (isoDate: string) => {
+  const parsed = new Date(isoDate);
+  return Number.isNaN(parsed.getTime())
+    ? "알 수 없음"
+    : parsed.toLocaleDateString("ko-KR");
+};
+
+const AVAILABLE_MENU_PATHS = new Set([
+  "/orders",
+  "/wishlist",
+  "/customer-service",
+  "/repeat-purchases",
+  "/recently-viewed",
+]);
 
 const menuItems = [
   {
@@ -40,11 +81,157 @@ const menuItems = [
     description: "비밀번호, 주소 등 정보를 변경하세요.",
     path: "/settings",
   },
+  {
+    icon: Coupon,
+    title: "보유 쿠폰",
+    description: "보유한 쿠폰을 확인하고 사용하세요.",
+    path: "/coupons",
+  },
+  {
+    icon: RecentlyViewed,
+    title: "최근 본 상품",
+    description: "최근에 본 상품을 확인하세요.",
+    path: "/recently-viewed",
+  },
+  {
+    icon: Inquiry,
+    title: "문의 내역",
+    description: "작성한 문의 사항을 확인하세요.",
+    path: "/customer-service",
+  },
+  {
+    icon: RepeatPurchase,
+    title: "자주 구매한 상품들",
+    description: "자주 구매하는 상품을 빠르게 재주문하세요.",
+    path: "/repeat-purchases",
+  },
+  {
+    icon: KeepStores,
+    title: "관심 스토어",
+    description: "좋아하는 스토어를 한눈에 모아보세요.",
+    path: "/keep-stores",
+  },
 ];
 
 export function MyPage() {
   const navigate = useNavigate();
   const { currentUser, logout } = useAppState();
+  const [repeatItems, setRepeatItems] = useState<RepeatPurchaseItem[]>([]);
+  const [recentItems, setRecentItems] = useState<RecentlyViewedItem[]>([]);
+  const [repeatLoading, setRepeatLoading] = useState(false);
+  const [recentLoading, setRecentLoading] = useState(false);
+  const repeatIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    repeatIdsRef.current = repeatItems.map((item) => item.product.id);
+  }, [repeatItems]);
+
+  const fetchRandomProducts = useCallback(
+    async (limit: number, excludeIds: string[] = []) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (excludeIds.length > 0) {
+        params.set("exclude", excludeIds.join(","));
+      }
+
+      const response = await fetch(
+        `/api/products/random?${params.toString()}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to load products: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return Array.isArray(data.items) ? data.items : [];
+    },
+    []
+  );
+
+  const refreshRepeat = useCallback(async () => {
+    if (!currentUser) {
+      setRepeatItems([]);
+      return;
+    }
+
+    setRepeatLoading(true);
+    try {
+      const products = await fetchRandomProducts(
+        randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS)
+      );
+      setRepeatItems(
+        products.map((product) => ({
+          product,
+          lastPurchasedAt: randomPastDate(90),
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load repeat items", error);
+      toast.error("자주 구매한 상품을 불러오지 못했어요.");
+      setRepeatItems([]);
+    } finally {
+      setRepeatLoading(false);
+    }
+  }, [currentUser, fetchRandomProducts]);
+
+  const refreshRecent = useCallback(async () => {
+    if (!currentUser) {
+      setRecentItems([]);
+      return;
+    }
+
+    setRecentLoading(true);
+    try {
+      const products = await fetchRandomProducts(
+        randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
+        repeatIdsRef.current
+      );
+      setRecentItems(
+        products.map((product) => ({
+          product,
+          viewedAt: randomPastDate(21),
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load recent items", error);
+      toast.error("최근 본 상품을 불러오지 못했어요.");
+      setRecentItems([]);
+    } finally {
+      setRecentLoading(false);
+    }
+  }, [currentUser, fetchRandomProducts]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setRepeatItems([]);
+      setRecentItems([]);
+      return;
+    }
+
+    void refreshRepeat();
+    void refreshRecent();
+  }, [currentUser, refreshRecent, refreshRepeat]);
+
+  const handleProductOpen = useCallback(
+    (productId: string) => {
+      navigate(`/product/${productId}`);
+    },
+    [navigate]
+  );
+
+  const handleSeeAllRepeat = useCallback(() => {
+    navigate("/repeat-purchases", {
+      state: { items: repeatItems },
+    });
+  }, [navigate, repeatItems]);
+
+  const handleSeeAllRecent = useCallback(() => {
+    navigate("/recently-viewed", {
+      state: { items: recentItems },
+    });
+  }, [navigate, recentItems]);
 
   if (!currentUser) {
     return (
@@ -60,8 +247,7 @@ export function MyPage() {
         </div>
         <Button
           className="h-11 px-8 bg-gray-900 text-white hover:bg-black"
-          onClick={() => navigate("/login")}
-        >
+          onClick={() => navigate("/login")}>
           로그인하기
         </Button>
       </div>
@@ -77,7 +263,7 @@ export function MyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-[1100px] px-6 py-10 md:px-8">
+      <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-8">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">마이페이지</h1>
@@ -92,8 +278,7 @@ export function MyPage() {
               logout();
               toast.success("로그아웃되었습니다.");
               navigate("/");
-            }}
-          >
+            }}>
             <LogOut className="h-4 w-4" />
             로그아웃
           </Button>
@@ -125,33 +310,34 @@ export function MyPage() {
               <div>
                 <p className="text-xs text-gray-500">쿠폰</p>
                 <p className="mt-1 text-base font-semibold text-gray-900">
-                  3장
+                  0장
                 </p>
               </div>
             </div>
           </div>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
           {menuItems.map(({ icon: Icon, title, description, path }) => (
             <Card
               key={title}
               className="group cursor-pointer border-gray-200 p-5 transition hover:border-gray-300 hover:shadow-md"
               onClick={() => {
-                if (path === "/reviews" || path === "/settings") {
-                  toast.info("해당 메뉴는 추후 제공될 예정입니다.");
-                } else {
+                if (AVAILABLE_MENU_PATHS.has(path)) {
                   navigate(path);
+                } else {
+                  toast.info("해당 메뉴는 추후 제공될 예정입니다.");
                 }
-              }}
-            >
+              }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{title}</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {title}
+                    </p>
                     <p className="text-xs text-gray-500">{description}</p>
                   </div>
                 </div>
@@ -162,29 +348,165 @@ export function MyPage() {
         </div>
 
         <Separator className="my-8" />
-
-        <Card className="border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900">기본 정보</h2>
-          <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-2">
-            <div>
-              <p className="text-xs text-gray-500">이름</p>
-              <p className="mt-1">{currentUser.name}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">이메일</p>
-              <p className="mt-1">{currentUser.email}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">전화번호</p>
-              <p className="mt-1">{currentUser.phone || "미입력"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">배송지</p>
-              <p className="mt-1">{currentUser.address || "미입력"}</p>
-            </div>
-          </div>
-        </Card>
+        <RepeatPurchaseSection
+          items={repeatItems}
+          loading={repeatLoading}
+          onRefresh={() => {
+            void refreshRepeat();
+          }}
+          onSeeAll={handleSeeAllRepeat}
+          onOpenProduct={handleProductOpen}
+        />
+        <RecentlyViewedSection
+          items={recentItems}
+          loading={recentLoading}
+          onRefresh={() => {
+            void refreshRecent();
+          }}
+          onSeeAll={handleSeeAllRecent}
+          onOpenProduct={handleProductOpen}
+        />
       </div>
     </div>
+  );
+}
+
+interface RepeatPurchaseSectionProps {
+  items: RepeatPurchaseItem[];
+  loading: boolean;
+  onRefresh: () => void;
+  onSeeAll: () => void;
+  onOpenProduct: (productId: string) => void;
+}
+
+interface RecentlyViewedSectionProps {
+  items: RecentlyViewedItem[];
+  loading: boolean;
+  onRefresh: () => void;
+  onSeeAll: () => void;
+  onOpenProduct: (productId: string) => void;
+}
+
+const PreviewSkeletonRow = () => (
+  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {Array.from({ length: PREVIEW_COUNT }).map((_, index) => (
+      <ProductPreviewSkeleton key={"skeleton-" + index} />
+    ))}
+  </div>
+);
+
+function RepeatPurchaseSection({
+  items,
+  loading,
+  onRefresh,
+  onSeeAll,
+  onOpenProduct,
+}: RepeatPurchaseSectionProps) {
+  const previewItems = items.slice(0, PREVIEW_COUNT);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            자주 구매한 상품
+          </h2>
+          <p className="text-xs text-gray-500">
+            최근 구매 기록을 바탕으로 추천된 상품이에요.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={onSeeAll}>
+            전체보기
+          </Button>
+          {/* <Button variant="ghost" size="sm" onClick={onRefresh}>
+            다시 추천
+          </Button> */}
+        </div>
+      </div>
+      {loading ? (
+        <PreviewSkeletonRow />
+      ) : previewItems.length === 0 ? (
+        <Card className="border-gray-200 p-6 text-center text-sm text-gray-600">
+          최근 구매한 상품이 아직 없어요.
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {previewItems.map((item) => (
+            <ProductPreviewCard
+              key={item.product.id}
+              product={item.product}
+              onOpen={onOpenProduct}
+              meta={"마지막 구매일 " + formatDate(item.lastPurchasedAt)}
+              primaryLabel="재주문"
+              onPrimaryAction={() => {
+                toast.info("재주문 기능은 준비 중입니다.");
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecentlyViewedSection({
+  items,
+  loading,
+  onRefresh,
+  onSeeAll,
+  onOpenProduct,
+}: RecentlyViewedSectionProps) {
+  const previewItems = items.slice(0, PREVIEW_COUNT);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">최근 본 상품</h2>
+          <p className="text-xs text-gray-500">
+            관심 있게 살펴본 상품을 다시 확인해 보세요.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={onSeeAll}>
+            전체보기
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              toast.info("최근 기록 비우기는 준비 중입니다.");
+            }}>
+            기록 비우기
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onRefresh}>
+            다시 추천
+          </Button>
+        </div>
+      </div>
+      {loading ? (
+        <PreviewSkeletonRow />
+      ) : previewItems.length === 0 ? (
+        <Card className="border-gray-200 p-6 text-center text-sm text-gray-600">
+          최근에 열람한 상품이 아직 없어요.
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {previewItems.map((item) => (
+            <ProductPreviewCard
+              key={item.product.id}
+              product={item.product}
+              onOpen={onOpenProduct}
+              meta={formatDate(item.viewedAt) + "에 열람"}
+              primaryLabel="보기"
+              onPrimaryAction={(product) => {
+                onOpenProduct(product.id);
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
