@@ -18,6 +18,8 @@ import { AppStateProvider } from "./context/app-state";
 import { AISearchPage } from "./components/AiSearchPage";
 import PaymentSuccess from "./components/PaymentSuccess"; // 결제 성공 컴포넌트
 import PaymentFail from "./components/PaymentFail"; // 결제 실패 컴포넌트
+import { RepeatPurchasePage } from "./components/RepeatPurchasePage";
+import { RecentlyViewedPage } from "./components/RecentlyViewedPage";
 
 function ScrollToTop() {
   const location = useLocation();
@@ -45,6 +47,8 @@ function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/orders" element={<OrderHistoryPage />} />
+          <Route path="/repeat-purchases" element={<RepeatPurchasePage />} />
+          <Route path="/recently-viewed" element={<RecentlyViewedPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />
