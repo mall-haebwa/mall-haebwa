@@ -7,7 +7,7 @@ from asyncio import Lock
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from .database import get_product_db
+from .database import get_db
 
 
 router = APIRouter(prefix="/products", tags=["products-categories"])
@@ -67,23 +67,36 @@ async def _build_category_tree(db: AsyncIOMotorDatabase) -> list[dict[str, Any]]
 
 @router.get("/categories")
 async def list_categories(
-    db: AsyncIOMotorDatabase = Depends(get_product_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Return category tree from current DB state.
+    """Return category tree with in-memory caching.
 
-    Previously this endpoint cached the first computed tree which could
-    remain empty if products were loaded after the first call. To avoid
-    confusion during setup, we rebuild on every request. If you need
-    aggressive caching, use the rebuild endpoint below or add TTL.
+    - First request builds the tree and caches it in-process.
+    - Subsequent requests return the cached result.
+    - To force a refresh, call POST /products/categories/rebuild.
     """
-    items = await _build_category_tree(db)
-    return {
-        "items": items,
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
-    }
+    global _category_tree_cache
+
+    # Fast path: return cached value if available
+    if _category_tree_cache is not None:
+        return _category_tree_cache
+
+    # Slow path: build once with double-checked locking
+    async with _category_tree_lock:
+        if _category_tree_cache is not None:
+            return _category_tree_cache
+
+        items = await _build_category_tree(db)
+        _category_tree_cache = {
+            "items": items,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        }
+        return _category_tree_cache
+
+
 @router.post("/categories/rebuild")
 async def rebuild_categories(
-    db: AsyncIOMotorDatabase = Depends(get_product_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ):
 
     global _category_tree_cache

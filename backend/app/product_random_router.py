@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 
-from .database import get_product_db
+from .database import get_db
 from .product_router import _reshape_product
 
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/products", tags=["products-random"])
 async def random_products(
     limit: int = Query(20, ge=1, le=60),
     exclude: list[str] = Query(default=[]),
-    db: AsyncIOMotorDatabase = Depends(get_product_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     """중복 없이 완전 랜덤, 순서도 매번 다른 상품 목록을 반환합니다.
 
