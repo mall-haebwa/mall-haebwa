@@ -103,8 +103,11 @@ export function CartPage() {
 
     try {
       // 4. 선택된 상품들의 정보 수집
-      const selectedProducts = cart
-        .filter((_, index) => selectedItems.includes(index))
+      const selectedCartItems = cart.filter((_, index) =>
+        selectedItems.includes(index)
+      );
+
+      const selectedProducts = selectedCartItems
         .map((item) => item.product.name)
         .join(", ");
 
@@ -113,9 +116,23 @@ export function CartPage() {
           ? `${selectedProducts.substring(0, 47)}...`
           : selectedProducts;
 
+      // 주문 상품 목록 생성
+      const items = selectedCartItems.map((item) => ({
+        product_id: item.product.id,
+        product_name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+        image_url:
+          item.product.image_url ||
+          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80",
+        selected_color: item.selectedColor,
+        selected_size: item.selectedSize,
+      }));
+
       console.log("📝 주문 생성 요청...");
       console.log("주문 금액:", totals.total);
       console.log("주문 상품:", orderName);
+      console.log("상품 목록:", items);
 
       // 5. 백엔드에 주문 생성 요청
       const orderResponse = await fetch(
@@ -129,6 +146,7 @@ export function CartPage() {
             amount: totals.total,
             order_name: orderName,
             customer_name: currentUser.name || currentUser.email || "고객",
+            items: items,
           }),
         }
       );
