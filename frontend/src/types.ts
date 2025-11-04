@@ -57,3 +57,8 @@ export interface Review {
   helpful: number;
 }
 
+export interface WishlistItem {
+  wishlist_id: string;
+  product: Product;
+  added_at: string | null;
+}

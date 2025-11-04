@@ -138,7 +138,7 @@ export function MyPage() {
               key={title}
               className="group cursor-pointer border-gray-200 p-5 transition hover:border-gray-300 hover:shadow-md"
               onClick={() => {
-                if (path === "/wishlist" || path === "/reviews" || path === "/settings") {
+                if (path === "/reviews" || path === "/settings") {
                   toast.info("해당 메뉴는 추후 제공될 예정입니다.");
                 } else {
                   navigate(path);
