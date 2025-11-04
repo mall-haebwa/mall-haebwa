@@ -55,10 +55,7 @@ export function RepeatPurchasePage() {
 
   const [items, setItems] = useState<RepeatPurchaseItem[]>(state.items ?? []);
   const [loading, setLoading] = useState(items.length === 0);
-  const [refreshing, setRefreshing] = useState(false);
-
   const loadItems = useCallback(async () => {
-    setRefreshing(true);
     try {
       const products = await fetchRandomProducts(
         randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
@@ -74,7 +71,6 @@ export function RepeatPurchasePage() {
       toast.error("자주 구매한 상품을 불러오지 못했어요.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -128,16 +124,6 @@ export function RepeatPurchasePage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/mypage")}>
               마이페이지로
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={refreshing}
-              onClick={() => {
-                void loadItems();
-              }}
-            >
-              다시 추천
             </Button>
           </div>
         </div>
