@@ -57,3 +57,6 @@ class CartOut(BaseModel):
 
 class CartItemQuantityUpdate(BaseModel):
     quantity: int = Field(..., ge=1)
+
+class CartItemsDeleteRequest(BaseModel):
+    item_ids: list[str] = Field(..., min_length=1)

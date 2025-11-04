@@ -1,13 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAppState } from "../context/app-state";
+import type { PaymentResult } from "../types";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const API_URL = ((import.meta as any).env?.VITE_API_URL as string | undefined) || "";
+
+const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<PaymentResult | null>(null);
+  const { refreshCart, currentUser } = useAppState();
+  const hasConfirmed = useRef(false);
+
+  // 페이지 마운트 시에도 장바구니 새로고침 (백업)
+  useEffect(() => {
+    if (currentUser && !loading) {
+      console.log("🔄 결제 완료 페이지 표시 중 - 장바구니 새로고침");
+      refreshCart();
+    }
+  }, [currentUser, loading, refreshCart]);
 
   useEffect(() => {
+    // 중복 요청 방지
+    if (hasConfirmed.current) return;
+
     async function confirmPayment() {
       const paymentKey = searchParams.get("paymentKey");
       const orderId = searchParams.get("orderId");
@@ -19,33 +39,59 @@ export default function PaymentSuccess() {
         return;
       }
 
+      hasConfirmed.current = true;
+
       try {
         // 서버에 결제 승인 요청
-        const response = await fetch(
-          "http://localhost:8000/api/payment/confirm",
-          {
-            method: "POST",
-            credentials: "include", // 쿠키 전송을 위해 필요
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              payment_key: paymentKey,
-              order_id: orderId,
-              amount: parseInt(amount),
-            }),
-          }
-        );
+        const response = await fetch(withBase("/api/payment/confirm"), {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            payment_key: paymentKey,
+            order_id: orderId,
+            amount: parseInt(amount, 10),
+          }),
+        });
 
         const data = await response.json();
 
         if (response.ok) {
           setResult(data.payment);
+
+          // 서버에서 장바구니 삭제가 이미 완료되었으므로 클라이언트 장바구니를 새로고침
+          console.log("🔄 서버에서 장바구니 삭제 완료, 클라이언트 장바구니 새로고침 중...");
+
+          // 장바구니 새로고침 (여러 번 재시도)
+          const tryRefresh = async (retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+              if (currentUser || i > 0) {
+                try {
+                  await refreshCart();
+                  console.log(`✅ 장바구니 새로고침 완료 (시도 ${i + 1}/${retries})`);
+                  return;
+                } catch (error) {
+                  console.warn(`⚠️ 장바구니 새로고침 실패 (시도 ${i + 1}/${retries})`, error);
+                }
+              }
+
+              if (i < retries - 1) {
+                console.log(`⏳ currentUser 로드 대기 중... (${i + 1}/${retries})`);
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+            }
+            console.warn("⚠️ 장바구니 새로고침 최종 실패");
+          };
+
+          await tryRefresh();
         } else {
           throw new Error(data.detail);
         }
       } catch (error) {
-        alert("결제 승인에 실패했습니다: " + error.message);
+        const message = error instanceof Error ? error.message : "알 수 없는 오류";
+        alert("결제 승인에 실패했습니다: " + message);
         navigate("/");
       } finally {
         setLoading(false);
@@ -53,7 +99,7 @@ export default function PaymentSuccess() {
     }
 
     confirmPayment();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, refreshCart, currentUser]);
 
   if (loading) {
     return (

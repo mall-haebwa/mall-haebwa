@@ -21,6 +21,8 @@ interface AppStateValue {
   addToCart: (item: CartItem) => void;
   updateCartItem: (index: number, quantity: number) => void;
   removeFromCart: (index: number) => void;
+  removeItemsById: (ids: string[]) => Promise<void>;
+  refreshCart: () => Promise<void>;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
   searchQuery: string;
@@ -28,7 +30,8 @@ interface AppStateValue {
 }
 
 type ServerCartItem = {
-  id: string;
+  id?: string;
+  _id?: string;
   productId: string;
   quantity: number;
   selectedColor?: string;
@@ -53,8 +56,29 @@ type Keyable = {
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const API_URL = ((import.meta as any).env?.VITE_API_URL as string | undefined) || "";
+
 const cartKey = (item: Keyable) =>
   `${item.productId}|${item.selectedColor ?? ""}|${item.selectedSize ?? ""}`;
+
+const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
+
+const serializeCartForComparison = (items: CartItem[]) =>
+  JSON.stringify(
+    [...items]
+      .map((item) => ({
+        key: cartKey(item),
+        quantity: item.quantity,
+        priceSnapshot: item.priceSnapshot ?? null,
+        nameSnapshot: item.nameSnapshot ?? null,
+        imageSnapshot: item.imageSnapshot ?? null,
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key)),
+  );
+
+const cartsEqual = (a: CartItem[], b: CartItem[]) =>
+  serializeCartForComparison(a) === serializeCartForComparison(b);
 
 const cloneProduct = (product?: Product) =>
   product ? { ...product, images: [...product.images] } : undefined;
@@ -64,6 +88,44 @@ const cloneCart = (items: CartItem[]) =>
     ...item,
     product: cloneProduct(item.product),
   }));
+
+const mergeCartEntries = (base: CartItem[], extras: CartItem[]): CartItem[] => {
+  const map = new Map<string, CartItem>();
+
+  base.forEach((item) => {
+    map.set(cartKey(item), {
+      ...item,
+      product: cloneProduct(item.product),
+    });
+  });
+
+  extras.forEach((item) => {
+    const key = cartKey(item);
+    const existing = map.get(key);
+    if (existing) {
+      existing.quantity += item.quantity;
+      if (item.priceSnapshot !== undefined && item.priceSnapshot !== null) {
+        existing.priceSnapshot = item.priceSnapshot;
+      }
+      if (item.nameSnapshot) {
+        existing.nameSnapshot = item.nameSnapshot;
+      }
+      if (item.imageSnapshot) {
+        existing.imageSnapshot = item.imageSnapshot;
+      }
+      if (!existing.product && item.product) {
+        existing.product = cloneProduct(item.product);
+      }
+    } else {
+      map.set(key, {
+        ...item,
+        product: cloneProduct(item.product),
+      });
+    }
+  });
+
+  return Array.from(map.values());
+};
 
 const normalizeForState = (item: CartItem): CartItem => ({
   ...item,
@@ -101,7 +163,7 @@ const mapServerCart = (
   return data.items.map((item) => {
     const key = cartKey(item);
     return {
-      id: item.id,
+      id: item.id ?? item._id,
       productId: item.productId,
       quantity: item.quantity,
       selectedColor: item.selectedColor,
@@ -124,7 +186,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await axios.get("/api/auth/me", {
+        const response = await axios.get(withBase("/api/auth/me"), {
           withCredentials: true,
         });
 
@@ -165,10 +227,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     try {
       const response = await axios.get<ServerCartResponse>(
-        "/api/cart",
+        withBase("/api/cart"),
         { withCredentials: true },
       );
-      setCart((prev) => mapServerCart(response.data, prev));
+      setCart(() => mapServerCart(response.data, cartRef.current));
     } catch (error) {
       console.error("Failed to fetch cart:", error);
       toast.error("장바구니를 불러오지 못했어요.");
@@ -185,36 +247,45 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
     const syncCart = async () => {
       try {
-        if (pendingUpload.length) {
-          await axios.put(
-            "/api/cart",
-            {
-              items: pendingUpload.map(buildCartItemPayload),
-            },
-            { withCredentials: true },
-          );
-          guestCartRef.current = [];
-        }
-
         const response = await axios.get<ServerCartResponse>(
-          "/api/cart",
+          withBase("/api/cart"),
           { withCredentials: true },
         );
 
+        let serverCart = mapServerCart(response.data, cartRef.current);
+        let mergedCart = serverCart;
+
+        if (pendingUpload.length) {
+          mergedCart = mergeCartEntries(serverCart, pendingUpload);
+          const needsUpdate = !cartsEqual(serverCart, mergedCart);
+
+          if (needsUpdate) {
+            await axios.put(
+              withBase("/api/cart"),
+              {
+                items: mergedCart.map(buildCartItemPayload),
+              },
+              { withCredentials: true },
+            );
+            const refreshed = await axios.get<ServerCartResponse>(
+              withBase("/api/cart"),
+              { withCredentials: true },
+            );
+            mergedCart = mapServerCart(refreshed.data, cartRef.current);
+          }
+
+          guestCartRef.current = [];
+        }
+
         if (!cancelled) {
-          setCart((prev) =>
-            mapServerCart(
-              response.data,
-              pendingUpload.length ? pendingUpload : prev,
-            ),
-          );
+          setCart(mergedCart);
         }
       } catch (error) {
         console.error("Failed to sync cart:", error);
         if (!cancelled) {
           toast.error("장바구니를 불러오지 못했어요.");
           if (pendingUpload.length) {
-            setCart(pendingUpload);
+            setCart(cloneCart(pendingUpload));
           }
         }
       }
@@ -263,12 +334,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       axios
         .post<ServerCartResponse>(
-          "/api/cart/items",
+          withBase("/api/cart/items"),
           buildCartItemPayload(normalized),
           { withCredentials: true },
         )
         .then((response) => {
-          setCart((prev) => mapServerCart(response.data, prev));
+          setCart(() => mapServerCart(response.data, cartRef.current));
         })
         .catch((error) => {
           console.error("Failed to add cart item:", error);
@@ -279,9 +350,95 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [currentUser],
   );
 
+  const removeFromCart = useCallback(
+    (index: number) => {
+      let rollback: CartItem[] = [];
+      let itemId: string | undefined;
+
+      setCart((prev) => {
+        const target = prev[index];
+        if (!target) {
+          return prev;
+        }
+        rollback = cloneCart(prev);
+        itemId = target.id;
+        return prev.filter((_, i) => i !== index);
+      });
+
+      if (!currentUser) {
+        return;
+      }
+
+      if (!itemId) {
+        void fetchCartFromServer();
+        return;
+      }
+
+      axios
+        .delete<ServerCartResponse>(
+          withBase(`/api/cart/items/${itemId}`),
+          { withCredentials: true },
+        )
+        .then((response) => {
+          setCart(() => mapServerCart(response.data, cartRef.current));
+        })
+        .catch((error) => {
+          console.error("Failed to remove cart item:", error);
+          setCart(rollback);
+          toast.error("장바구니에서 상품을 삭제하지 못했어요.");
+        });
+    },
+    [currentUser, fetchCartFromServer],
+  );
+
+  const removeItemsById = useCallback(
+    async (ids: string[]) => {
+      console.log("🗑️ removeItemsById 호출됨, IDs:", ids);
+
+      if (!ids.length) {
+        console.log("⚠️ 삭제할 ID가 없습니다");
+        return;
+      }
+
+      let rollback: CartItem[] = [];
+      setCart((prev) => {
+        console.log("�� 현재 장바구니:", prev.map(item => ({ id: item.id, productId: item.productId })));
+        rollback = cloneCart(prev);
+        const filtered = prev.filter((item) => !item.id || !ids.includes(item.id));
+        console.log("🔄 필터링 후 장바구니:", filtered.map(item => ({ id: item.id, productId: item.productId })));
+        return filtered;
+      });
+
+      if (!currentUser) {
+        console.log("⚠️ 로그인되지 않음, 서버 삭제 건너뜀");
+        return;
+      }
+
+      try {
+        console.log("🌐 서버에 일괄 삭제 요청 중...");
+        // 일괄 삭제 API 사용
+        const response = await axios.post<ServerCartResponse>(
+          withBase("/api/cart/items/delete-batch"),
+          { item_ids: ids },
+          { withCredentials: true },
+        );
+        console.log("✅ 서버 삭제 완료");
+        // 응답으로 받은 업데이트된 장바구니 상태로 직접 업데이트
+        setCart(() => mapServerCart(response.data, cartRef.current));
+        console.log("✅ 장바구니 업데이트 완료");
+      } catch (error) {
+        console.error("❌ 장바구니 항목 삭제 실패:", error);
+        setCart(rollback);
+        toast.error("결제 후 장바구니 정리에 실패했습니다.");
+      }
+    },
+    [currentUser],
+  );
+
   const updateCartItem = useCallback(
     (index: number, quantity: number) => {
       if (quantity < 1) {
+        removeFromCart(index);
         return;
       }
 
@@ -311,12 +468,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       axios
         .patch<ServerCartResponse>(
-          `/api/cart/items/${itemId}`,
+          withBase(`/api/cart/items/${itemId}`),
           { quantity },
           { withCredentials: true },
         )
         .then((response) => {
-          setCart((prev) => mapServerCart(response.data, prev));
+          setCart(() => mapServerCart(response.data, cartRef.current));
         })
         .catch((error) => {
           console.error("Failed to update cart item:", error);
@@ -324,48 +481,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           toast.error("수량을 변경하지 못했어요.");
         });
     },
-    [currentUser, fetchCartFromServer],
-  );
-
-  const removeFromCart = useCallback(
-    (index: number) => {
-      let rollback: CartItem[] = [];
-      let itemId: string | undefined;
-
-      setCart((prev) => {
-        const target = prev[index];
-        if (!target) {
-          return prev;
-        }
-        rollback = cloneCart(prev);
-        itemId = target.id;
-        return prev.filter((_, i) => i !== index);
-      });
-
-      if (!currentUser) {
-        return;
-      }
-
-      if (!itemId) {
-        void fetchCartFromServer();
-        return;
-      }
-
-      axios
-        .delete<ServerCartResponse>(
-          `/api/cart/items/${itemId}`,
-          { withCredentials: true },
-        )
-        .then((response) => {
-          setCart((prev) => mapServerCart(response.data, prev));
-        })
-        .catch((error) => {
-          console.error("Failed to remove cart item:", error);
-          setCart(rollback);
-          toast.error("장바구니에서 상품을 삭제하지 못했어요.");
-        });
-    },
-    [currentUser, fetchCartFromServer],
+    [currentUser, fetchCartFromServer, removeFromCart],
   );
 
   const login = useCallback((user: User) => {
@@ -375,7 +491,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await axios.post(
-        "/api/auth/logout",
+        withBase("/api/auth/logout"),
         {},
         { withCredentials: true },
       );
@@ -383,8 +499,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       console.error("Failed to logout:", error);
     }
     setCurrentUser(null);
+    guestCartRef.current = [];
     setCart([]);
-    guestCartRef.current = cloneCart(cartRef.current);
   }, []);
 
   const value = useMemo<AppStateValue>(
@@ -396,6 +512,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addToCart,
       updateCartItem,
       removeFromCart,
+      removeItemsById,
+      refreshCart: fetchCartFromServer,
       selectedCategory,
       setSelectedCategory,
       searchQuery,
@@ -409,6 +527,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addToCart,
       updateCartItem,
       removeFromCart,
+      removeItemsById,
+      fetchCartFromServer,
       selectedCategory,
       searchQuery,
     ]

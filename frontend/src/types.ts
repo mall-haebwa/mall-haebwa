@@ -63,3 +63,11 @@ export interface WishlistItem {
   product: Product;
   added_at: string | null;
 }
+
+export interface PaymentResult {
+  orderId: string;
+  totalAmount: number;
+  method: string;
+  approvedAt: string;
+  status?: string;
+}

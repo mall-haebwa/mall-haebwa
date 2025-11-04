@@ -12,12 +12,34 @@ from .models import CARTS_COL, USERS_COL
 from .schemas import (
     CartItemIn,
     CartItemQuantityUpdate,
+    CartItemsDeleteRequest,
     CartOut,
     CartUpsert,
 )
 from .security import decode_token
 
 router = APIRouter(prefix="/cart", tags=["cart"])
+
+def merge_items(existing: list[dict], incoming: list[dict]) -> list[dict]:
+    by_key: dict[tuple[str, str | None, str | None], dict] = {}
+    for item in existing:
+        key = (item["productId"], item.get("selectedColor"), item.get("selectedSize"))
+        by_key[key] = {**item}
+    for item in incoming:
+        key = (item["productId"], item.get("selectedColor"), item.get("selectedSize"))
+        if key in by_key:
+            current = by_key[key]
+            current["quantity"] += item["quantity"]
+            # 스냅샷이 들어와 있으면 갱신
+            if item.get("priceSnapshot") is not None:
+                current["priceSnapshot"] = item["priceSnapshot"]
+            if item.get("nameSnapshot"):
+                current["nameSnapshot"] = item["nameSnapshot"]
+            if item.get("imageSnapshot"):
+                current["imageSnapshot"] = item["imageSnapshot"]
+        else:
+            by_key[key] = {**item}
+    return list(by_key.values())
 
 
 async def get_current_user(
@@ -64,10 +86,12 @@ async def get_or_create_cart(user_id: str, db: AsyncIOMotorDatabase):
 
 def serialize_cart(doc: dict) -> CartOut:
     items = []
-    for item in doc.get("items",[]):
+    for item in doc.get("items", []):
+        item_id = str(item.get("_id"))
         items.append(
             {
-                "_id": item["_id"],
+                "_id": item_id,
+                "id": item_id,
                 "productId": item["productId"],
                 "quantity": item["quantity"],
                 "selectedColor": item.get("selectedColor"),
@@ -81,6 +105,7 @@ def serialize_cart(doc: dict) -> CartOut:
     return CartOut.model_validate(
         {
             "_id": str(doc["_id"]),
+            "id": str(doc["_id"]),
             "userId": doc["userId"],
             "items": items,
             "updatedAt": doc.get("updatedAt"),
@@ -162,7 +187,15 @@ async def delete_cart_item(
     current_user=Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    print(f"🗑️ 삭제 요청: user_id={current_user['_id']}, item_id={item_id}")
     now = datetime.utcnow()
+
+    # 삭제 전 장바구니 상태 확인
+    before_cart = await db[CARTS_COL].find_one({"userId": current_user["_id"]})
+    if before_cart:
+        print(f"📦 삭제 전 장바구니 아이템 수: {len(before_cart.get('items', []))}")
+        print(f"📋 삭제 전 아이템 ID 목록: {[item.get('_id') for item in before_cart.get('items', [])]}")
+
     updated = await db[CARTS_COL].find_one_and_update(
         {"userId": current_user["_id"]},
         {
@@ -171,8 +204,51 @@ async def delete_cart_item(
         },
         return_document=ReturnDocument.AFTER,
     )
+
+    if updated:
+        print(f"✅ 삭제 후 장바구니 아이템 수: {len(updated.get('items', []))}")
+        print(f"📋 삭제 후 아이템 ID 목록: {[item.get('_id') for item in updated.get('items', [])]}")
+
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="장바구니 항목을 찾을 수 없습니다.")
+    return serialize_cart(updated)
+
+@router.post("/items/delete-batch", response_model=CartOut, status_code=status.HTTP_200_OK)
+async def delete_cart_items_batch(
+    payload: CartItemsDeleteRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """여러 장바구니 아이템을 한 번에 삭제"""
+    item_ids = payload.item_ids
+    print(f"🗑️ 일괄 삭제 요청: user_id={current_user['_id']}, item_ids={item_ids}")
+    now = datetime.utcnow()
+
+    # 삭제 전 장바구니 상태 확인
+    before_cart = await db[CARTS_COL].find_one({"userId": current_user["_id"]})
+    if before_cart:
+        print(f"📦 삭제 전 장바구니 아이템 수: {len(before_cart.get('items', []))}")
+        print(f"📋 삭제 전 아이템 ID 목록: {[item.get('_id') for item in before_cart.get('items', [])]}")
+
+    # $pull을 사용하여 여러 개의 아이템을 한 번에 삭제
+    updated = await db[CARTS_COL].find_one_and_update(
+        {"userId": current_user["_id"]},
+        {
+            "$pull": {"items": {"_id": {"$in": item_ids}}},
+            "$set": {"updatedAt": now},
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if updated:
+        print(f"✅ 삭제 후 장바구니 아이템 수: {len(updated.get('items', []))}")
+        print(f"📋 삭제 후 아이템 ID 목록: {[item.get('_id') for item in updated.get('items', [])]}")
+    else:
+        print(f"⚠️ 장바구니를 찾을 수 없습니다.")
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="장바구니를 찾을 수 없습니다.")
+
     return serialize_cart(updated)
 
 @router.put("/", response_model=CartOut)
@@ -181,35 +257,29 @@ async def replace_cart(
     current_user=Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    deduped: dict[tuple[str, str | None, str | None], dict] = {}
+    existing = await get_or_create_cart(current_user["_id"], db)
+    now = datetime.utcnow()
+
+    incoming = []
     for item in payload.items:
-        key = (item.productId, item.selectedColor, item.selectedSize)
-        stored = deduped.setdefault(
-            key,
+        incoming.append(
             {
                 "_id": str(uuid4()),
                 "productId": item.productId,
-                "quantity": 0,
+                "quantity": item.quantity,
                 "selectedColor": item.selectedColor,
                 "selectedSize": item.selectedSize,
                 "priceSnapshot": item.priceSnapshot,
                 "nameSnapshot": item.nameSnapshot,
                 "imageSnapshot": item.imageSnapshot,
-            },
+            }
         )
-        stored["quantity"] += item.quantity
-        if item.priceSnapshot is not None:
-            stored["priceSnapshot"] = item.priceSnapshot
-        if item.nameSnapshot is not None:
-            stored["nameSnapshot"] = item.nameSnapshot
-        if item.imageSnapshot is not None:
-            stored["imageSnapshot"] = item.imageSnapshot
 
-    now = datetime.utcnow()
-    items = list(deduped.values())
+    merged = merge_items(existing.get("items", []), incoming)
+
     await db[CARTS_COL].update_one(
         {"userId": current_user["_id"]},
-        {"$set": {"items": items, "updatedAt": now}},
+        {"$set": {"items": merged, "updatedAt": now}},
         upsert=True,
     )
     updated = await db[CARTS_COL].find_one({"userId": current_user["_id"]})
