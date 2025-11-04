@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from .database import get_product_db
+from .database import get_db
 
 from bson import ObjectId
 
@@ -126,7 +126,7 @@ async def search_products(
     sort: str = Query("popular"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=60),
-    db: AsyncIOMotorDatabase = Depends(get_product_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ):
   """검색어/카테고리/브랜드/가격 조건으로 상품을 조회한다."""
   # 상품 정보를 보관하는 MongoDB 컬렉션을 가져온다.
@@ -225,7 +225,7 @@ async def search_products(
 @router.get("/{product_id}")
 async def get_product_detail(
     product_id: str,
-    db: AsyncIOMotorDatabase = Depends(get_product_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     try:
         obj_id = ObjectId(product_id)
