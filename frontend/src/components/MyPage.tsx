@@ -348,24 +348,20 @@ export function MyPage() {
         </div>
 
         <Separator className="my-8" />
-        <RepeatPurchaseSection
-          items={repeatItems}
-          loading={repeatLoading}
-          onRefresh={() => {
-            void refreshRepeat();
-          }}
-          onSeeAll={handleSeeAllRepeat}
-          onOpenProduct={handleProductOpen}
-        />
-        <RecentlyViewedSection
-          items={recentItems}
-          loading={recentLoading}
-          onRefresh={() => {
-            void refreshRecent();
-          }}
-          onSeeAll={handleSeeAllRecent}
-          onOpenProduct={handleProductOpen}
-        />
+        <div className="space-y-9">
+          <RepeatPurchaseSection
+            items={repeatItems}
+            loading={repeatLoading}
+            onSeeAll={handleSeeAllRepeat}
+            onOpenProduct={handleProductOpen}
+          />
+          <RecentlyViewedSection
+            items={recentItems}
+            loading={recentLoading}
+            onSeeAll={handleSeeAllRecent}
+            onOpenProduct={handleProductOpen}
+          />
+        </div>
       </div>
     </div>
   );
@@ -374,7 +370,6 @@ export function MyPage() {
 interface RepeatPurchaseSectionProps {
   items: RepeatPurchaseItem[];
   loading: boolean;
-  onRefresh: () => void;
   onSeeAll: () => void;
   onOpenProduct: (productId: string) => void;
 }
@@ -382,7 +377,6 @@ interface RepeatPurchaseSectionProps {
 interface RecentlyViewedSectionProps {
   items: RecentlyViewedItem[];
   loading: boolean;
-  onRefresh: () => void;
   onSeeAll: () => void;
   onOpenProduct: (productId: string) => void;
 }
@@ -398,7 +392,6 @@ const PreviewSkeletonRow = () => (
 function RepeatPurchaseSection({
   items,
   loading,
-  onRefresh,
   onSeeAll,
   onOpenProduct,
 }: RepeatPurchaseSectionProps) {
@@ -419,9 +412,6 @@ function RepeatPurchaseSection({
           <Button variant="outline" size="sm" onClick={onSeeAll}>
             전체보기
           </Button>
-          {/* <Button variant="ghost" size="sm" onClick={onRefresh}>
-            다시 추천
-          </Button> */}
         </div>
       </div>
       {loading ? (
@@ -453,7 +443,6 @@ function RepeatPurchaseSection({
 function RecentlyViewedSection({
   items,
   loading,
-  onRefresh,
   onSeeAll,
   onOpenProduct,
 }: RecentlyViewedSectionProps) {
@@ -479,9 +468,6 @@ function RecentlyViewedSection({
               toast.info("최근 기록 비우기는 준비 중입니다.");
             }}>
             기록 비우기
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onRefresh}>
-            다시 추천
           </Button>
         </div>
       </div>

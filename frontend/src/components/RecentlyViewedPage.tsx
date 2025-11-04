@@ -55,10 +55,7 @@ export function RecentlyViewedPage() {
 
   const [items, setItems] = useState<RecentlyViewedItem[]>(state.items ?? []);
   const [loading, setLoading] = useState(items.length === 0);
-  const [refreshing, setRefreshing] = useState(false);
-
   const loadItems = useCallback(async () => {
-    setRefreshing(true);
     try {
       const products = await fetchRandomProducts(
         randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
@@ -74,7 +71,6 @@ export function RecentlyViewedPage() {
       toast.error("최근 본 상품을 불러오지 못했어요.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -135,16 +131,6 @@ export function RecentlyViewedPage() {
               onClick={() => toast.info("최근 기록 비우기는 준비 중입니다.")}
             >
               기록 비우기
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={refreshing}
-              onClick={() => {
-                void loadItems();
-              }}
-            >
-              다시 추천
             </Button>
           </div>
         </div>

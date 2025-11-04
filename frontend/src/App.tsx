@@ -58,7 +58,18 @@ function AppRoutes() {
           <Route path="/payment/fail" element={<PaymentFail />} />
         </Routes>
       </main>
-      <Toaster />
+      <Toaster
+        position="top-center"
+        expand
+        duration={1500}
+        toastOptions={{
+          style: {
+            background: "#1e1e25",
+            color: "#fff",
+            border: "1px solid #6d28d9",
+          },
+        }}
+      />
     </>
   );
 }
