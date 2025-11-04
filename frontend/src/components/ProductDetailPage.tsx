@@ -113,7 +113,7 @@ const normalizerProdectDtail = (raw: unknown): Product => {
 export function ProductDetailPage() {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
-  const { addToCart, currentUser } = useAppState();
+  const { addToCart, currentUser, setSelectedCategory, setSearchQuery } = useAppState();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -199,6 +199,14 @@ export function ProductDetailPage() {
     setSelectedSize(product.sizes?.[0] ?? DEFAULT_SIZE);
   }, [product]);
 
+  const handleCategoryClick = () => {
+    if (product?.category) {
+      setSelectedCategory(product.category);
+      setSearchQuery("");
+      navigate("/products");
+    }
+  };
+
   const handleAddToCart = () => {
     if (!product) {
       toast.error("상품 정보를 불러오지 못했어요.");
@@ -277,7 +285,7 @@ export function ProductDetailPage() {
             홈
           </button>
           <span>/</span>
-          <button type="button" onClick={() => navigate("/products")}>
+          <button type="button" onClick={handleCategoryClick}>
             {product.category}
           </button>
           <span>/</span>
