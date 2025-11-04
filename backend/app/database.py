@@ -6,9 +6,10 @@ import os
 load_dotenv()
 
 # Docker Compose 환경변수와 일치하도록 수정
-_MONGO_URI = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+_MONGO_URI = os.getenv("MONGODB_URL")  # 기본 주소값 제거하고 에러 메시지 추가
 DB_NAME = os.getenv("MONGODB_DB_NAME", "ecommerce_ai")
-DB_PRODUCT = os.getenv("MONGODB_PRODUCT_DB_NAME", "naver_shopping")
+if not _MONGO_URI:
+    raise ValueError("MONGODB_URL 환경변수가 설정되지 않았습니다.")
 _client: AsyncIOMotorClient | None = None
 
 
@@ -23,8 +24,3 @@ def get_client() -> AsyncIOMotorClient:
 def get_db() -> AsyncIOMotorDatabase:
     client = get_client()
     return client[DB_NAME]
-
-
-async def get_product_db() -> AsyncIOMotorDatabase:
-    client = get_client()
-    return client[DB_PRODUCT]
