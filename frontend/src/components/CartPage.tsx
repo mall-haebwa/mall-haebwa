@@ -136,8 +136,8 @@ export function CartPage() {
         image_url:
           getItemImage(item) ||
           "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80",
-        selected_color: item.selectedColor || "",
-        selected_size: item.selectedSize || "",
+        selected_color: item.selectedColor ?? "",
+        selected_size: item.selectedSize ?? "",
       }));
 
       console.log("📝 주문 생성 요청...");
