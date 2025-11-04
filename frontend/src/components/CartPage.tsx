@@ -12,7 +12,6 @@ import { Separator } from "./ui/separator";
 import { loadTossPayments } from "@tosspayments/payment-sdk"; // 토스페이먼츠 SDK
 import type { CartItem } from "../types";
 
-
 export function CartPage() {
   const navigate = useNavigate();
   const { cart, updateCartItem, removeFromCart, currentUser } = useAppState();
@@ -55,7 +54,10 @@ export function CartPage() {
   const getItemPrice = (item: CartItem) =>
     item.product?.price ?? item.priceSnapshot ?? 0;
   const getItemImage = (item: CartItem) =>
-    item.product?.image ?? item.imageSnapshot ?? item.product?.images?.[0] ?? "";
+    item.product?.image ??
+    item.imageSnapshot ??
+    item.product?.images?.[0] ??
+    "";
 
   const totals = useMemo(() => {
     const subtotal = cart
@@ -68,7 +70,6 @@ export function CartPage() {
       total: subtotal + deliveryFee,
     };
   }, [cart, selectedItems]);
-
 
   const toggleItem = (index: number) => {
     setSelectedItems((prev) =>
@@ -135,8 +136,8 @@ export function CartPage() {
         image_url:
           getItemImage(item) ||
           "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80",
-        selected_color: item.selectedColor,
-        selected_size: item.selectedSize,
+        selected_color: item.selectedColor || "",
+        selected_size: item.selectedSize || "",
       }));
 
       console.log("📝 주문 생성 요청...");
