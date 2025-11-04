@@ -9,6 +9,7 @@ import { Card } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useEffect, useState } from "react";
+import { DeliveryTrackingModal } from "./DeliveryTrackingModal";
 
 interface OrderItem {
   product_id: string;
@@ -37,6 +38,8 @@ export function OrderHistoryPage() {
   const { currentUser } = useAppState();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -236,7 +239,10 @@ export function OrderHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toast.info("배송 현황 조회 기능은 준비 중입니다.")}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setDeliveryModalOpen(true);
+                        }}
                         className="flex items-center gap-1"
                       >
                         <Truck className="h-3 w-3" />
@@ -279,6 +285,17 @@ export function OrderHistoryPage() {
           </Tabs>
         )}
       </div>
+
+      {/* 배송 조회 모달 */}
+      {selectedOrder && (
+        <DeliveryTrackingModal
+          isOpen={deliveryModalOpen}
+          onClose={() => setDeliveryModalOpen(false)}
+          orderId={selectedOrder.order_id}
+          approvedAt={selectedOrder.approved_at}
+          orderName={selectedOrder.order_name}
+        />
+      )}
     </div>
   );
 }
