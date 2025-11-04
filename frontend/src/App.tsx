@@ -15,6 +15,8 @@ import { CustomerServicePage } from "./components/CustomerServicePage";
 import { Toaster } from "./components/ui/sonner";
 import { AppStateProvider } from "./context/app-state";
 import { AISearchPage } from "./components/AiSearchPage";
+import PaymentSuccess from "./components/PaymentSuccess"; // 결제 성공 컴포넌트
+import PaymentFail from "./components/PaymentFail"; // 결제 실패 컴포넌트
 
 function ScrollToTop() {
   const location = useLocation();
@@ -45,6 +47,9 @@ function AppRoutes() {
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />
           <Route path="/aisearch" element={<AISearchPage />} />
+          {/* 결제 성공, 실패 라우터 추가 */}
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/fail" element={<PaymentFail />} />
         </Routes>
       </main>
       <Toaster />
