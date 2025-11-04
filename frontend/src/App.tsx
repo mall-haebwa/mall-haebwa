@@ -68,7 +68,6 @@ function AppRoutes() {
           style: {
             background: "#1e1e25",
             color: "#fff",
-            border: "1px solid #6d28d9",
           },
         }}
       />
