@@ -47,8 +47,10 @@ function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/orders" element={<OrderHistoryPage />} />
+          {/* 마이페이지용 라우트  추가 */}
           <Route path="/repeat-purchases" element={<RepeatPurchasePage />} />
           <Route path="/recently-viewed" element={<RecentlyViewedPage />} />
+          {/* 마이페이지용 라우트  추가 */}
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />

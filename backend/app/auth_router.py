@@ -55,6 +55,7 @@ async def register(payload: UserIn, db: AsyncIOMotorDatabase = Depends(get_db)):
         "phone": payload.phone,
         "address": payload.address,
         "role": "user",  # ✅ 기본값 추가
+        "recentlyViewed": [],
     }
     await db[USERS_COL].insert_one(doc)
     return {"message": "가입 완료"}
@@ -88,7 +89,8 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
         "phone": user.get("phone"),
         "address": user.get("address"),
         "role": user.get("role", "user"),
-        "points": points
+        "points": points,
+        "recentlyViewed": user.get("recentlyViewed", []),
     }
     return user_out
 
@@ -142,6 +144,8 @@ async def me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
     user = await db[USERS_COL].find_one({"_id": ObjectId(uid)})
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    points = await calculate_user_points(uid, db)
+
     return {
         "_id": uid,
         "email": user["email"],
@@ -149,4 +153,6 @@ async def me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
         "phone": user.get("phone"),
         "address": user.get("address"),
         "role": user.get("role", "user"),
+        "points": points,
+        "recentlyViewed": user.get("recentlyViewed", []),
     }

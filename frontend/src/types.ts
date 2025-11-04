@@ -1,3 +1,8 @@
+export interface RecentlyViewedEntry {
+  productId: string;
+  viewedAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -5,6 +10,7 @@ export interface User {
   phone: string;
   address: string;
   points?: number; // 적립금
+  recentlyViewed?: RecentlyViewedEntry[];
 }
 
 export interface Product {

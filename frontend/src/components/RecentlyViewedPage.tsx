@@ -7,40 +7,13 @@ import { ProductPreviewCard, ProductPreviewSkeleton } from "./ProductPreviewCard
 import type { RecentlyViewedItem } from "./mypage-types";
 import { useAppState } from "../context/app-state";
 import { User as UserIcon } from "lucide-react";
-
-const MIN_RANDOM_ITEMS = 6;
-const MAX_RANDOM_ITEMS = 12;
-
-const randomBetween = (min: number, max: number) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-const randomPastDate = (maxDaysAgo: number) => {
-  const now = new Date();
-  const offset = Math.floor(Math.random() * maxDaysAgo);
-  const date = new Date(now);
-  date.setDate(now.getDate() - offset);
-  return date.toISOString();
-};
+import { normalizeProductSummary } from "../utils/product-normalize";
 
 const formatDate = (iso: string) => {
   const parsed = new Date(iso);
   return Number.isNaN(parsed.getTime())
     ? "알 수 없음"
     : parsed.toLocaleDateString("ko-KR");
-};
-
-const fetchRandomProducts = async (limit: number) => {
-  const params = new URLSearchParams({ limit: String(limit) });
-  const response = await fetch(`/api/products/random?${params.toString()}`, {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load products: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return Array.isArray(data.items) ? data.items : [];
 };
 
 type LocationState = {
@@ -55,32 +28,55 @@ export function RecentlyViewedPage() {
 
   const [items, setItems] = useState<RecentlyViewedItem[]>(state.items ?? []);
   const [loading, setLoading] = useState(items.length === 0);
+
   const loadItems = useCallback(async () => {
+    setLoading(true);
     try {
-      const products = await fetchRandomProducts(
-        randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
-      );
+      const response = await fetch("/api/users/recently-viewed", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load recently viewed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const fetched = Array.isArray(data?.items) ? data.items : [];
+
       setItems(
-        products.map((product) => ({
-          product,
-          viewedAt: randomPastDate(21),
-        })),
+        fetched
+          .map((item: any) => {
+            if (!item?.product) {
+              return null;
+            }
+            const product = normalizeProductSummary(item.product);
+            const viewedRaw = item.viewedAt;
+            const viewedAt =
+              typeof viewedRaw === "string"
+                ? viewedRaw
+                : new Date(viewedRaw ?? Date.now()).toISOString();
+            return { product, viewedAt } as RecentlyViewedItem;
+          })
+          .filter(Boolean) as RecentlyViewedItem[]
       );
     } catch (error) {
       console.error("Failed to load recently viewed items", error);
       toast.error("최근 본 상품을 불러오지 못했어요.");
+      setItems([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (items.length === 0 && currentUser) {
-      void loadItems();
-    } else {
+    if (!currentUser) {
+      setItems([]);
       setLoading(false);
+      return;
     }
-  }, [currentUser, items.length, loadItems]);
+
+    void loadItems();
+  }, [currentUser, loadItems]);
 
   const handleOpenProduct = useCallback(
     (productId: string) => {
@@ -155,7 +151,7 @@ export function RecentlyViewedPage() {
                 meta={formatDate(item.viewedAt) + "에 열람"}
                 primaryLabel="보기"
                 onPrimaryAction={(product) => {
-                  onOpenProduct(product.id);
+                  handleOpenProduct(product.id);
                 }}
               />
             ))}

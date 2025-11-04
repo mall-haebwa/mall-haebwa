@@ -12,7 +12,7 @@ import {
   Repeat as RepeatPurchase,
   Store as KeepStores,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAppState } from "../context/app-state";
@@ -25,6 +25,7 @@ import {
   ProductPreviewSkeleton,
 } from "./ProductPreviewCard";
 import type { RecentlyViewedItem, RepeatPurchaseItem } from "./mypage-types";
+import { normalizeProductSummary } from "../utils/product-normalize";
 
 const PREVIEW_COUNT = 4;
 const MIN_RANDOM_ITEMS = 4;
@@ -120,11 +121,6 @@ export function MyPage() {
   const [recentItems, setRecentItems] = useState<RecentlyViewedItem[]>([]);
   const [repeatLoading, setRepeatLoading] = useState(false);
   const [recentLoading, setRecentLoading] = useState(false);
-  const repeatIdsRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    repeatIdsRef.current = repeatItems.map((item) => item.product.id);
-  }, [repeatItems]);
 
   const fetchRandomProducts = useCallback(
     async (limit: number, excludeIds: string[] = []) => {
@@ -184,24 +180,44 @@ export function MyPage() {
 
     setRecentLoading(true);
     try {
-      const products = await fetchRandomProducts(
-        randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
-        repeatIdsRef.current
-      );
+      const response = await fetch("/api/users/recently-viewed", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load recently viewed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data?.items) ? data.items : [];
+
       setRecentItems(
-        products.map((product) => ({
-          product,
-          viewedAt: randomPastDate(21),
-        }))
+        items
+          .map((item: any) => {
+            if (!item?.product) {
+              return null;
+            }
+            const product = normalizeProductSummary(item.product);
+            const viewedRaw = item.viewedAt;
+            const viewedAt =
+              typeof viewedRaw === "string"
+                ? viewedRaw
+                : new Date(viewedRaw ?? Date.now()).toISOString();
+            return {
+              product,
+              viewedAt,
+            } as RecentlyViewedItem;
+          })
+          .filter(Boolean) as RecentlyViewedItem[]
       );
     } catch (error) {
-      console.error("Failed to load recent items", error);
+      console.error("Failed to load recently viewed items", error);
       toast.error("최근 본 상품을 불러오지 못했어요.");
       setRecentItems([]);
     } finally {
       setRecentLoading(false);
     }
-  }, [currentUser, fetchRandomProducts]);
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser) {
