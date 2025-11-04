@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     phone: str | None = None
     address: str | None = None
     role: str = "user"
+    points: int = 0  # 적립금
 
 
 class BasicResp(BaseModel):

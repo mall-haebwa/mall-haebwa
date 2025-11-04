@@ -4,6 +4,7 @@ export interface User {
   name: string;
   phone: string;
   address: string;
+  points?: number; // 적립금
 }
 
 export interface Product {
