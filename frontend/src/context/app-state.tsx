@@ -67,8 +67,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setCurrentUser(user);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await axios.post(
+        `${API_URL}/api/auth/logout`,
+        {},
+        { withCredentials: true },
+      );
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
     setCurrentUser(null);
+    setCart([]);
+    guestCartRef.current = cloneCart(cartRef.current);
   }, []);
 
   const value = useMemo<AppStateValue>(
