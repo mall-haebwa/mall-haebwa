@@ -1,11 +1,3 @@
----
-name: "Docs PR"
-about: "문서 관련 변경 사항(PR)을 위한 템플릿입니다."
-title: "[Docs] "
-labels: documentation
-assignees: ""
----
-
 # docs 전용 템플릿
 
 ## 문서 수정

@@ -1,11 +1,3 @@
----
-name: "Bug Fix PR"
-about: "버그 수정용 Pull Request 템플릿"
-title: "[Fix] "
-labels: bug
-assignees: ""
----
-
 # fix 전용 템플릿
 
 ## 버그 수정
