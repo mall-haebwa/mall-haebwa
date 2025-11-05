@@ -40,16 +40,18 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            이 풀 리퀘스트를 검토하고 다음 항목에 대한 피드백을 한글로 제공해주세요:
+            - 코드 품질 및 베스트 프랙티스
+            - 잠재적인 버그나 이슈
+            - 성능 고려사항
+            - 보안 문제
+            - 테스트 커버리지
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            리포지토리의 CLAUDE.md 파일이 있다면 스타일과 컨벤션 가이드로 활용하세요. 건설적이고 도움이 되는 피드백을 제공해주세요.
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            **중요: 모든 리뷰 코멘트는 반드시 한글로 작성해야 합니다.**
+
+            Bash 도구의 `gh pr comment` 명령어를 사용하여 PR에 리뷰를 코멘트로 남겨주세요.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
