@@ -104,7 +104,7 @@ export function WishlistPage() {
         );
         setSelectedItems([]);
         toast.success("선택한 항목이 제거되었습니다.");
-        } catch (error: any) {
+        } catch {
         toast.error("일부 항목 제거에 실패했습니다.");
         }
     };
