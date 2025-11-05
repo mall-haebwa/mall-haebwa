@@ -61,7 +61,7 @@ export function RepeatPurchasePage() {
         randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
       );
       setItems(
-        products.map((product) => ({
+        products.map((product: any) => ({
           product,
           lastPurchasedAt: randomPastDate(90),
         })),

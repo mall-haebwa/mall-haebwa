@@ -26,6 +26,7 @@ import {
 } from "./ProductPreviewCard";
 import type { RecentlyViewedItem, RepeatPurchaseItem } from "./mypage-types";
 import { normalizeProductSummary } from "../utils/product-normalize";
+import { Product } from "@/types";
 
 const PREVIEW_COUNT = 4;
 const MIN_RANDOM_ITEMS = 4;
@@ -158,7 +159,7 @@ export function MyPage() {
         randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS)
       );
       setRepeatItems(
-        products.map((product) => ({
+        products.map((product: Product) => ({
           product,
           lastPurchasedAt: randomPastDate(90),
         }))

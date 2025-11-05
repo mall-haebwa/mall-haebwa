@@ -1,4 +1,4 @@
-import { ChevronRight, Package, RotateCcw, Truck } from "lucide-react";
+import { Package, RotateCcw, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAppState } from "../context/app-state";
