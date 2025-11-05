@@ -1,4 +1,4 @@
-import { X, Package, Truck, CheckCircle2, Clock } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,

@@ -386,7 +386,7 @@ export function ProductDetailPage() {
 
             <p className="text-sm text-gray-600">{product.description}</p>
 
-            {product.colors?.length > 0 && (
+            {product.colors && product.colors.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">색상</div>
                 <div className="flex flex-wrap gap-2">
@@ -405,7 +405,7 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {product.sizes?.length > 0 && (
+            {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">사이즈</div>
                 <div className="flex flex-wrap gap-2">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";

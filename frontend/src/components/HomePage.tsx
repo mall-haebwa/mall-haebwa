@@ -1,28 +1,11 @@
 import { Sparkles, Star, TrendingUp } from "lucide-react";
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useAppState } from "../context/app-state";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { RandomSections } from "./RandomSections";
 
 // Reverted: directly render RandomSections without in-view lazy mount
 
 export function HomePage() {
-  const navigate = useNavigate();
-  const { setSelectedCategory, setSearchQuery } = useAppState();
 
-  const goToAllProducts = () => {
-    setSelectedCategory("all");
-    setSearchQuery("");
-    navigate("/products");
-  };
-
-  const goToProduct = (productId: string) => {
-    navigate(`/product/${productId}`);
-  };
-
-  
 
   return (
     <div className="bg-white">

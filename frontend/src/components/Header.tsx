@@ -6,17 +6,6 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
-const categories = [
-  "패션의류",
-  "뷰티",
-  "식품",
-  "생활/주방",
-  "가전디지털",
-  "스포츠/레저",
-  "출산/육아",
-  "도서",
-];
-
 export function Header() {
   const navigate = useNavigate();
   const { currentUser, cart, logout, setSearchQuery, setSelectedCategory } =
