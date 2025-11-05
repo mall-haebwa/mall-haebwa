@@ -8,7 +8,13 @@ from .models import USERS_COL, ORDERS_COL
 from bson import ObjectId
 # from app.database import get_user_by_email
 from datetime import timedelta
+import os
+
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# 환경변수로 쿠키 설정 제어
+COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN") or None
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 COOKIE_ACCESS = "access_token"
 COOKIE_REFRESH = "refresh_token"
@@ -37,10 +43,10 @@ def set_cookie(resp: Response, key: str, value: str, max_age: int | None):
         value=value,
         httponly=True,
         samesite="lax",
-        secure=False,  # 로컬에서는 False, 배포시 True + HTTPS
+        secure=COOKIE_SECURE,
         max_age=max_age,
         path="/",
-	domain=".mall-haebwa.com",
+        domain=COOKIE_DOMAIN,
     )
 
 
