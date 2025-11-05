@@ -1,19 +1,17 @@
-version: '3.8'
-
 services:
   # MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
-  # mongodb:
-  #   image: mongo:7.0
-  #   container_name: ecommerce-mongodb
-  #   restart: unless-stopped
-  #   ports:
-  #     - "27017:27017"
-  #   environment:
-  #     MONGO_INITDB_DATABASE: ecommerce_ai
-  #   volumes:
-  #     - mongodb_data:/d ata/db
-  #   networks:
-  #     - ecommerce-network
+  mongodb:
+    image: mongo:7.0
+    container_name: ecommerce-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ecommerce_ai
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - ecommerce-network
 
   # FastAPI 백엔드
   backend:

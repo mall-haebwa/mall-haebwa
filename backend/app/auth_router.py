@@ -40,6 +40,7 @@ def set_cookie(resp: Response, key: str, value: str, max_age: int | None):
         secure=False,  # 로컬에서는 False, 배포시 True + HTTPS
         max_age=max_age,
         path="/",
+	domain=".mall-haebwa.com",
     )
 
 

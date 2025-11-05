@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+
+  # MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
+   mongodb:
+     image: mongo:7.0
+     container_name: ecommerce-mongodb
+     restart: unless-stopped
+     ports:
+       - "27017:27017"
+     environment:
+       MONGO_INITDB_DATABASE: ecommerce_ai
+     volumes:
+       - mongodb_data:/d ata/db
+     networks:
+       - ecommerce-network
+
+  # FastAPI 백엔드
+   backend:
+     build:
+     context: ./backend
+     dockerfile: Dockerfile
+     container_name: ecommerce-backend
+     restart: unless-stopped
+     ports:
+       - "8000:8000"
+     env_file:
+       - .env.docker
+     volumes:
+       - ./backend:/app
+    # EC2 MongoDB 사용하므로 depends_on 제거
+    # depends_on:
+    #   - mongodb
+     networks:
+       - ecommerce-network
+
+  # React + Vite 프론트엔드
+   frontend:
+     build:
+       context: ./frontend
+       dockerfile: Dockerfile
+     container_name: ecommerce-frontend
+     restart: unless-stopped
+     ports:
+       - "3000:3000"
+     env_file:
+       - .env.docker
+     volumes:
+       - ./frontend:/app
+       - /app/node_modules
+     depends_on:
+       - backend
+     networks:
+       - ecommerce-network
+     stdin_open: true
+     tty: true
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
