@@ -26,7 +26,7 @@ dist-ssr
 __pycache__/
 *.env
 .idea/
-# .github/
+.github/
 ./backend/.env
 
 # Docker 환경 파일 (실제 환경변수 포함)
