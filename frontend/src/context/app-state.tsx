@@ -202,7 +202,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             ? user.recentlyViewed
             : [],
         });
-      } catch (error) {
+      } catch {
         // 로그인 안 되어 있으면 그냥 무시
         console.log("Not logged in");
       }
@@ -256,7 +256,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           { withCredentials: true },
         );
 
-        let serverCart = mapServerCart(response.data, cartRef.current);
+        const serverCart = mapServerCart(response.data, cartRef.current);
         let mergedCart = serverCart;
 
         if (pendingUpload.length) {
