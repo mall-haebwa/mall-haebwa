@@ -231,7 +231,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
     try {
       const response = await axios.get<ServerCartResponse>(
-        withBase("/api/cart"),
+        withBase("/api/cart/"),
         { withCredentials: true },
       );
       setCart(() => mapServerCart(response.data, cartRef.current));
@@ -252,7 +252,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     const syncCart = async () => {
       try {
         const response = await axios.get<ServerCartResponse>(
-          withBase("/api/cart"),
+          withBase("/api/cart/"),
           { withCredentials: true },
         );
 
@@ -265,14 +265,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
           if (needsUpdate) {
             await axios.put(
-              withBase("/api/cart"),
+              withBase("/api/cart/"),
               {
                 items: mergedCart.map(buildCartItemPayload),
               },
               { withCredentials: true },
             );
             const refreshed = await axios.get<ServerCartResponse>(
-              withBase("/api/cart"),
+              withBase("/api/cart/"),
               { withCredentials: true },
             );
             mergedCart = mapServerCart(refreshed.data, cartRef.current);
