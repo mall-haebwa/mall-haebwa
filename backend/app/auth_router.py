@@ -137,15 +137,20 @@ async def logout(response: Response):
 
 @router.get("/me", response_model=UserOut)
 async def me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    print(f"[DEBUG /api/auth/me] All cookies: {dict(request.cookies)}")
     at = request.cookies.get(COOKIE_ACCESS)
+    print(f"[DEBUG /api/auth/me] Access token present: {at is not None}")
     if not at:
+        print("[DEBUG /api/auth/me] No access token found - returning 401")
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
     try:
         payload = decode_token(at)
         if payload.get("scope") != "access":
             raise ValueError("Not access")
         uid = payload["sub"]
-    except Exception:
+        print(f"[DEBUG /api/auth/me] Token validated successfully for user: {uid}")
+    except Exception as e:
+        print(f"[DEBUG /api/auth/me] Token validation failed: {str(e)}")
         raise HTTPException(status_code=401, detail="토큰이 유효하지 않습니다.")
 
     user = await db[USERS_COL].find_one({"_id": ObjectId(uid)})

@@ -1,11 +1,24 @@
 import { Sparkles, Star, TrendingUp } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { RandomSections } from "./RandomSections";
+import { useNavigate } from "react-router-dom";
+import { useAppState } from "../context/app-state";
 
 // Reverted: directly render RandomSections without in-view lazy mount
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const { setSelectedCategory, setSearchQuery } = useAppState();
 
+  const goToAllProducts = () => {
+    setSelectedCategory("all");
+    setSearchQuery("");
+    navigate("/products");
+  };
+
+  const goToProduct = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
 
   return (
     <div className="bg-white">
@@ -17,8 +30,8 @@ export function HomePage() {
               <h1 className="text-xl md:text-2xl">AI 자연어 검색</h1>
             </div>
             <p className="mb-3 text-sm opacity-90 md:text-base">
-              &quot;여름 원피스&quot;, &quot;출근룩 바지&quot; 같은 자연어로
-              검색하세요.
+              &quot;화이트 톤의 인테리어에 어울리는 가구&quot;, &quot;여름 출근
+              때 입을 바지&quot; 같은 자연어로 검색하세요.
             </p>
             <div className="flex gap-2 text-xs">
               <Badge className="border-0 bg-white/15 text-white backdrop-blur-sm">

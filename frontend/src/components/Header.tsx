@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Search, ShoppingCart, Sparkles, User, Heart } from "lucide-react";
+import {
+  Menu,
+  Search,
+  ShoppingCart,
+  Sparkles,
+  User,
+  Heart,
+} from "lucide-react";
 import { useAppState } from "../context/app-state";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -11,6 +18,7 @@ export function Header() {
   const { currentUser, cart, logout, setSearchQuery, setSelectedCategory } =
     useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
+  const [aiSearchQuery, setAiSearchQuery] = useState(""); // 추가
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -52,11 +60,6 @@ export function Header() {
     // 카테고리를 초기화해서 필터 충돌 방지
     navigate("/products");
     // 페이지 이동
-  };
-
-  const aihandleSearch = () => {
-    setSearchQuery(searchQuery);
-    navigate("/aisearch");
   };
 
   const goTo = (path: string) => {
@@ -114,32 +117,60 @@ export function Header() {
             </div>
           </button>
 
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
+          <div className="flex flex-1 gap-3">
+            {/* 일반 키워드 검색 */}
+            <form onSubmit={handleSearch} className="flex-1">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="키워드 검색"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQueryInput(event.target.value)}
+                  className="h-12 w-full rounded-lg border-2 border-gray-300 pl-4 pr-12 focus-visible:border-gray-900 focus-visible:ring-0"
+                />
+                <Button
+                  type="submit"
+                  className="absolute right-0 top-0 h-12 w-12 rounded-l-none rounded-r-lg bg-gray-900 p-0 text-white hover:bg-black"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </div>
+            </form>
+
+            {/* AI 검색 */}
+            <div className="relative flex-1">
               <Input
                 type="text"
-                placeholder="AI 자연어 검색 '여름 원피스', '출근룩 바지' 등으로 검색해 보세요"
-                value={searchQuery}
-                onChange={(event) => setSearchQueryInput(event.target.value)}
-                className="h-12 w-full rounded-sm border-2 border-gray-900 pl-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder="AI 자연어 검색"
+                value={aiSearchQuery}
+                onChange={(event) => setAiSearchQuery(event.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (aiSearchQuery.trim()) {
+                      setSearchQuery(aiSearchQuery);
+                      navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
+                      setAiSearchQuery("");
+                    }
+                  }
+                }}
+                className="h-12 w-full rounded-lg border-2 border-purple-300 pl-4 pr-32 focus-visible:border-purple-500 focus-visible:ring-0"
               />
-              <div className="absolute inset-y-0 right-[52px] flex items-center">
-                <Badge
-                  onClick={() => aihandleSearch()} // 검색어를 누르고 AI 검색을 누를 시 AI 검색 페이지로 이동하도록 추가
-                  className="mx-[10px] cursor-pointer bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                >
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  AI
-                </Badge>
-              </div>
               <Button
-                type="submit"
-                className="absolute right-0 top-0 h-12 w-12 rounded-l-none rounded-r-sm bg-gray-900 p-0 text-white hover:bg-black"
+                onClick={() => {
+                  if (aiSearchQuery.trim()) {
+                    setSearchQuery(aiSearchQuery);
+                    navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
+                    setAiSearchQuery("");
+                  }
+                }}
+                className="absolute right-0 top-0 h-12 rounded-l-none rounded-r-lg bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
               >
-                <Search className="h-5 w-5" />
+                <Sparkles className="mr-2 h-4 w-4" />
+                AI 검색
               </Button>
             </div>
-          </form>
+          </div>
 
           <div className="ml-auto flex items-center gap-1">
             <Button
@@ -150,7 +181,7 @@ export function Header() {
             >
               <Heart className="h-5 w-5" />
             </Button>
-            
+
             <Button
               variant="ghost"
               size="sm"

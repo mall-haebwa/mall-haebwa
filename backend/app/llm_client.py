@@ -1,124 +1,105 @@
-"""
-LM Studio LLM 클라이언트
-로컬에서 실행 중인 LM Studio API와 통신
-"""
-
-from openai import AsyncOpenAI
+from google import genai
+from typing import List, Dict
 import os
-from typing import List, Dict, Optional
+import traceback
 
+class GeminiClient:
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
+        """제미나이 클라이언트 초기화 (새 SDK)"""
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = model_name
 
-class LMStudioClient:
-    """LM Studio API 클라이언트"""
-
-    def __init__(self):
-        """
-        환경변수에서 설정 로드
-        - LM_STUDIO_BASE_URL: LM Studio 서버 주소
-        - LM_STUDIO_MODEL: 사용할 모델명
-        """
-        self.base_url = os.getenv(
-            "LM_STUDIO_BASE_URL",
-            "http://host.docker.internal:1234/v1"
-        )
-        self.model = os.getenv(
-            "LM_STUDIO_MODEL",
-            "llama-3.1-8b-instruct"
-        )
-
-        # OpenAI 호환 비동기 클라이언트 생성
-        self.client = AsyncOpenAI(
-            base_url=self.base_url,
-            api_key="not-needed"  # LM Studio는 API 키 불필요
-        )
-
-    async def chat(
-            self,
-            messages: List[Dict[str, str]],
-            temperature: float = 0.7,
-            max_tokens: int = 500,
-            stream: bool = False
-    ) -> str:
-        """
-        채팅 완성 요청
-
-        Args:
-            messages: 대화 메시지 리스트
-                [{"role": "user", "content": "안녕?"}]
-            temperature: 응답 랜덤성 (0.0~1.0)
-            max_tokens: 최대 토큰 수
-            stream: 스트리밍 여부
-
-        Returns:
-            LLM 응답 텍스트
-        """
+    async def chat(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_tokens: int = 1000):
+        """제미나이 API 호출 (async, 새 SDK)"""
         try:
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=stream
+            print(f"[LLM] Starting chat with {len(messages)} messages")
+            print(f"[LLM] Model: {self.model_name}")
+            print(f"[LLM] Temperature: {temperature}, Max tokens: {max_tokens}")
+
+            # 새 SDK는 OpenAI 스타일의 메시지 형식을 그대로 사용
+            # System 프롬프트 포함 전체 메시지를 하나의 contents로 변환
+
+            # System 메시지를 컨텍스트로 처리
+            system_instruction = None
+            chat_messages = messages.copy()
+
+            if messages and messages[0]["role"] == "system":
+                system_instruction = messages[0]["content"]
+                chat_messages = messages[1:]
+                print(f"[LLM] System instruction detected (length: {len(system_instruction)})")
+
+        # 메시지를 단일 프롬프트로 결합
+            # 새 SDK는 대화 히스토리를 자동으로 처리하지 않으므로 직접 구성
+            prompt_parts = []
+
+            if system_instruction:
+                prompt_parts.append(f"시스템 지침:\n{system_instruction}\n")
+
+            # 이전 대화 히스토리 추가 (있다면)
+            for msg in chat_messages[:-1]:
+                role = msg["role"]
+                content = msg["content"]
+                if role == "user":
+                    prompt_parts.append(f"사용자: {content}")
+                elif role == "assistant":
+                    prompt_parts.append(f"어시스턴트: {content}")
+
+            # 현재 사용자 메시지
+            current_message = chat_messages[-1]["content"]
+            prompt_parts.append(f"사용자: {current_message}")
+            prompt_parts.append("어시스턴트:")
+
+            full_prompt = "\n\n".join(prompt_parts)
+            print(f"[LLM] Sending request to Gemini API...")
+            print(f"[LLM] Current user message: {current_message}")
+
+            # 새 SDK로 API 호출
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config={
+                    "temperature": temperature,
+                    "max_output_tokens": max_tokens,
+                    "response_mime_type": "application/json",
+                }
             )
 
-            if stream:
-                # 스트리밍 모드 (나중에 구현)
-                return response
-            else:
-                return response.choices[0].message.content
+            response_text = response.text
+            print(f"[LLM] Response received (length: {len(response_text)})")
+            print(f"[LLM] Response text: {response_text[:200]}...")
+
+            return response_text
 
         except Exception as e:
-            raise Exception(f"LM Studio 요청 실패: {str(e)}")
-
-    async def generate_intent_analysis(self, user_query: str) -> str:
-        """
-        사용자 쿼리에서 의도 분석
-
-        Args:
-            user_query: 사용자 입력 ("김치찌개 먹고 싶다")
-
-        Returns:
-            의도 분석 결과 (JSON 형식 문자열)
-        """
-        system_prompt = """당신은 쇼핑몰 AI 어시스턴트입니다.
-사용자의 요청을 분석하여 다음 JSON 형식으로 응답하세요:
-
-{
-  "intent": "음식 요리",
-  "keywords": ["김치찌개", "재료"],
-  "suggestions": {
-    "meal_kit": "김치찌개 밀키트를 추천드립니다.",
-    "ingredients": "김치, 돼지고기, 두부를 개별 구매할 수 있습니다."
-  }
-}
-
-반드시 JSON 형식으로만 응답하세요."""
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_query}
-        ]
-
-        return await self.chat(messages, temperature=0.3, max_tokens=300)
-
-    async def test_connection(self) -> bool:
-        """
-        LM Studio 연결 테스트
-
-        Returns:
-            연결 성공 여부
-        """
-        try:
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": "Hi"}],
-                max_tokens=10
-            )
-            return True
-        except Exception as e:
-            print(f"❌ LM Studio 연결 실패: {e}")
-            return False
+            print(f"\n{'='*60}")
+            print(f"[LLM ERROR] Exception Type: {type(e).__name__}")
+            print(f"[LLM ERROR] Exception Message: {str(e)}")
+            print(f"[LLM ERROR] Full Traceback:")
+            print(traceback.format_exc())
+            print(f"{'='*60}\n")
+            return "죄송합니다. 일시적인 오류가 발생했어요. 다시 시도해주세요."
 
 
-# 싱글톤 인스턴스
-llm_client = LMStudioClient()
+# llm_client 인스턴스 생성
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+print(f"\n{'='*60}")
+print("[LLM Init] Initializing Gemini Client (New SDK)...")
+print(f"[LLM Init] API Key present: {bool(GEMINI_API_KEY)}")
+if GEMINI_API_KEY:
+    print(f"[LLM Init] API Key (first 10 chars): {GEMINI_API_KEY[:10]}...")
+print(f"[LLM Init] Model: {GEMINI_MODEL}")
+print(f"{'='*60}\n")
+
+if not GEMINI_API_KEY:
+    print("WARNING: GEMINI_API_KEY not found in environment variables")
+    llm_client = None
+else:
+    try:
+        llm_client = GeminiClient(api_key=GEMINI_API_KEY, model_name=GEMINI_MODEL)
+        print("[LLM Init] ✓ Gemini Client initialized successfully with new SDK")
+    except Exception as e:
+        print(f"[LLM Init] ✗ Failed to initialize Gemini Client: {e}")
+        print(traceback.format_exc())
+        llm_client = None
