@@ -5,6 +5,10 @@ from .database import get_db
 from .auth_router import router as auth_router
 from .models import ensure_indexes
 import os
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
 from .admin_router import router as admin_router
 from .product_router import router as product_router
 from app.payment_router import router as payment_router
@@ -16,12 +20,15 @@ from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .llm_client import llm_client
 from pydantic import BaseModel
+from .chat_models import ChatRequest, ChatResponse
+from .commands import match_command
+import time
+import uuid
+import json
+import re
+
 
 app = FastAPI(title="AI Shop API")
-
-
-class ChatRequest(BaseModel):
-    message: str
 
 
 origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
@@ -33,6 +40,59 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 대화 저장소
+conversations = {}
+
+# 시스템 프롬프트 추가
+SYSTEM_PROMPT = """당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
+사용자의 요청을 이해하고 적절한 응답과 액션을 JSON 형태로 반환하세요.
+
+## 가능한 액션:
+1. SEARCH: 상품 검색 (상품명, 카테고리, 브랜드 등)
+2. VIEW_CART: 장바구니 보기
+3. VIEW_ORDERS: 주문 내역 조회
+4. TRACK_DELIVERY: 배송 조회
+5. VIEW_WISHLIST: 찜 목록 보기
+6. CHAT: 일반 대화 (액션 없음)
+
+## 응답 형식 (반드시 이 형식만 사용):
+{
+    "reply": "사용자에게 보여줄 친절한 메시지",
+    "action": {"type": "액션타입", "params": {"query": "검색어"}}
+}
+
+## 예시:
+1. 상품 검색:
+사용자: "모니터 보여줘"
+{"reply": "모니터 상품을 찾아볼게요!", "action": {"type": "SEARCH", "params": {"query": "모니터"}}}
+
+사용자: "검정 패딩"
+{"reply": "검정 패딩 상품을 검색해드릴게요!", "action": {"type": "SEARCH", "params": {"query": "검정 패딩"}}}
+
+2. 주문 조회:
+사용자: "주문 내역 보여줘"
+{"reply": "주문 내역을 가져올게요!", "action": {"type": "VIEW_ORDERS", "params": {}}}
+
+3. 일반 대화:
+사용자: "안녕"
+{"reply": "안녕하세요! 무엇을 도와드릴까요?", "action": {"type": "CHAT", "params": {}}}
+
+중요:
+- 반드시 순수 JSON만 반환 (마크다운 코드 블록 사용 금지)
+- reply는 친절하고 자연스러운 한국어로
+- 상품 관련 키워드가 있으면 무조건 SEARCH action 사용
+- params의 query는 사용자가 찾고자 하는 핵심 키워드만 추출"""
+
+def is_simple_search(text: str) -> bool:
+    """간단한 검색어인지 판별"""
+    text = text.strip().lower()
+    command_keywords = ["조회", "확인", "보여줘", "담아", "삭제", "결제", "추천"]
+    if any(keyword in text for keyword in command_keywords):
+        return False
+    if '?' in text or len(text) >= 30:
+        return False
+    return True
 
 
 @app.on_event("startup")
@@ -52,60 +112,100 @@ app.include_router(user_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
 
 
-async def _test_llm_chat_handler(request: ChatRequest):
-    """LM Studio를 사용한 AI 챗봇 테스트 - 공통 핸들러"""
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """AI 쇼핑 어시스턴트 채팅"""
+    start_time = time.time()
+    user_message = request.message
+    conv_id = request.conversation_id or str(uuid.uuid4())
+
+    # 로그인하지 않은 사용자의 경우, 인증이 필요한 명령어는 차단
+    if not request.user_id:
+        if any(keyword in user_message for keyword in ["주문", "구매", "배송", "장바구니", "카트", "찜"]):
+            return ChatResponse(reply="로그인이 필요한 기능입니다.", action={"type": "ERROR"}, conversation_id=conv_id, llm_used=False, processing_time_ms=0)
+
+
+    # #1단계: 명령어 매칭 (임시 주석 처리)
+    # command_result = match_command(user_message)
+    # if command_result["matched"]:
+    #     return ChatResponse(
+    #         reply=command_result["reply"],
+    #         action=command_result["action"],
+    #         conversation_id=conv_id,
+    #         llm_used=False,
+    #         processing_time_ms=int((time.time() - start_time) * 1000)
+    #     )
+
+    # #2단계: 간단한 검색 (임시 주석 처리)
+    # if is_simple_search(user_message):
+    #     query = user_message.strip()
+    #     return ChatResponse(
+    #         reply=f'"{query}" 검색 결과를 보여드릴게요!',
+    #         action={"type": "SEARCH", "params": {"query": query}},
+    #         conversation_id=conv_id,
+    #         llm_used=False,
+    #         processing_time_ms=int((time.time() - start_time) * 1000)
+    #     )
+
+    #3단계: LLM 호출
+    if llm_client is None:
+        return ChatResponse(
+            reply="AI 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.",
+            action={"type": "ERROR", "params": {}},
+            conversation_id=conv_id,
+            llm_used=False,
+            processing_time_ms=int((time.time() - start_time) * 1000)
+        )
+
+    if conv_id not in conversations:
+        conversations[conv_id] = []
+
+    history = conversations[conv_id][-10:]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    for msg in history:
+        messages.append(msg)
+    messages.append({"role": "user", "content": user_message})
+
+    # llm_client 사용
+    llm_output = await llm_client.chat(messages, temperature=0.5, max_tokens=1000)
+    print(f"[LLM Raw Output] {llm_output}")
+
+    # JSON파싱 (마크다운 코드 블록 제거)
     try:
-        messages = [
-            {
-                "role": "system",
-                "content": "당신은 친절한 쇼핑몰 AI 어시스턴트입니다. 사용자의 질문에 간단하고 명확하게 답변하세요."
-            },
-            {
-                "role": "user",
-                "content": request.message
-            }
-        ]
+        # ```json ... ``` 형식 제거
+        cleaned = llm_output.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]  # ```json 제거
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]  # ``` 제거
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]  # ``` 제거
+        cleaned = cleaned.strip()
 
-        response = await llm_client.chat(messages, temperature=0.7, max_tokens=500)
+        print(f"[Cleaned JSON] {cleaned}")
+        parsed = json.loads(cleaned)
+        print(f"[Parsed Action] {parsed.get('action')}")
 
-        return {
-            "success": True,
-            "ai_response": response,
-            "user_message": request.message
-        }
+        # action 필드 검증
+        if "action" not in parsed or "reply" not in parsed:
+            raise ValueError("Missing required fields")
+
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "ai_response": "죄송합니다. AI 서버에 연결할 수 없습니다. LM Studio가 실행 중인지 확인해주세요."
+        print(f"JSON Parse Error: {e}, Raw output: {llm_output}")
+        parsed = {
+            "reply": llm_output if len(llm_output) < 200 else "죄송해요, 다시 말씀해주시겠어요?",
+            "action": {"type": "CHAT", "params": {}}
         }
 
+    # 대화 저장
+    conversations[conv_id].append({"role": "user", "content": user_message})
+    conversations[conv_id].append({"role": "assistant", "content": parsed["reply"]})
 
-@app.post("/api/test-llm-chat")
-async def test_llm_chat_api(request: ChatRequest):
-    """LM Studio AI 챗봇 - /api 경로"""
-    return await _test_llm_chat_handler(request)
-
-
-@app.post("/test-llm-chat")
-async def test_llm_chat(request: ChatRequest):
-    """LM Studio AI 챗봇 - /api 없는 경로 (proxy rewrite 대응)"""
-    return await _test_llm_chat_handler(request)
-
-
-@app.post("/api/test-llm-intent")
-async def test_llm_intent(request: ChatRequest):
-    """사용자 의도 분석 테스트"""
-    try:
-        response = await llm_client.generate_intent_analysis(request.message)
-
-        return {
-            "success": True,
-            "intent_analysis": response,
-            "user_message": request.message
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    return ChatResponse(
+        reply=parsed["reply"],
+        action=parsed.get("action"),
+        conversation_id=conv_id,
+        llm_used=True,
+        processing_time_ms=int((time.time() - start_time) * 1000)
+    )
