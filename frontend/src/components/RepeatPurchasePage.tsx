@@ -7,6 +7,7 @@ import { ProductPreviewCard, ProductPreviewSkeleton } from "./ProductPreviewCard
 import type { RepeatPurchaseItem } from "./mypage-types";
 import { useAppState } from "../context/app-state";
 import { User as UserIcon } from "lucide-react";
+import { Product } from "@/types";
 
 const MIN_RANDOM_ITEMS = 6;
 const MAX_RANDOM_ITEMS = 12;
@@ -61,7 +62,7 @@ export function RepeatPurchasePage() {
         randomBetween(MIN_RANDOM_ITEMS, MAX_RANDOM_ITEMS),
       );
       setItems(
-        products.map((product: any) => ({
+        products.map((product: Product) => ({
           product,
           lastPurchasedAt: randomPastDate(90),
         })),
