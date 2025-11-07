@@ -208,6 +208,7 @@ export function ProductDetailPage() {
 
     const updateRecentlyViewed = async () => {
       try {
+        // 1단계: 백엔드에 저장 (DB + Redis)
         await fetch("/api/users/recently-viewed", {
           method: "POST",
           headers: {
@@ -217,6 +218,28 @@ export function ProductDetailPage() {
           body: JSON.stringify({ productId: product.id }),
           signal: controller.signal,
         });
+
+        // 2단계: sessionStorage에도 저장 (현재 세션 임시 캐시)
+        const recentlyViewed = JSON.parse(
+          sessionStorage.getItem("recentlyViewed") || "[]"
+        ) as Array<{ product: Product; viewedAt: string }>;
+
+        // 이미 있는 상품이면 제거 (최근 상품이 맨 앞에 오도록)
+        const filtered = recentlyViewed.filter(
+          (item) => item.product.id !== product.id
+        );
+
+        // 최대 10개만 유지
+        const updated = [
+          { product, viewedAt: new Date().toISOString() },
+          ...filtered.slice(0, 9),
+        ];
+
+        sessionStorage.setItem("recentlyViewed", JSON.stringify(updated));
+        console.log(
+          "[Recently Viewed] 📝 sessionStorage에 저장됨:",
+          product.name
+        );
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -230,7 +253,7 @@ export function ProductDetailPage() {
     return () => {
       controller.abort();
     };
-  }, [product?.id, currentUser]);
+  }, [product?.id, currentUser, product]);
 
   const handleCategoryClick = () => {
     if (product?.category) {

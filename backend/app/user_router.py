@@ -9,6 +9,7 @@ from .auth_router import COOKIE_ACCESS
 from .database import get_db
 from .models import USERS_COL
 from .product_router import _reshape_product
+from .redis_client import redis_client
 from .schemas import (
     BasicResp,
     RecentlyViewedListOut,
@@ -120,8 +121,29 @@ async def list_recently_viewed(
     current_user=Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    """
+    최근 본 상품 조회 (3중 캐싱)
+
+    조회 순서:
+    1. Redis 캐시 (1시간 TTL) ← 빠름
+    2. DB 조회 ← 느림
+    3. Redis에 캐시 저장
+
+    응답에는 cacheSource 필드로 캐시 여부 표시
+    """
+    user_id = current_user["_id"]
+
+    # 1단계: Redis 캐시에서 조회 (1시간)
+    cached_items = await redis_client.get_recently_viewed(user_id)
+    if cached_items:
+        print(f"[Recently Viewed] 🚀 Redis 캐시 히트! user: {user_id}")
+        return {"items": cached_items, "cacheSource": "redis"}
+
+    print(f"[Recently Viewed] 📦 DB에서 조회 user: {user_id}")
+
+    # 2단계: DB에서 조회
     user_doc = await db[USERS_COL].find_one(
-        {"_id": ObjectId(current_user["_id"])},
+        {"_id": ObjectId(user_id)},
         {"recentlyViewed": 1},
     )
     entries = user_doc.get("recentlyViewed", []) if user_doc else []
@@ -148,4 +170,11 @@ async def list_recently_viewed(
 
         items.append({"product": product, "viewedAt": viewed_at})
 
-    return {"items": items}
+    # 3단계: Redis에 캐시 저장 (1시간)
+    success = await redis_client.set_recently_viewed(user_id, items)
+    if success:
+        print(f"[Recently Viewed] 💾 Redis에 캐시 저장 성공 user: {user_id}")
+    else:
+        print(f"[Recently Viewed] ⚠️ Redis 캐시 저장 실패 user: {user_id}")
+
+    return {"items": items, "cacheSource": "db"}

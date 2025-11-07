@@ -5,6 +5,7 @@ from .database import get_db
 from .schemas import UserIn, LoginIn, UserOut, BasicResp
 from .security import hash_password, verify_password, create_token, create_refresh_token, decode_token
 from .models import USERS_COL, ORDERS_COL
+from .redis_client import redis_client
 from bson import ObjectId
 # from app.database import get_user_by_email
 from datetime import timedelta
@@ -128,7 +129,24 @@ async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase
 
 
 @router.post("/logout", response_model=BasicResp)
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
+    # 토큰에서 user_id 추출
+    at = request.cookies.get(COOKIE_ACCESS)
+    if at:
+        try:
+            payload = decode_token(at)
+            if payload.get("scope") == "access":
+                user_id = payload["sub"]
+                # Redis에서 해당 사용자의 모든 대화 삭제
+                await redis_client.delete_user_conversations(user_id)
+                print(f"[Logout] Deleted conversations for user {user_id}")
+
+                # Redis에서 최근 본 상품 캐시 삭제
+                await redis_client.delete_recently_viewed(user_id)
+                print(f"[Logout] Deleted recently viewed cache for user {user_id}")
+        except Exception as e:
+            print(f"[Logout] Failed to delete caches: {e}")
+
     # 쿠키 삭제 - 설정 시와 동일한 속성 사용
     response.delete_cookie(COOKIE_ACCESS, path="/", samesite="lax", httponly=True)
     response.delete_cookie(COOKIE_REFRESH, path="/", samesite="lax", httponly=True)
