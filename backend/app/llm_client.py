@@ -3,6 +3,7 @@ from typing import List, Dict, Optional
 import os
 import traceback
 
+
 class GeminiClient:
     def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         """제미나이 클라이언트 초기화 (새 SDK)"""
@@ -10,17 +11,18 @@ class GeminiClient:
         self.model_name = model_name
 
     async def chat(
-        self, 
-        messages: List[Dict[str, str]], 
+        self,
+        messages: List[Dict[str, str]],
         images: Optional[List[Dict[str, str]]] = None,
-        temperature: float = 0.7, 
+        temperature: float = 0.7,
         max_tokens: int = 1000
-        ):
+    ):
         """제미나이 API 호출 (async, 새 SDK)"""
         try:
             print(f"[LLM] Starting chat with {len(messages)} messages")
             print(f"[LLM] Model: {self.model_name}")
-            print(f"[LLM] Temperature: {temperature}, Max tokens: {max_tokens}")
+            print(
+                f"[LLM] Temperature: {temperature}, Max tokens: {max_tokens}")
 
             # 새 SDK는 OpenAI 스타일의 메시지 형식을 그대로 사용
             # System 프롬프트 포함 전체 메시지를 하나의 contents로 변환
@@ -32,7 +34,8 @@ class GeminiClient:
             if messages and messages[0]["role"] == "system":
                 system_instruction = messages[0]["content"]
                 chat_messages = messages[1:]
-                print(f"[LLM] System instruction detected (length: {len(system_instruction)})")
+                print(
+                    f"[LLM] System instruction detected (length: {len(system_instruction)})")
 
         # 메시지를 단일 프롬프트로 결합
             # 새 SDK는 대화 히스토리를 자동으로 처리하지 않으므로 직접 구성
@@ -61,10 +64,10 @@ class GeminiClient:
 
             # 멀티모달 컨텐츠 구성
             parts = []
-            
+
             # 텍스트 추가
             parts.append({"text": full_prompt})
-            
+
             # 이미지가 있을 경우 추가
             if images:
                 for img in images:
@@ -74,7 +77,7 @@ class GeminiClient:
                             "data": img["data"]
                         }
                     })
-            
+
             # 새 SDK로 API 호출
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -103,7 +106,8 @@ class GeminiClient:
 
 
 # llm_client 인스턴스 생성
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv(
+    "GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 print(f"\n{'='*60}")
@@ -119,7 +123,8 @@ if not GEMINI_API_KEY:
     llm_client = None
 else:
     try:
-        llm_client = GeminiClient(api_key=GEMINI_API_KEY, model_name=GEMINI_MODEL)
+        llm_client = GeminiClient(
+            api_key=GEMINI_API_KEY, model_name=GEMINI_MODEL)
         print("[LLM Init] ✓ Gemini Client initialized successfully with new SDK")
     except Exception as e:
         print(f"[LLM Init] ✗ Failed to initialize Gemini Client: {e}")

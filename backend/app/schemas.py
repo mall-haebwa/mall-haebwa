@@ -48,6 +48,7 @@ class RecentlyViewedProductOut(BaseModel):
 
 class RecentlyViewedListOut(BaseModel):
     items: list[RecentlyViewedProductOut] = Field(default_factory=list)
+    cacheSource: str = "db"  # "redis" 또는 "db"
 
 
 class RecentlyViewedPayload(BaseModel):

@@ -32,6 +32,30 @@ export function RecentlyViewedPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
+      // 1단계: sessionStorage에서 먼저 확인 (현재 세션 캐시)
+      const cached = sessionStorage.getItem("recentlyViewed");
+      if (cached) {
+        try {
+          const cachedItems = JSON.parse(cached) as RecentlyViewedItem[];
+          if (Array.isArray(cachedItems) && cachedItems.length > 0) {
+            console.log(
+              "[Recently Viewed] 🚀 sessionStorage에서 로드:",
+              cachedItems.length,
+              "개"
+            );
+            setItems(cachedItems);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse cached items:", e);
+        }
+      }
+
+      // 2단계: sessionStorage에 없으면 API 요청 (Redis/DB)
+      console.log(
+        "[Recently Viewed] 📦 API에서 조회 (Redis 캐시 또는 DB)"
+      );
       const response = await fetch("/api/users/recently-viewed", {
         credentials: "include",
       });
@@ -43,22 +67,34 @@ export function RecentlyViewedPage() {
       const data = await response.json();
       const fetched = Array.isArray(data?.items) ? data.items : [];
 
-      setItems(
-        fetched
-          .map((item: any) => {
-            if (!item?.product) {
-              return null;
-            }
-            const product = normalizeProductSummary(item.product);
-            const viewedRaw = item.viewedAt;
-            const viewedAt =
-              typeof viewedRaw === "string"
-                ? viewedRaw
-                : new Date(viewedRaw ?? Date.now()).toISOString();
-            return { product, viewedAt } as RecentlyViewedItem;
-          })
-          .filter(Boolean) as RecentlyViewedItem[]
+      const normalized = fetched
+        .map((item: any) => {
+          if (!item?.product) {
+            return null;
+          }
+          const product = normalizeProductSummary(item.product);
+          const viewedRaw = item.viewedAt;
+          const viewedAt =
+            typeof viewedRaw === "string"
+              ? viewedRaw
+              : new Date(viewedRaw ?? Date.now()).toISOString();
+          return { product, viewedAt } as RecentlyViewedItem;
+        })
+        .filter(Boolean) as RecentlyViewedItem[];
+
+      // 3단계: sessionStorage에 캐시 저장
+      sessionStorage.setItem("recentlyViewed", JSON.stringify(normalized));
+      console.log(
+        "[Recently Viewed] 💾 sessionStorage에 저장:",
+        normalized.length,
+        "개"
       );
+      console.log(
+        "[Recently Viewed] 캐시 출처:",
+        data?.cacheSource || "unknown"
+      );
+
+      setItems(normalized);
     } catch (error) {
       console.error("Failed to load recently viewed items", error);
       toast.error("최근 본 상품을 불러오지 못했어요.");

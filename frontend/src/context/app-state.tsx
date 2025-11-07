@@ -505,6 +505,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
     guestCartRef.current = [];
     setCart([]);
+
+    // sessionStorage에서 최근 본 상품 캐시 삭제
+    sessionStorage.removeItem("recentlyViewed");
+    console.log("[Logout] sessionStorage에서 최근 본 상품 캐시 삭제됨");
   }, []);
 
   const value = useMemo<AppStateValue>(

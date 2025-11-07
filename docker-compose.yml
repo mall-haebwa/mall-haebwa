@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   # MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
   mongodb:
@@ -65,6 +66,24 @@ services:
     networks:
       - ecommerce-network
 
+  # Redis 캐시 서버 (NEW!)
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # FastAPI 백엔드
   backend:
     build:
@@ -78,9 +97,9 @@ services:
       - .env.docker
     volumes:
       - ./backend:/app
-    # EC2 MongoDB 사용하므로 depends_on 제거
-    # depends_on:
-    #   - mongodb
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - ecommerce-network
     depends_on:
@@ -114,3 +133,4 @@ networks:
 volumes:
   mongodb_data:
   elastic_data:
+  redis_data:

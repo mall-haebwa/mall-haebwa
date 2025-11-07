@@ -19,6 +19,7 @@ from .category_router import router as category_router
 from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .llm_client import llm_client
+from .redis_client import redis_client
 from pydantic import BaseModel
 from .chat_models import ChatRequest, ChatResponse
 from .commands import match_command
@@ -41,9 +42,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 대화 저장소
-conversations = {}
 
 # 시스템 프롬프트 추가
 SYSTEM_PROMPT = """당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
@@ -117,6 +115,13 @@ def is_simple_search(text: str) -> bool:
 async def startup():
     db = get_db()
     await ensure_indexes(db)
+    # Redis 연결
+    await redis_client.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    # Redis 연결 해제
+    await redis_client.disconnect()
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
@@ -132,13 +137,14 @@ app.include_router(product_router, prefix="/api")
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """AI 쇼핑 어시스턴트 채팅 (멀티모달 지원)"""
+    """AI 쇼핑 어시스턴트 채팅 (멀티모달 지원, Redis 기반)"""
     start_time = time.time()
     user_message = request.message
+    user_id = request.user_id  # user_id 추출
     conv_id = request.conversation_id or str(uuid.uuid4())
 
     # 로그인하지 않은 사용자의 경우, 인증이 필요한 명령어는 차단
-    if not request.user_id:
+    if not user_id:
         if any(keyword in user_message for keyword in ["주문", "구매", "배송", "장바구니", "카트", "찜"]):
             return ChatResponse(reply="로그인이 필요한 기능입니다.", action={"type": "ERROR"}, conversation_id=conv_id, llm_used=False, processing_time_ms=0)
 
@@ -165,7 +171,7 @@ async def chat(request: ChatRequest):
     #         processing_time_ms=int((time.time() - start_time) * 1000)
     #     )
 
-    #3단계: LLM 호출
+    # #3단계: LLM 호출
     if llm_client is None:
         return ChatResponse(
             reply="AI 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.",
@@ -175,16 +181,20 @@ async def chat(request: ChatRequest):
             processing_time_ms=int((time.time() - start_time) * 1000)
         )
 
-    if conv_id not in conversations:
-        conversations[conv_id] = []
+    # Redis에서 대화 히스토리 조회 (user_id 기반)
+    if user_id:
+        history = await redis_client.get_conversation(user_id, conv_id)
+    else:
+        # 비로그인 사용자는 현재 세션만 유지 (TTL 없는 임시 메모리)
+        history = []
 
-    history = conversations[conv_id][-10:]
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    for msg in history:
+    # 최근 10개 메시지만 사용
+    for msg in history[-10:]:
         messages.append(msg)
     messages.append({"role": "user", "content": user_message})
-    
+
     # 이미지 데이터 추출
     image_data = None
     if request.images and len(request.images) > 0:
@@ -195,12 +205,12 @@ async def chat(request: ChatRequest):
             }
             for img in request.images
         ]
-        
+
     # llm_client 호출 이미지 포함
     llm_output = await llm_client.chat(
         messages,
-        images=image_data, 
-        temperature=0.5, 
+        images=image_data,
+        temperature=0.5,
         max_tokens=1000
     )
     print(f"[LLM Raw Output] {llm_output}")
@@ -232,9 +242,11 @@ async def chat(request: ChatRequest):
             "action": {"type": "CHAT", "params": {}}
         }
 
-    # 대화 저장
-    conversations[conv_id].append({"role": "user", "content": user_message})
-    conversations[conv_id].append({"role": "assistant", "content": parsed["reply"]})
+    # Redis에 대화 저장 (user_id 기반)
+    if user_id:
+        await redis_client.add_message(user_id, conv_id, "user", user_message)
+        await redis_client.add_message(user_id, conv_id, "assistant", parsed["reply"])
+        print(f"[Chat] Saved conversation for user {user_id}")
 
     return ChatResponse(
         reply=parsed["reply"],
