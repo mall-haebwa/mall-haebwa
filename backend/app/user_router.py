@@ -161,14 +161,13 @@ async def list_recently_viewed(
         product = _reshape_product(product_doc)
         viewed_at = entry.get("viewedAt")
         if isinstance(viewed_at, str):
-            try:
-                viewed_at = datetime.fromisoformat(viewed_at.replace("Z", "+00:00"))
-            except ValueError:
-                viewed_at = datetime.utcnow()
-        elif not isinstance(viewed_at, datetime):
-            viewed_at = datetime.utcnow()
+            viewed_at_str = viewed_at
+        elif isinstance(viewed_at, datetime):
+            viewed_at_str = viewed_at.isoformat()
+        else:
+            viewed_at_str = datetime.utcnow().isoformat()
 
-        items.append({"product": product, "viewedAt": viewed_at})
+        items.append({"product": product, "viewedAt": viewed_at_str})
 
     # 3단계: Redis에 캐시 저장 (1시간)
     success = await redis_client.set_recently_viewed(user_id, items)

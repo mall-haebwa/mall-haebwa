@@ -202,6 +202,40 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             ? user.recentlyViewed
             : [],
         });
+
+        // 로그인 후 최근 본 상품 데이터를 sessionStorage에 저장
+        try {
+          const recentlyViewedResponse = await axios.get(
+            withBase("/api/users/recently-viewed"),
+            { withCredentials: true }
+          );
+          const fetchedItems = recentlyViewedResponse.data?.items;
+          if (Array.isArray(fetchedItems) && fetchedItems.length > 0) {
+            // API 응답을 sessionStorage 저장 형식으로 정규화
+            const normalizedItems = fetchedItems.map((item: any) => {
+              if (!item?.product) {
+                return null;
+              }
+              const viewedRaw = item.viewedAt;
+              const viewedAt =
+                typeof viewedRaw === "string"
+                  ? viewedRaw
+                  : new Date(viewedRaw ?? Date.now()).toISOString();
+              return { product: item.product, viewedAt };
+            }).filter(Boolean);
+
+            if (normalizedItems.length > 0) {
+              sessionStorage.setItem("recentlyViewed", JSON.stringify(normalizedItems));
+              console.log(
+                "[App State] 💾 로그인 후 sessionStorage에 최근 본 상품 저장:",
+                normalizedItems.length,
+                "개"
+              );
+            }
+          }
+        } catch (error) {
+          console.error("[App State] sessionStorage 저장 실패:", error);
+        }
       } catch {
         // 로그인 안 되어 있으면 그냥 무시
         console.log("Not logged in");
