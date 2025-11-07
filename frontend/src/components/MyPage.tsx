@@ -229,6 +229,38 @@ export function MyPage() {
 
     void refreshRepeat();
     void refreshRecent();
+
+    // 주기적으로 sessionStorage 확인 (같은 탭에서의 추가 감지)
+    const interval = setInterval(() => {
+      const cached = sessionStorage.getItem("recentlyViewed");
+      if (cached) {
+        try {
+          const cachedItems = JSON.parse(cached);
+          if (Array.isArray(cachedItems) && cachedItems.length > 0) {
+            setRecentItems((prevItems) => {
+              // 최신 데이터로 항상 업데이트
+              const serializedCached = JSON.stringify(cachedItems);
+              const serializedCurrent = JSON.stringify(prevItems);
+
+              // sessionStorage와 현재 상태가 다르면 업데이트
+              if (serializedCached !== serializedCurrent) {
+                console.log(
+                  "[MyPage] 📝 sessionStorage 변경 감지, 최근 본 상품 업데이트",
+                  cachedItems.length,
+                  "개"
+                );
+                return cachedItems;
+              }
+              return prevItems;
+            });
+          }
+        } catch (e) {
+          console.error("Failed to parse cached items:", e);
+        }
+      }
+    }, 1000); // 1초마다 확인
+
+    return () => clearInterval(interval);
   }, [currentUser, refreshRecent, refreshRepeat]);
 
   const handleProductOpen = useCallback(

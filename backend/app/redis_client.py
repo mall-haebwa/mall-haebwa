@@ -234,27 +234,14 @@ class RedisClient:
             return False
 
         try:
-            from datetime import datetime
-
             key = f"recently_viewed:{user_id}"
             ttl = 3600  # 1시간 TTL
 
-            # 모든 datetime 객체를 ISO 문자열로 변환
-            def convert_to_serializable(obj):
-                if isinstance(obj, datetime):
-                    return obj.isoformat()
-                elif isinstance(obj, dict):
-                    return {k: convert_to_serializable(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [convert_to_serializable(item) for item in obj]
-                return obj
-
-            serializable_items = convert_to_serializable(items)
-
+            # JSON 인코더로 datetime 자동 변환
             await self.redis.setex(
                 key,
                 ttl,
-                json.dumps(serializable_items, ensure_ascii=False)
+                json.dumps(items, ensure_ascii=False, default=str)
             )
             item_count = len(items) if items else 0
             print(f"[Redis] 💾 최근 본 상품 캐시 저장: user {user_id}, {item_count}개 상품, TTL 1시간")
