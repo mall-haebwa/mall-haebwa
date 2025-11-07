@@ -1,5 +1,5 @@
 from google import genai
-from typing import List, Dict
+from typing import List, Dict, Optional
 import os
 import traceback
 
@@ -9,7 +9,13 @@ class GeminiClient:
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
 
-    async def chat(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_tokens: int = 1000):
+    async def chat(
+        self, 
+        messages: List[Dict[str, str]], 
+        images: Optional[List[Dict[str, str]]] = None,
+        temperature: float = 0.7, 
+        max_tokens: int = 1000
+        ):
         """제미나이 API 호출 (async, 새 SDK)"""
         try:
             print(f"[LLM] Starting chat with {len(messages)} messages")
@@ -53,10 +59,26 @@ class GeminiClient:
             print(f"[LLM] Sending request to Gemini API...")
             print(f"[LLM] Current user message: {current_message}")
 
+            # 멀티모달 컨텐츠 구성
+            parts = []
+            
+            # 텍스트 추가
+            parts.append({"text": full_prompt})
+            
+            # 이미지가 있을 경우 추가
+            if images:
+                for img in images:
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": img["mime_type"],
+                            "data": img["data"]
+                        }
+                    })
+            
             # 새 SDK로 API 호출
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=full_prompt,
+                contents={"role": "user", "parts": parts},
                 config={
                     "temperature": temperature,
                     "max_output_tokens": max_tokens,

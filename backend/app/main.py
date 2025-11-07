@@ -48,6 +48,13 @@ conversations = {}
 SYSTEM_PROMPT = """당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
 사용자의 요청을 이해하고 적절한 응답과 액션을 JSON 형태로 반환하세요.
 
+
+  ## 이미지 검색 기능:
+  - 사용자가 이미지를 업로드하면, 이미지의 내용을     
+  분석하여 유사한 상품을 검색할 수 있도록 응답합니다.
+  - 이미지에서 색상, 스타일, 카테고리, 브랜드를       
+  파악합니다
+
 ## 가능한 액션:
 1. SEARCH: 상품 검색 (상품명, 카테고리, 브랜드 등)
 2. VIEW_CART: 장바구니 보기
@@ -82,6 +89,11 @@ SYSTEM_PROMPT = """당신은 친절하고 전문적인 쇼핑 어시스턴트입
 4. 다중 상품 검색:
 사용자: "김치찌개 재료 찾아줘"
 {"reply": "김치찌개 재료를 찾아볼게요!", "action": {"type": "MULTISEARCH", "params": {"queries": ["김치", "두부", "돼지고기", "고추가루", "대파", "마늘"]}}}
+
+5. 이미지 검색:
+사용자: [이미지: 파란색 청바지] + "이거랑 비슷한 제품 찾아줘"
+{"reply": "업로드하신 이미지를 분석했어요.
+"분석한 내용" 제품으로 보여요. 비슷한 상품을 찾아볼게요!", "action": {"type": "SEARCH", "params": {"query": "파란색 스키니 청바지"}}}
 
 중요:
 - 반드시 순수 JSON만 반환 (마크다운 코드 블록 사용 금지)
@@ -119,7 +131,7 @@ app.include_router(product_router, prefix="/api")
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """AI 쇼핑 어시스턴트 채팅"""
+    """AI 쇼핑 어시스턴트 채팅 (멀티모달 지원)"""
     start_time = time.time()
     user_message = request.message
     conv_id = request.conversation_id or str(uuid.uuid4())
@@ -171,9 +183,25 @@ async def chat(request: ChatRequest):
     for msg in history:
         messages.append(msg)
     messages.append({"role": "user", "content": user_message})
-
-    # llm_client 사용
-    llm_output = await llm_client.chat(messages, temperature=0.5, max_tokens=1000)
+    
+    # 이미지 데이터 추출
+    image_data = None
+    if request.images and len(request.images) > 0:
+        image_data = [
+            {
+                "mime_type": img.mime_type,
+                "data": img.data
+            }
+            for img in request.images
+        ]
+        
+    # llm_client 호출 이미지 포함
+    llm_output = await llm_client.chat(
+        messages,
+        images=image_data, 
+        temperature=0.5, 
+        max_tokens=1000
+    )
     print(f"[LLM Raw Output] {llm_output}")
 
     # JSON파싱 (마크다운 코드 블록 제거)
