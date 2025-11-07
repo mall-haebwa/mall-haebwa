@@ -28,6 +28,7 @@ import json
 import re
 
 
+
 app = FastAPI(title="AI Shop API")
 
 
