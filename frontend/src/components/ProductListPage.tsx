@@ -28,8 +28,8 @@ export function ProductListPage() {
   const { selectedCategory, setSelectedCategory, searchQuery, setSearchQuery } =
     useAppState();
 
-  // 기본 정렬은 현재 활용 가능한 가격 높은 순으로 설정.
-  const [sortBy, setSortBy] = useState("price-high");
+  // 기본 정렬은 관련 높은순으로 설정.
+  const [sortBy, setSortBy] = useState("relevance");
   // 가격 필터 범위를 전역 상태로 보관.
   const [priceRange, setPriceRange] = useState<[number, number]>([
     0, 2_000_000_000,
@@ -200,6 +200,9 @@ export function ProductListPage() {
     if (status !== "idle") return [];
     const next = [...products];
     switch (sortBy) {
+      case "relevance":
+        // 백엔드에서 이미 정렬된 결과를 그대로 사용
+        return next;
       case "latest":
         return next.sort((a, b) =>
           (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
@@ -291,6 +294,7 @@ export function ProductListPage() {
                 </SelectItem>
                 <SelectItem value="price-low">낮은 가격순</SelectItem>
                 <SelectItem value="price-high">높은 가격순</SelectItem>
+                <SelectItem value="relevance">관련 높은순</SelectItem>
                 <SelectItem value="rating" disabled>
                   판매 많은 순 (준비 중)
                 </SelectItem>

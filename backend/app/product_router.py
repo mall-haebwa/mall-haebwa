@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import math
-import re
-from collections import OrderedDict
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -12,9 +10,32 @@ from .database import get_db
 
 from bson import ObjectId
 
+from elasticsearch import Elasticsearch
+from .search_client import get_search_client, get_index_name
+from fastapi.concurrency import run_in_threadpool
+
+
 # /products 네임스페이스 아래 상품 관련 엔드포인트를 제공하는 FastAPI 라우터.
 router = APIRouter(prefix="/products", tags=["products"])
 
+def _build_es_filters(category, category2, brand_list, min_price, max_price):
+    filters = [{"range": {"numericPrice": {"gte": min_price, "lte": max_price}}}]
+    if category and category != "all":
+        filters.append({"term": {"category1": category}})
+    if category2:
+        filters.append({"term": {"category2": category2}})
+    if brand_list:
+        filters.append({"terms": {"brand": brand_list}})
+    return filters
+
+ES_SORT_MAP = {
+    "relevance": [{"rank": "asc"}],  # 검색 결과를 rank 순으로 정렬 (네이버 순위 높은 순)
+    "price-low": [{"numericPrice": "asc"}, {"_score": "desc"}],
+    "price-high": [{"numericPrice": "desc"}, {"_score": "desc"}],
+    "rating": [{"rating": "desc"}, {"reviewCount": "desc"}],
+    "latest": [{"updated_at": "desc"}, {"created_at": "desc"}],
+    "popular": [{"reviewCount": "desc"}, {"_score": "desc"}],
+}
 
 def _safe_int(value: Any, default: int = 0) -> int:
     """안전하게 정수로 변환하고 실패 시 기본값을 반환한다."""
@@ -41,21 +62,6 @@ def _normalise_list(raw: str | None) -> list[str]:
         return []
     # 콤마 기준으로 나누고 항목마다 공백을 제거한다.
     return [item.strip() for item in raw.split(",") if item.strip()]
-
-
-def _build_sort(sort: str) -> OrderedDict[str, int]:
-    """정렬 키를 MongoDB 필드 정렬 규칙으로 매핑한다."""
-    if sort == "price-low":
-        return OrderedDict([("numericPrice", 1), ("_id", -1)])
-    if sort == "price-high":
-        return OrderedDict([("numericPrice", -1), ("_id", -1)])
-    if sort == "rating":
-        return OrderedDict([("rating", -1), ("reviewCount", -1), ("_id", -1)])
-    if sort == "latest":
-        return OrderedDict([("updated_at", -1), ("created_at", -1), ("_id", -1)])
-    # default popular
-    return OrderedDict([("reviewCount", -1), ("_id", -1)])
-
 
 def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
     """Mongo 문서를 UI에서 쓰기 좋은 딕셔너리 형태로 변환한다."""
@@ -95,8 +101,10 @@ def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
         created_at = str(doc["_id"])
 
     # 프론트에서 사용하는 최종 형태의 데이터로 조립한다.
+    raw_id = doc.get("_id") or doc.get("mongoId") or doc.get("mongo_id") or doc.get("id")
+
     return {
-        "id": str(doc.get("_id")),
+        "id": str(raw_id) if raw_id is not None else "",
         "name": doc.get("title") or doc.get("name") or "",
         "price": price,
         "originalPrice": original_price,
@@ -124,103 +132,110 @@ async def search_products(
     brands: str | None = Query(None, description="Comma separated brand list"),
     minPrice: int = Query(0, ge=0, alias="minPrice"),
     maxPrice: int = Query(1_000_000_000, ge=0, alias="maxPrice"),
-    sort: str = Query("popular"),
+    sort: str = Query("relevance"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=60),
-    db: AsyncIOMotorDatabase = Depends(get_db),
+    es: Elasticsearch = Depends(get_search_client)
 ):
-    """검색어/카테고리/브랜드/가격 조건으로 상품을 조회한다."""
-    # 상품 정보를 보관하는 MongoDB 컬렉션을 가져온다.
-    collection = db["products"]
-
-    # 나중에 $match 단계로 결합할 조건들을 모은다.
-    match_conditions: list[dict[str, Any]] = []
+    brand_list = _normalise_list(brands)
+    filters = _build_es_filters(category, category2, brand_list, minPrice, maxPrice)
+    must_queries: list[dict[str, Any]] = []
 
     if q:
-        # 검색어 양끝의 공백을 제거한다.
-        trimmed = q.strip()
-        if trimmed:
-            # 연속된 공백을 기준으로 토큰화하고 토큰 순서를 유지한다.
-            tokens = [part for part in re.split(r"\s+", trimmed) if part]
-            fields = ["title", "description", "brand", "mallName"]
-
-            if tokens:
-                # 토큰 사이에 임의의 글자가 끼어도 순서를 유지하면 매칭되도록 정규식을 구성한다.
-                fuzzy_pattern = ".*".join(re.escape(token) for token in tokens)
-            else:
-                # 토큰이 비어 있을 경우(이론상 없음)를 대비한 안전장치.
-                fuzzy_pattern = re.escape(trimmed)
-
-            regex = {"$regex": fuzzy_pattern, "$options": "i"}
-            match_conditions.append(
-                {"$or": [{field: regex} for field in fields]})
-
-    if category and category != "all":
-        # 특정 상위 카테고리만 조회하도록 제한한다.
-        match_conditions.append({"category1": category})
-    if category2:
-        match_conditions.append({"category2": category2})
-
-    brand_list = _normalise_list(brands)
-    if brand_list:
-        # 정리된 브랜드 목록으로 필터링을 적용한다.
-        match_conditions.append({"brand": {"$in": brand_list}})
-
-    match_conditions.append(
-        # 요청된 가격 구간으로 결과를 항상 제한한다.
-        {"numericPrice": {"$gte": minPrice, "$lte": maxPrice}})
-
-    # 가격 정보를 정수로 맞추는 기본 파이프라인을 구성한다.
-    base_pipeline: list[dict[str, Any]] = [
-        {
-            "$addFields": {
-                # 정렬/필터에 사용할 numericPrice를 정수로 변환한다.
-                "numericPrice": {
-                    "$convert": {
-                        "input": "$lprice",
-                        "to": "int",
-                        "onError": 0,
-                        "onNull": 0,
-                    }
-                }
+        # 검색어의 모든 단어가 반드시 포함되어야 함 (필수 조건)
+        must_queries.append({
+            "multi_match": {
+                "query": q,
+                "fields": ["title", "summary", "tags", "brand"],
+                "operator": "and",  # 모든 검색어 단어가 반드시 포함
+                "type": "cross_fields",
             }
-        }
-    ]
+        })
 
-    if match_conditions:
-        if len(match_conditions) == 1:
-            # 조건이 하나일 때는 $and 없이 바로 매치한다.
-            base_pipeline.append({"$match": match_conditions[0]})
-        else:
-            # 여러 조건은 $and 로 묶어 하나의 $match 단계로 합친다.
-            base_pipeline.append({"$match": {"$and": match_conditions}})
+        # 점수 향상을 위한 추가 매칭 (선택 조건)
+        must_queries.append({
+            "bool": {
+                "should": [
+                    # 1. 제목 정확한 phrase 매칭 (띄어쓰기 포함하여 정확히 일치) - 최우선
+                    {"match_phrase": {
+                        "title": {
+                            "query": q,
+                            "boost": 20,
+                            "slop": 0,
+                        }
+                    }},
+                    # 2. 제목에서 모든 검색어 단어 포함 (순서 무관)
+                    {"match": {
+                        "title": {
+                            "query": q,
+                            "operator": "and",
+                            "boost": 10,
+                        }
+                    }},
+                    # 3. search_keyword exact match
+                    {"term": {"search_keyword": {"value": q, "boost": 8}}},
+                    # 4. 일반 텍스트 검색
+                    {"multi_match": {
+                        "query": q,
+                        "fields": ["title^2", "summary", "tags^1.5"],
+                        "type": "best_fields",
+                    }},
+                ],
+                "minimum_should_match": 1
+            }
+        })
 
-    total_cursor = collection.aggregate(
-        [*base_pipeline, {"$count": "total"}])
-    total_docs = await total_cursor.to_list(length=1)
-    # 결과가 없을 수 있으므로 안전하게 전체 개수를 구한다.
-    total = total_docs[0]["total"] if total_docs else 0
+    bool_query: dict[str, Any] = {"filter": filters}
+    if must_queries:
+        bool_query["must"] = must_queries
+    else:
+        bool_query["must"] = [{"match_all": {}}]
 
-    sort_spec = _build_sort(sort)
-    # 페이지네이션을 위한 전체 파이프라인을 완성한다.
-    result_pipeline = [
-        *base_pipeline,
-        {"$sort": sort_spec},
-        {"$skip": (page - 1) * limit},
-        {"$limit": limit},
-    ]
+    # 정렬 방식
+    es_sort = ES_SORT_MAP.get(sort, ES_SORT_MAP["relevance"])
 
-    # 현재 페이지에 해당하는 문서를 조회한 뒤 형태를 변환한다.
-    docs = await collection.aggregate(result_pipeline).to_list(length=limit)
-    items = [_reshape_product(doc) for doc in docs]
+    body = {
+        "query": {
+            "function_score": {
+                "query": {"bool": bool_query},
+                "functions": [
+                    {"field_value_factor": {"field": "reviewCount", "missing": 0, "factor": 0.001, "modifier": "log1p"}},
+                    {"field_value_factor": {"field": "rating", "missing": 0, "factor": 0.1}},
+                ],
+                "score_mode": "sum",
+                "boost_mode": "sum",  # multiply에서 sum으로 변경 - 검색 관련도 우선
+            }
+        },
+        "from": (page - 1) * limit,
+        "size": limit,
+        "sort": es_sort,
+        "aggs": {
+            "brands": {"terms": {"field": "brand", "size": 20}},
+            "price_ranges": {
+                "range": {
+                    "field": "numericPrice",
+                    "ranges": [
+                        {"to": 10000},
+                        {"from": 10000, "to": 50000},
+                        {"from": 50000, "to": 100000},
+                        {"from": 100000},
+                    ],
+                }
+            },
+        },
+    }
+
+    res = await run_in_threadpool(lambda: es.search(index=get_index_name(), body=body))
+    total = res["hits"]["total"]["value"]
+    items = [_reshape_product(hit["_source"]) for hit in res["hits"]["hits"]]
 
     return {
         "items": items,
         "page": page,
         "limit": limit,
         "total": total,
-        # 전체 페이지 수는 total과 limit을 기반으로 계산한다.
-        "totalPages": math.ceil(total / limit) if limit else 0,
+        "totalPages": math.ceil(total / limit),
+        "aggregations": res.get("aggregations", {}),
     }
 
 

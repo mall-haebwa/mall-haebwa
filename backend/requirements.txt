@@ -45,3 +45,6 @@ uvicorn==0.38.0
 # LLM Integration
 google-genai
 openai==1.12.0
+
+
+elasticsearch==8.12.0
