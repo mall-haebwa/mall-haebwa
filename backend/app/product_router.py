@@ -18,6 +18,7 @@ from fastapi.concurrency import run_in_threadpool
 # /products 네임스페이스 아래 상품 관련 엔드포인트를 제공하는 FastAPI 라우터.
 router = APIRouter(prefix="/products", tags=["products"])
 
+
 def _build_es_filters(category, category2, brand_list, min_price, max_price):
     filters = [{"range": {"numericPrice": {"gte": min_price, "lte": max_price}}}]
     if category and category != "all":
@@ -28,6 +29,7 @@ def _build_es_filters(category, category2, brand_list, min_price, max_price):
         filters.append({"terms": {"brand": brand_list}})
     return filters
 
+
 ES_SORT_MAP = {
     "relevance": [{"rank": "asc"}],  # 검색 결과를 rank 순으로 정렬 (네이버 순위 높은 순)
     "price-low": [{"numericPrice": "asc"}, {"_score": "desc"}],
@@ -36,6 +38,7 @@ ES_SORT_MAP = {
     "latest": [{"updated_at": "desc"}, {"created_at": "desc"}],
     "popular": [{"reviewCount": "desc"}, {"_score": "desc"}],
 }
+
 
 def _safe_int(value: Any, default: int = 0) -> int:
     """안전하게 정수로 변환하고 실패 시 기본값을 반환한다."""
@@ -62,6 +65,7 @@ def _normalise_list(raw: str | None) -> list[str]:
         return []
     # 콤마 기준으로 나누고 항목마다 공백을 제거한다.
     return [item.strip() for item in raw.split(",") if item.strip()]
+
 
 def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
     """Mongo 문서를 UI에서 쓰기 좋은 딕셔너리 형태로 변환한다."""
@@ -101,7 +105,8 @@ def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
         created_at = str(doc["_id"])
 
     # 프론트에서 사용하는 최종 형태의 데이터로 조립한다.
-    raw_id = doc.get("_id") or doc.get("mongoId") or doc.get("mongo_id") or doc.get("id")
+    raw_id = doc.get("_id") or doc.get(
+        "mongoId") or doc.get("mongo_id") or doc.get("id")
 
     return {
         "id": str(raw_id) if raw_id is not None else "",
@@ -138,7 +143,8 @@ async def search_products(
     es: Elasticsearch = Depends(get_search_client)
 ):
     brand_list = _normalise_list(brands)
-    filters = _build_es_filters(category, category2, brand_list, minPrice, maxPrice)
+    filters = _build_es_filters(
+        category, category2, brand_list, minPrice, maxPrice)
     must_queries: list[dict[str, Any]] = []
 
     if q:
@@ -199,8 +205,10 @@ async def search_products(
             "function_score": {
                 "query": {"bool": bool_query},
                 "functions": [
-                    {"field_value_factor": {"field": "reviewCount", "missing": 0, "factor": 0.001, "modifier": "log1p"}},
-                    {"field_value_factor": {"field": "rating", "missing": 0, "factor": 0.1}},
+                    {"field_value_factor": {"field": "reviewCount",
+                                            "missing": 0, "factor": 0.001, "modifier": "log1p"}},
+                    {"field_value_factor": {"field": "rating",
+                                            "missing": 0, "factor": 0.1}},
                 ],
                 "score_mode": "sum",
                 "boost_mode": "sum",  # multiply에서 sum으로 변경 - 검색 관련도 우선
@@ -210,7 +218,7 @@ async def search_products(
         "size": limit,
         "sort": es_sort,
         "aggs": {
-            "brands": {"terms": {"field": "brand", "size": 20}},
+            "brands": {"terms": {"field": "brand.keyword", "size": 20}},
             "price_ranges": {
                 "range": {
                     "field": "numericPrice",
