@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  X,
+  ImagePlus,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "./ui/input";
@@ -22,6 +24,7 @@ import { Badge } from "./ui/badge";
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
+  images?: string[];
 };
 
 type ContentType =
@@ -96,6 +99,13 @@ export function AISearchPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+  const [uploadedImages, setUploadedImages] = useState<Array<{
+    file: File;
+    preview: string;
+    base64?: string;
+  }>>([]);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [isRestoringState, setIsRestoringState] = useState(false);
 
   // 데이터 관련 상태
   const [currentSearchQuery, setCurrentSearchQuery] = useState("");
@@ -115,6 +125,86 @@ export function AISearchPage() {
     useState<string>("");
 
   const isChatting = messages.length > 0;
+
+  // 이미지 처리 유틸리티 함수
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const getMimeType = (file: File): string => {
+    return file.type || 'image/jpeg';
+  };
+
+  const handleImageAdd = async (file: File) => {
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('지원하지 않는 이미지 형식입니다. (JPG, PNG, WebP만 가능)');
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert('이미지 크기는 3MB 이하여야 합니다.');
+      return;
+    }
+
+    setIsProcessingImages(true);
+
+    try {
+      const preview = URL.createObjectURL(file);
+      const base64 = await fileToBase64(file);
+
+      setUploadedImages(prev => [...prev, { file, preview, base64 }]);
+    } catch (error) {
+      console.error('Image processing error:', error);
+      alert('이미지 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsProcessingImages(false);
+    }
+  };
+
+  const handleImageRemove = (index: number) => {
+    setUploadedImages(prev => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].preview);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
+
+  // 상태 저장 함수 (상품 페이지로 이동 전)
+  const saveSearchState = () => {
+    const stateToSave = {
+      messages,
+      products,
+      orders,
+      cartItems,
+      wishlistItems,
+      contentType,
+      currentSearchQuery,
+      conversationId,
+      multiSearchResults,
+      multiSearchQueries,
+      selectedMultiCategory,
+      isChatCollapsed
+    };
+    sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
+    console.log('[AI Search] State saved to sessionStorage');
+  };
+
+  // 상품 클릭 핸들러
+  const handleProductClick = (productId: string) => {
+    saveSearchState();
+    navigate(`/product/${productId}`);
+  };
 
   // 상품 검색 API 호출
   const fetchProducts = async (query: string) => {
@@ -345,17 +435,40 @@ export function AISearchPage() {
 
   const handleSearch = async (query: string) => {
     const trimmed = query.trim();
-    if (!trimmed || isLoading) {
+    if ((!trimmed && uploadedImages.length === 0) || isLoading) {
       return;
     }
     console.log("AI search query:", trimmed);
+    console.log("Images:", uploadedImages.length);
 
-    const userMessage: ChatMessage = { role: "user", content: trimmed };
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: trimmed || "[이미지 검색]",
+      images: uploadedImages.length > 0 ? uploadedImages.map(img => img.preview) : undefined
+    };
     setMessages((prev) => [...prev, userMessage]);
     setSearchInput("");
     setIsLoading(true);
 
     try {
+      // 이미지 데이터 준비
+      const imageData = await Promise.all(
+        uploadedImages.map(async (img) => ({
+          mime_type: getMimeType(img.file),
+          data: img.base64 || await fileToBase64(img.file)
+        }))
+      );
+
+      const requestBody: any = {
+        message: trimmed || "이 이미지와 비슷한 상품을 찾아줘",
+        user_id: currentUser?.id,
+        conversation_id: conversationId || undefined,
+      };
+
+      if (imageData.length > 0) {
+        requestBody.images = imageData;
+      }
+
       // 백엔드 API 호출
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -363,11 +476,7 @@ export function AISearchPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message: trimmed,
-          user_id: currentUser?.id,
-          conversation_id: conversationId || undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -391,6 +500,10 @@ export function AISearchPage() {
       if (data.action) {
         handleAction(data.action);
       }
+
+      // 이미지 정리
+      uploadedImages.forEach(img => URL.revokeObjectURL(img.preview));
+      setUploadedImages([]);
     } catch (error) {
       console.error("AI 검색 오류:", error);
       const errorMessage: ChatMessage = {
@@ -415,6 +528,64 @@ export function AISearchPage() {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // 상태 복원 (컴포넌트 마운트 시)
+  useEffect(() => {
+    const savedState = sessionStorage.getItem('aiSearchState');
+    if (savedState) {
+      try {
+        setIsRestoringState(true);  // 복원 시작
+        const state = JSON.parse(savedState);
+
+        // 상태 복원
+        if (state.messages) setMessages(state.messages);
+        if (state.products) setProducts(state.products);
+        if (state.orders) setOrders(state.orders);
+        if (state.cartItems) setCartItems(state.cartItems);
+        if (state.wishlistItems) setWishlistItems(state.wishlistItems);
+        if (state.contentType) setContentType(state.contentType);
+        if (state.currentSearchQuery) setCurrentSearchQuery(state.currentSearchQuery);
+        if (state.conversationId) setConversationId(state.conversationId);
+        if (state.multiSearchResults) setMultiSearchResults(state.multiSearchResults);
+        if (state.multiSearchQueries) setMultiSearchQueries(state.multiSearchQueries);
+        if (state.selectedMultiCategory) setSelectedMultiCategory(state.selectedMultiCategory);
+        if (typeof state.isChatCollapsed === 'boolean') setIsChatCollapsed(state.isChatCollapsed);
+
+        // 복원 후 삭제
+        sessionStorage.removeItem('aiSearchState');
+
+        console.log('[AI Search] State restored from sessionStorage');
+
+        // 다음 렌더링에서 플래그 해제
+        setTimeout(() => setIsRestoringState(false), 0);
+      } catch (error) {
+        console.error('[AI Search] Failed to restore state:', error);
+        sessionStorage.removeItem('aiSearchState');
+        setIsRestoringState(false);
+      }
+    }
+  }, []);
+
+  // 이미지 붙여넣기 이벤트 리스너
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (file) {
+            await handleImageAdd(file);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
 
   // 전역 스크롤 감지 - 마우스 휠 이벤트로 스크롤 방향 감지
   useEffect(() => {
@@ -462,8 +633,10 @@ export function AISearchPage() {
     };
   }, []);
 
-  // contentType 변경 시 데이터 로드
+  // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만)
   useEffect(() => {
+    if (isRestoringState) return;  // 복원 중이면 API 호출 안 함
+
     if (contentType === "products" && currentSearchQuery) {
       fetchProducts(currentSearchQuery);
     } else if (contentType === "orders") {
@@ -473,7 +646,7 @@ export function AISearchPage() {
     } else if (contentType === "wishlist") {
       fetchWishlist();
     }
-  }, [contentType, currentSearchQuery]);
+  }, [contentType, currentSearchQuery, isRestoringState]);
 
   // Header에서 전달된 검색어 자동 실행
   useEffect(() => {
@@ -523,6 +696,18 @@ export function AISearchPage() {
                       </span>
                     </div>
                   )}
+                  {msg.images && msg.images.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {msg.images.map((imgUrl, imgIdx) => (
+                        <img
+                          key={imgIdx}
+                          src={imgUrl}
+                          alt={`Message image ${imgIdx + 1}`}
+                          className="h-24 w-24 rounded object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
                   <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                 </div>
               </div>
@@ -568,16 +753,61 @@ export function AISearchPage() {
       >
         <div className="px-6 py-4 md:px-8">
           <div className="mx-auto max-w-3xl">
+            {uploadedImages.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {uploadedImages.map((img, index) => (
+                  <div key={index} className="relative h-20 w-20 rounded-lg border-2 border-purple-300 overflow-hidden">
+                    <img
+                      src={img.preview}
+                      alt={`Upload ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      onClick={() => handleImageRemove(index)}
+                      className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(file => handleImageAdd(file));
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 w-12 p-0"
+                  disabled={isLoading || isProcessingImages}
+                  asChild
+                >
+                  <span>
+                    <ImagePlus className="h-5 w-5" />
+                  </span>
+                </Button>
+              </label>
+
               <Input
                 type="text"
-                placeholder="메시지를 입력하세요..."
+                placeholder={uploadedImages.length > 0 ? "이미지에 대해 설명해주세요..." : "메시지를 입력하세요..."}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    if (searchInput.trim()) {
+                    if (searchInput.trim() || uploadedImages.length > 0) {
                       handleSearch(searchInput.trim());
                     }
                   }
@@ -585,28 +815,17 @@ export function AISearchPage() {
                 className="h-12 flex-1"
               />
               <Button
-                onClick={() => {
-                  if (searchInput.trim()) {
-                    handleSearch(searchInput.trim());
-                  }
-                }}
-                disabled={!searchInput.trim() || isLoading}
+                onClick={() => handleSearch(searchInput.trim())}
+                disabled={(!searchInput.trim() && uploadedImages.length === 0) || isLoading}
                 className="h-12 bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {EXAMPLE_SEARCHES.slice(0, 3).map((example) => (
-                <button
-                  key={example}
-                  onClick={() => handleExampleClick(example)}
-                  className="rounded-full bg-gray-100 px-3 py-1.5 text-xs transition-colors hover:bg-gray-200"
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
+
+            <p className="mt-2 text-xs text-gray-500 text-center">
+              Ctrl+V로 이미지를 붙여넣거나, 파일을 선택하여 업로드할 수 있습니다
+            </p>
           </div>
         </div>
 
@@ -777,7 +996,7 @@ export function AISearchPage() {
                   <ProductPreviewCard
                     key={product.id}
                     product={product}
-                    onOpen={(productId) => navigate(`/product/${productId}`)}
+                    onOpen={handleProductClick}
                   />
                 ))}
               </div>
@@ -954,13 +1173,13 @@ export function AISearchPage() {
                             item.nameSnapshot || item.product?.name || "상품"
                           }
                           className="h-24 w-24 cursor-pointer rounded object-cover"
-                          onClick={() => navigate(`/product/${item.productId}`)}
+                          onClick={() => handleProductClick(item.productId)}
                         />
                       )}
                       <div className="flex-1">
                         <h3
                           className="cursor-pointer font-semibold text-gray-900 hover:text-gray-600"
-                          onClick={() => navigate(`/product/${item.productId}`)}
+                          onClick={() => handleProductClick(item.productId)}
                         >
                           {item.nameSnapshot || item.product?.name}
                         </h3>
@@ -1033,7 +1252,7 @@ export function AISearchPage() {
                           key={query}
                           className="cursor-pointer rounded-lg bg-white p-3 shadow-sm transition-all hover:shadow-md"
                           onClick={() =>
-                            navigate(`/product/${representativeProduct.id}`)
+                            handleProductClick(representativeProduct.id)
                           }
                         >
                           <img
@@ -1093,9 +1312,7 @@ export function AISearchPage() {
                           <ProductPreviewCard
                             key={product.id}
                             product={product}
-                            onOpen={(productId) =>
-                              navigate(`/product/${productId}`)
-                            }
+                            onOpen={handleProductClick}
                           />
                         )
                       )}
@@ -1153,7 +1370,7 @@ export function AISearchPage() {
                   <ProductPreviewCard
                     key={item.wishlist_id}
                     product={item.product}
-                    onOpen={(productId) => navigate(`/product/${productId}`)}
+                    onOpen={handleProductClick}
                   />
                 ))}
               </div>
