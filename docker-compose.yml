@@ -29,7 +29,7 @@ services:
     networks:
       - ecommerce-network
 
-# Elasticsearch (검색 엔진)
+  # Elasticsearch (검색 엔진)
   elasticsearch:
     build:
       context: ./elasticsearch
@@ -38,8 +38,8 @@ services:
     restart: unless-stopped
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false  # 비밀번호 없이 사용
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g   # 메모리 설정 (RAM 부족하면 512m로 변경 가능)
+      - xpack.security.enabled=false # 비밀번호 없이 사용
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g # 메모리 설정 (RAM 부족하면 512m로 변경 가능)
     ulimits:
       memlock:
         soft: -1
@@ -100,10 +100,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      elasticsearch:
+        condition: service_started
     networks:
       - ecommerce-network
-    depends_on:
-      - elasticsearch   # ✅ 검색 의존 추가
 
   # React + Vite 프론트엔드
   frontend:
