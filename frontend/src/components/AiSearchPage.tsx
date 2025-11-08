@@ -829,7 +829,15 @@ export function AISearchPage() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchInput.trim() || uploadedImages.length > 0) {
+                  handleSearch(searchInput.trim());
+                }
+              }}
+              className="flex gap-2"
+            >
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -860,24 +868,16 @@ export function AISearchPage() {
                 placeholder={uploadedImages.length > 0 ? "이미지에 대해 설명해주세요..." : "메시지를 입력하세요..."}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (searchInput.trim() || uploadedImages.length > 0) {
-                      handleSearch(searchInput.trim());
-                    }
-                  }
-                }}
                 className="h-12 flex-1"
               />
               <Button
-                onClick={() => handleSearch(searchInput.trim())}
+                type="submit"
                 disabled={(!searchInput.trim() && uploadedImages.length === 0) || isLoading}
                 className="h-12 bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
               >
                 <Send className="h-4 w-4" />
               </Button>
-            </div>
+            </form>
 
             <p className="mt-2 text-xs text-gray-500 text-center">
               Ctrl+V로 이미지를 붙여넣거나, 파일을 선택하여 업로드할 수 있습니다
@@ -925,22 +925,23 @@ export function AISearchPage() {
 
             <section className="mx-auto mb-10 w-full max-w-3xl">
               {/* 검색 입력창 */}
-              <div className="mb-8 flex w-full items-center gap-3 rounded-full border-2 border-purple-200 bg-white px-4 py-2 shadow-sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSearch(searchInput);
+                }}
+                className="mb-8 flex w-full items-center gap-3 rounded-full border-2 border-purple-200 bg-white px-4 py-2 shadow-sm"
+              >
                 <Input
                   type="text"
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      handleSearch(searchInput);
-                    }
-                  }}
                   className="h-12 flex-1 border-none bg-transparent text-base focus-visible:ring-0"
                   placeholder="무엇이든 물어보세요"
                   disabled={isLoading}
                 />
                 <Button
-                  onClick={() => handleSearch(searchInput)}
+                  type="submit"
                   disabled={isLoading || !searchInput.trim()}
                   className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
                 >
@@ -951,7 +952,7 @@ export function AISearchPage() {
                   )}
                   검색
                 </Button>
-              </div>
+              </form>
 
               {/* 예시 검색어 */}
               <div>
