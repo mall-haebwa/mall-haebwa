@@ -14,6 +14,8 @@ from .schemas import (
     BasicResp,
     RecentlyViewedListOut,
     RecentlyViewedPayload,
+    SellerRegistrationIn,
+    UserOut,
 )
 from .security import decode_token
 
@@ -206,3 +208,80 @@ async def list_recently_viewed(
         print(f"[Recently Viewed] ⚠️ Redis 캐시 저장 실패 user: {user_id}")
 
     return {"items": items, "cacheSource": "db"}
+
+
+@router.post("/seller/register", response_model=UserOut, status_code=status.HTTP_200_OK)
+async def register_as_seller(
+    payload: SellerRegistrationIn,
+    current_user=Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    판매자 등록
+
+    일반 사용자를 판매자로 등록합니다.
+    """
+    user_id = current_user["_id"]
+
+    # 이미 판매자인지 확인
+    if current_user.get("isSeller"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 판매자로 등록되어 있습니다.",
+        )
+
+    # 사업자 등록번호 중복 확인
+    existing_seller = await db[USERS_COL].find_one({
+        "sellerInfo.businessNumber": payload.businessNumber
+    })
+
+    if existing_seller:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 등록된 사업자 등록번호입니다.",
+        )
+
+    # 판매자 정보 업데이트
+    now = datetime.utcnow()
+    update_result = await db[USERS_COL].update_one(
+        {"_id": ObjectId(user_id)},
+        {
+            "$set": {
+                "isSeller": True,
+                "sellerInfo": {
+                    "businessName": payload.businessName,
+                    "businessNumber": payload.businessNumber,
+                    "registeredAt": now,
+                }
+            }
+        }
+    )
+
+    if update_result.modified_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="판매자 등록에 실패했습니다.",
+        )
+
+    # 업데이트된 사용자 정보 조회
+    updated_user = await db[USERS_COL].find_one({"_id": ObjectId(user_id)})
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다.",
+        )
+
+    # _id를 문자열로 변환
+    updated_user["_id"] = str(updated_user["_id"])
+
+    return updated_user
+
+
+@router.get("/me", response_model=UserOut)
+async def get_current_user_info(
+    current_user=Depends(get_current_user),
+):
+    """
+    현재 로그인한 사용자 정보 조회
+    """
+    return current_user

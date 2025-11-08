@@ -139,6 +139,8 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
         "address": user.get("address"),
         "role": user.get("role", "user"),
         "points": points,
+        "isSeller": user.get("isSeller", False),
+        "sellerInfo": user.get("sellerInfo"),
         "recentlyViewed": user.get("recentlyViewed", []),
     }
     return user_out
@@ -259,5 +261,7 @@ async def me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
         "address": user.get("address"),
         "role": user.get("role", "user"),
         "points": points,
+        "isSeller": user.get("isSeller", False),
+        "sellerInfo": user.get("sellerInfo"),
         "recentlyViewed": user.get("recentlyViewed", []),
     }
