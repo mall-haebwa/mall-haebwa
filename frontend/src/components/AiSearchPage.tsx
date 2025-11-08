@@ -485,9 +485,10 @@ export function AISearchPage() {
 
       const data = await response.json();
 
-      // conversation_id 저장
+      // conversation_id 저장 (localStorage에도 저장)
       if (data.conversation_id) {
         setConversationId(data.conversation_id);
+        localStorage.setItem('aiSearchConversationId', data.conversation_id);
       }
 
       const assistantReply: ChatMessage = {
@@ -529,42 +530,97 @@ export function AISearchPage() {
     }
   }, [messages]);
 
+  // 뒤로가기 감지 및 상태 저장
+  useEffect(() => {
+    const handlePopState = () => {
+      console.log('[AI Search] Back button clicked, saving state before unmount');
+      // 현재 상태를 sessionStorage에 저장하여 뒤로가기 후 복원 가능하게
+      const stateToSave = {
+        messages,
+        products,
+        orders,
+        cartItems,
+        wishlistItems,
+        contentType,
+        currentSearchQuery,
+        conversationId,
+        multiSearchResults,
+        multiSearchQueries,
+        selectedMultiCategory,
+        isChatCollapsed
+      };
+      sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory, isChatCollapsed]);
+
   // 상태 복원 (컴포넌트 마운트 시)
   useEffect(() => {
-    const savedState = sessionStorage.getItem('aiSearchState');
-    if (savedState) {
+    const restoreState = async () => {
       try {
-        setIsRestoringState(true);  // 복원 시작
-        const state = JSON.parse(savedState);
+        setIsRestoringState(true);
 
-        // 상태 복원
-        if (state.messages) setMessages(state.messages);
-        if (state.products) setProducts(state.products);
-        if (state.orders) setOrders(state.orders);
-        if (state.cartItems) setCartItems(state.cartItems);
-        if (state.wishlistItems) setWishlistItems(state.wishlistItems);
-        if (state.contentType) setContentType(state.contentType);
-        if (state.currentSearchQuery) setCurrentSearchQuery(state.currentSearchQuery);
-        if (state.conversationId) setConversationId(state.conversationId);
-        if (state.multiSearchResults) setMultiSearchResults(state.multiSearchResults);
-        if (state.multiSearchQueries) setMultiSearchQueries(state.multiSearchQueries);
-        if (state.selectedMultiCategory) setSelectedMultiCategory(state.selectedMultiCategory);
-        if (typeof state.isChatCollapsed === 'boolean') setIsChatCollapsed(state.isChatCollapsed);
+        // 1. sessionStorage에서 먼저 복원 시도 (상품 페이지에서 돌아온 경우 또는 뒤로가기)
+        const savedState = sessionStorage.getItem('aiSearchState');
+        if (savedState) {
+          const state = JSON.parse(savedState);
 
-        // 복원 후 삭제
-        sessionStorage.removeItem('aiSearchState');
+          // 상태 복원
+          if (state.messages) setMessages(state.messages);
+          if (state.products) setProducts(state.products);
+          if (state.orders) setOrders(state.orders);
+          if (state.cartItems) setCartItems(state.cartItems);
+          if (state.wishlistItems) setWishlistItems(state.wishlistItems);
+          if (state.contentType) setContentType(state.contentType);
+          if (state.currentSearchQuery) setCurrentSearchQuery(state.currentSearchQuery);
+          if (state.conversationId) setConversationId(state.conversationId);
+          if (state.multiSearchResults) setMultiSearchResults(state.multiSearchResults);
+          if (state.multiSearchQueries) setMultiSearchQueries(state.multiSearchQueries);
+          if (state.selectedMultiCategory) setSelectedMultiCategory(state.selectedMultiCategory);
+          if (typeof state.isChatCollapsed === 'boolean') setIsChatCollapsed(state.isChatCollapsed);
 
-        console.log('[AI Search] State restored from sessionStorage');
+          // 복원 후 삭제
+          sessionStorage.removeItem('aiSearchState');
+          console.log('[AI Search] State restored from sessionStorage');
+        }
+        // 2. localStorage에서 conversation_id 조회 (새로 들어온 경우)
+        else {
+          const savedConvId = localStorage.getItem('aiSearchConversationId');
+          if (savedConvId && currentUser?.id) {
+            setConversationId(savedConvId);
 
-        // 다음 렌더링에서 플래그 해제
-        setTimeout(() => setIsRestoringState(false), 0);
+            // Redis에서 히스토리 복원
+            try {
+              const response = await fetch(
+                `/api/chat/history/${savedConvId}?user_id=${currentUser.id}`,
+                { credentials: 'include' }
+              );
+
+              if (response.ok) {
+                const data = await response.json();
+                if (data.messages && data.messages.length > 0) {
+                  setMessages(data.messages);
+                  console.log('[AI Search] Conversation history restored from Redis');
+                }
+              }
+            } catch (error) {
+              console.error('[AI Search] Failed to restore from Redis:', error);
+            }
+          }
+        }
       } catch (error) {
         console.error('[AI Search] Failed to restore state:', error);
         sessionStorage.removeItem('aiSearchState');
-        setIsRestoringState(false);
+      } finally {
+        // 다음 렌더링에서 플래그 해제
+        setTimeout(() => setIsRestoringState(false), 0);
       }
-    }
-  }, []);
+    };
+
+    restoreState();
+  }, [currentUser?.id]);
 
   // 이미지 붙여넣기 이벤트 리스너
   useEffect(() => {

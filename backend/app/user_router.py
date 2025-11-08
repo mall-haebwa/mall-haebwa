@@ -90,6 +90,7 @@ async def add_recently_viewed(
     user_id = current_user["_id"]
     now = datetime.utcnow()
 
+    # 1단계: DB 업데이트
     await db[USERS_COL].update_one(
         {"_id": ObjectId(user_id)},
         {"$pull": {"recentlyViewed": {"productId": payload.productId}}},
@@ -112,6 +113,34 @@ async def add_recently_viewed(
             }
         },
     )
+
+    # 2단계: Redis 캐시도 업데이트
+    try:
+        # Redis의 현재 캐시 조회
+        cached_items = await redis_client.get_recently_viewed(user_id)
+
+        if cached_items:
+            # 기존 캐시가 있으면 상품 추가/이동
+            product = _reshape_product(product_doc)
+
+            # 이미 있는 상품이면 제거
+            filtered = [item for item in cached_items if item.get("product", {}).get("id") != payload.productId]
+
+            # 맨 앞에 추가 (최대 10개 유지)
+            updated_items = [
+                {"product": product, "viewedAt": now.isoformat()}
+            ] + filtered[:9]
+
+            # Redis에 저장
+            await redis_client.set_recently_viewed(user_id, updated_items)
+            print(f"[Add Recently Viewed] Redis 캐시 업데이트: user {user_id}, 상품: {product_doc.get('name')}")
+        else:
+            # Redis에 캐시가 없으면 DB에서 새로 로드해서 저장
+            print(f"[Add Recently Viewed] Redis 캐시 미스, DB에서 재로드: user {user_id}")
+            # GET 엔드포인트가 자동으로 Redis에 저장할 것임
+    except Exception as e:
+        print(f"[Add Recently Viewed] Redis 업데이트 실패: {e}")
+        # Redis 실패해도 DB는 업데이트되었으므로 계속 진행
 
     return {"message": "최근 본 상품에 추가되었습니다."}
 
