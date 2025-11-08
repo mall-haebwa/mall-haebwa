@@ -4,6 +4,7 @@ import {
   Home,
   Package,
   ShoppingCart,
+  Store,
   Tag,
   Settings,
   TrendingUp,
