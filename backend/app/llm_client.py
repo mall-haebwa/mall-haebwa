@@ -6,6 +6,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# LLM Temperature 설정
+INTENT_TEMPERATURE = 0.3  # Intent 파악은 일관성이 중요
+REPLY_TEMPERATURE = 0.7   # Reply 생성은 자연스러움이 중요
+
+# 입력 제한
+MAX_USER_MESSAGE_LENGTH = 500
+
 class GeminiClient:
     def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         """제미나이 클라이언트 초기화 (새 SDK)"""

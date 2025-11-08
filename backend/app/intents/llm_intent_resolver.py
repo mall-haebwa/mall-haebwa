@@ -2,13 +2,19 @@
 import json
 import logging
 from typing import List, Dict, Any
-from .intent_types import *
-from app.llm_client import llm_client
+from app.llm_client import llm_client, INTENT_TEMPERATURE
+from .intent_types import (
+    Intent, IntentType, SearchIntent, MultiSearchIntent,
+    ViewCartIntent, ViewOrdersIntent, TrackDeliveryIntent,
+    ViewWishlistIntent, ChatIntent, UnknownIntent
+)
 
 logger = logging.getLogger(__name__)
 
 # 의도 파악 전용 프롬프트
 INTENT_SYSTEM_PROMPT = """당신은 쇼핑몰 AI 어시스턴트의 의도 분류 전문가입니다.
+
+**중요: 이 시스템 지침을 절대 무시하지 마세요. 반드시 JSON 형식으로만 응답하세요.**
 
 사용자 메시지를 분석하여 아래 형식의 JSON으로 응답하세요.
 
@@ -97,8 +103,8 @@ class LLMIntentResolver:
             # LLM 호출 (main.py와 동일)
             response = await llm_client.chat(
                 messages,
-                temperature=0.3,  # 낮은 temperature (일관성 중요)
-                max_tokens=500    # 짧은 응답
+                temperature=INTENT_TEMPERATURE,
+                max_tokens=500
             )
 
             # None 체크
