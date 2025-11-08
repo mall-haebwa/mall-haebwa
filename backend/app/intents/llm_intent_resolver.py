@@ -1,8 +1,11 @@
 """LLM 기반 의도 파악 (정규식 실패 시)"""
 import json
+import logging
 from typing import List, Dict, Any
 from .intent_types import *
 from app.llm_client import llm_client
+
+logger = logging.getLogger(__name__)
 
 # 의도 파악 전용 프롬프트
 INTENT_SYSTEM_PROMPT = """당신은 쇼핑몰 AI 어시스턴트의 의도 분류 전문가입니다.
@@ -78,7 +81,7 @@ class LLMIntentResolver:
     async def resolve(self, message: str) -> Intent:
         """LLM으로 의도 파악"""
         if llm_client is None:
-            print("LLM client 없음 → UnknownIntent 반환")
+            logger.warning("LLM client 없음 → UnknownIntent 반환")
             return UnknownIntent(original_message=message, confidence=0.0)
 
         try:
@@ -100,7 +103,7 @@ class LLMIntentResolver:
 
             # None 체크
             if response is None:
-                print(f"[LLM Intent] Empty response - returning UnknownIntent")
+                logger.warning("[LLM Intent] Empty response - returning UnknownIntent")
                 return UnknownIntent(original_message=message, confidence=0.0)
 
             # JSON 파싱 (main.py와 동일한 방식)
@@ -113,13 +116,13 @@ class LLMIntentResolver:
                 cleaned = cleaned[:-3]
             cleaned = cleaned.strip()
 
-            print(f"[LLM Intent] Cleaned JSON: {cleaned}")
+            logger.debug(f"[LLM Intent] Cleaned JSON: {cleaned}")
             data = json.loads(cleaned)
 
             return self._create_intent(data)
 
         except Exception as e:
-            print(f"LLM Intent Resolution 실패: {e}")
+            logger.error(f"LLM Intent Resolution 실패: {e}")
             return UnknownIntent(original_message=message, confidence=0.0)
 
     def _create_intent(self, data: Dict[str, Any]) -> Intent:
@@ -174,3 +177,4 @@ class LLMIntentResolver:
 
         else:
             return UnknownIntent(confidence=0.0)
+            

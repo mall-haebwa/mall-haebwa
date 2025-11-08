@@ -38,3 +38,4 @@ class WishlistService:
                 })
 
         return result
+        

@@ -2,10 +2,13 @@
 Command Matcher → LLM Resolver 순서로 의도 파악
 """
 
+import logging
 from typing import List, Dict, Optional
 from .command_matcher import CommandMatcher
 from .llm_intent_resolver import LLMIntentResolver
 from .intent_types import Intent
+
+logger = logging.getLogger(__name__)
 
 class IntentParser:
     """
@@ -35,13 +38,13 @@ class IntentParser:
         # # 1단계: 빠른 매칭 시도
         # intent = self.command_matcher.match(message)
         # if intent:
-        #     print(f"✓ Command Matcher 성공: {intent.type.value}")
+        #     logger.info(f"✓ Command Matcher 성공: {intent.type.value}")
         #     return intent
 
         # 2단계: LLM 호출 - 현재 모든 Intent를 LLM이 처리
-        print("LLM으로 Intent 파악 시작")
+        logger.info("LLM으로 Intent 파악 시작")
         resolver = LLMIntentResolver(conversation_history)
         intent = await resolver.resolve(message)
-        print(f"✓ LLM Resolver 결과: {intent.type.value} (confidence: {intent.confidence})")
+        logger.info(f"✓ LLM Resolver 결과: {intent.type.value} (confidence: {intent.confidence})")
 
         return intent
