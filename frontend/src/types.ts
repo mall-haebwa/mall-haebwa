@@ -11,6 +11,12 @@ export interface User {
   address: string;
   points?: number; // 적립금
   recentlyViewed?: RecentlyViewedEntry[];
+  isSeller?: boolean; // 판매자 여부
+  sellerInfo?: {
+    businessName?: string; // 사업자명
+    businessNumber?: string; // 사업자 등록번호
+    registeredAt?: string; // 판매자 등록일
+  };
 }
 
 export interface Product {

@@ -55,6 +55,8 @@ export function LoginPage() {
         recentlyViewed: Array.isArray(user.recentlyViewed)
           ? user.recentlyViewed
           : [],
+        isSeller: user.isSeller || false,
+        sellerInfo: user.sellerInfo || undefined,
       });
 
       toast.success(`환영합니다, ${user.name}님!`);

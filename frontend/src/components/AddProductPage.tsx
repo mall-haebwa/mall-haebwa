@@ -75,7 +75,7 @@ export function AddProductPage() {
             상품 등록
           </h1>
           <p className="text-sm text-gray-600">
-            새로운 상품을 등록하고 판매를 시작하세요.
+            새로운 상품을 편하게 등록하고 판매를 시작하세요.
           </p>
         </div>
 
@@ -220,7 +220,9 @@ export function AddProductPage() {
 
           <Card className="space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">상품 이미지</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                상품 이미지
+              </h2>
               <Button type="button" variant="outline" onClick={handleAddImage}>
                 <Upload className="mr-2 h-4 w-4" />
                 이미지 추가
@@ -265,7 +267,10 @@ export function AddProductPage() {
             >
               취소
             </Button>
-            <Button type="submit" className="bg-gray-900 text-white hover:bg-black">
+            <Button
+              type="submit"
+              className="bg-gray-900 text-white hover:bg-black"
+            >
               등록하기
             </Button>
           </div>

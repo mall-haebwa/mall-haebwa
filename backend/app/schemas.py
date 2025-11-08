@@ -55,6 +55,12 @@ class RecentlyViewedPayload(BaseModel):
     productId: str = Field(..., min_length=1)
 
 
+class SellerInfo(BaseModel):
+    businessName: str | None = None
+    businessNumber: str | None = None
+    registeredAt: datetime | None = None
+
+
 class UserOut(BaseModel):
     id: str = Field(alias="_id")
     email: EmailStr
@@ -64,6 +70,8 @@ class UserOut(BaseModel):
     role: str = "user"
     points: int = 0  # 적립금
     recentlyViewed: list[RecentlyViewedEntry] = Field(default_factory=list)
+    isSeller: bool = False  # 판매자 여부
+    sellerInfo: SellerInfo | None = None
 
 
 class BasicResp(BaseModel):
@@ -105,3 +113,8 @@ class CartItemQuantityUpdate(BaseModel):
 
 class CartItemsDeleteRequest(BaseModel):
     item_ids: list[str] = Field(..., min_length=1)
+
+
+class SellerRegistrationIn(BaseModel):
+    businessName: str = Field(..., min_length=1, max_length=100)
+    businessNumber: str = Field(..., min_length=10, max_length=12)

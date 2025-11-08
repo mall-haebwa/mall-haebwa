@@ -99,11 +99,13 @@ export function AISearchPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
-  const [uploadedImages, setUploadedImages] = useState<Array<{
-    file: File;
-    preview: string;
-    base64?: string;
-  }>>([]);
+  const [uploadedImages, setUploadedImages] = useState<
+    Array<{
+      file: File;
+      preview: string;
+      base64?: string;
+    }>
+  >([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isRestoringState, setIsRestoringState] = useState(false);
 
@@ -124,7 +126,6 @@ export function AISearchPage() {
   const [selectedMultiCategory, setSelectedMultiCategory] =
     useState<string>("");
 
-
   // 이미지 처리 유틸리티 함수
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -132,26 +133,26 @@ export function AISearchPage() {
       reader.readAsDataURL(file);
       reader.onload = () => {
         const base64 = reader.result as string;
-        const base64Data = base64.split(',')[1];
+        const base64Data = base64.split(",")[1];
         resolve(base64Data);
       };
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
   const getMimeType = (file: File): string => {
-    return file.type || 'image/jpeg';
+    return file.type || "image/jpeg";
   };
 
   const handleImageAdd = async (file: File) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
-      alert('지원하지 않는 이미지 형식입니다. (JPG, PNG, WebP만 가능)');
+      alert("지원하지 않는 이미지 형식입니다. (JPG, PNG, WebP만 가능)");
       return;
     }
 
     if (file.size > 3 * 1024 * 1024) {
-      alert('이미지 크기는 3MB 이하여야 합니다.');
+      alert("이미지 크기는 3MB 이하여야 합니다.");
       return;
     }
 
@@ -161,17 +162,17 @@ export function AISearchPage() {
       const preview = URL.createObjectURL(file);
       const base64 = await fileToBase64(file);
 
-      setUploadedImages(prev => [...prev, { file, preview, base64 }]);
+      setUploadedImages((prev) => [...prev, { file, preview, base64 }]);
     } catch (error) {
-      console.error('Image processing error:', error);
-      alert('이미지 처리 중 오류가 발생했습니다.');
+      console.error("Image processing error:", error);
+      alert("이미지 처리 중 오류가 발생했습니다.");
     } finally {
       setIsProcessingImages(false);
     }
   };
 
   const handleImageRemove = (index: number) => {
-    setUploadedImages(prev => {
+    setUploadedImages((prev) => {
       const newImages = [...prev];
       URL.revokeObjectURL(newImages[index].preview);
       newImages.splice(index, 1);
@@ -192,11 +193,23 @@ export function AISearchPage() {
       conversationId,
       multiSearchResults,
       multiSearchQueries,
-      selectedMultiCategory
+      selectedMultiCategory,
     };
-    sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
-    console.log('[AI Search] State saved to sessionStorage');
-  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
+    sessionStorage.setItem("aiSearchState", JSON.stringify(stateToSave));
+    console.log("[AI Search] State saved to sessionStorage");
+  }, [
+    messages,
+    products,
+    orders,
+    cartItems,
+    wishlistItems,
+    contentType,
+    currentSearchQuery,
+    conversationId,
+    multiSearchResults,
+    multiSearchQueries,
+    selectedMultiCategory,
+  ]);
 
   // 상품 클릭 핸들러
   const handleProductClick = (productId: string) => {
@@ -347,7 +360,10 @@ export function AISearchPage() {
 
           // Tool 결과에 products 데이터가 포함되어 있으면 바로 사용
           if (action.params.products && Array.isArray(action.params.products)) {
-            console.log("Using products from Tool result:", action.params.products.length);
+            console.log(
+              "Using products from Tool result:",
+              action.params.products.length
+            );
             setProducts(action.params.products);
             setIsLoadingData(false);
           } else {
@@ -373,8 +389,14 @@ export function AISearchPage() {
           setSelectedMultiCategory("");
 
           // Tool 결과에 이미 데이터가 있으면 바로 사용 (API 재호출 불필요)
-          if (action.params.results && typeof action.params.results === "object") {
-            console.log("Using multi-search results from Tool:", action.params.results);
+          if (
+            action.params.results &&
+            typeof action.params.results === "object"
+          ) {
+            console.log(
+              "Using multi-search results from Tool:",
+              action.params.results
+            );
             setMultiSearchResults(action.params.results);
             if (queries.length > 0) {
               setSelectedMultiCategory(queries[0]);
@@ -479,7 +501,10 @@ export function AISearchPage() {
         // 재주문 옵션 표시 - 과거 주문 상품을 상품 카드로 표시
         setContentType("reorder");
         if (action.params?.products && Array.isArray(action.params.products)) {
-          console.log("Processing VIEW_REORDER_OPTIONS with products:", action.params.products);
+          console.log(
+            "Processing VIEW_REORDER_OPTIONS with products:",
+            action.params.products
+          );
           setProducts(action.params.products);
           setCurrentSearchQuery(
             action.params.keyword
@@ -513,7 +538,10 @@ export function AISearchPage() {
     const userMessage: ChatMessage = {
       role: "user",
       content: trimmed || "[이미지 검색]",
-      images: uploadedImages.length > 0 ? uploadedImages.map(img => img.preview) : undefined
+      images:
+        uploadedImages.length > 0
+          ? uploadedImages.map((img) => img.preview)
+          : undefined,
     };
     setMessages((prev) => [...prev, userMessage]);
     setSearchInput("");
@@ -524,7 +552,7 @@ export function AISearchPage() {
       const imageData = await Promise.all(
         uploadedImages.map(async (img) => ({
           mime_type: getMimeType(img.file),
-          data: img.base64 || await fileToBase64(img.file)
+          data: img.base64 || (await fileToBase64(img.file)),
         }))
       );
 
@@ -557,7 +585,7 @@ export function AISearchPage() {
       // conversation_id 저장 (localStorage에도 저장)
       if (data.conversation_id) {
         setConversationId(data.conversation_id);
-        localStorage.setItem('aiSearchConversationId', data.conversation_id);
+        localStorage.setItem("aiSearchConversationId", data.conversation_id);
       }
 
       const assistantReply: ChatMessage = {
@@ -572,13 +600,14 @@ export function AISearchPage() {
       }
 
       // 이미지 정리
-      uploadedImages.forEach(img => URL.revokeObjectURL(img.preview));
+      uploadedImages.forEach((img) => URL.revokeObjectURL(img.preview));
       setUploadedImages([]);
     } catch (error) {
       console.error("AI 검색 오류:", error);
 
       // 백엔드에서 전달한 에러 메시지 또는 기본 메시지
-      let errorContent = "죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      let errorContent =
+        "죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
 
       if (error instanceof Error) {
         // axios 에러의 경우 response에서 메시지 추출
@@ -616,7 +645,7 @@ export function AISearchPage() {
   // 언마운트 시 (홈으로 갈 때 등 또는 뒤로가기) 상태 저장
   useEffect(() => {
     return () => {
-      console.log('[AI Search] Component unmounting, saving state');
+      console.log("[AI Search] Component unmounting, saving state");
       saveSearchState();
     };
   }, [saveSearchState]);
@@ -628,7 +657,7 @@ export function AISearchPage() {
         setIsRestoringState(true);
 
         // 1. sessionStorage에서 먼저 복원 시도 (상품 페이지에서 돌아온 경우 또는 뒤로가기)
-        const savedState = sessionStorage.getItem('aiSearchState');
+        const savedState = sessionStorage.getItem("aiSearchState");
         if (savedState) {
           const state = JSON.parse(savedState);
 
@@ -639,15 +668,19 @@ export function AISearchPage() {
           if (state.cartItems) setCartItems(state.cartItems);
           if (state.wishlistItems) setWishlistItems(state.wishlistItems);
           if (state.contentType) setContentType(state.contentType);
-          if (state.currentSearchQuery) setCurrentSearchQuery(state.currentSearchQuery);
+          if (state.currentSearchQuery)
+            setCurrentSearchQuery(state.currentSearchQuery);
           if (state.conversationId) setConversationId(state.conversationId);
-          if (state.multiSearchResults) setMultiSearchResults(state.multiSearchResults);
-          if (state.multiSearchQueries) setMultiSearchQueries(state.multiSearchQueries);
-          if (state.selectedMultiCategory) setSelectedMultiCategory(state.selectedMultiCategory);
+          if (state.multiSearchResults)
+            setMultiSearchResults(state.multiSearchResults);
+          if (state.multiSearchQueries)
+            setMultiSearchQueries(state.multiSearchQueries);
+          if (state.selectedMultiCategory)
+            setSelectedMultiCategory(state.selectedMultiCategory);
 
           // 복원 후 삭제
-          sessionStorage.removeItem('aiSearchState');
-          console.log('[AI Search] State restored from sessionStorage');
+          sessionStorage.removeItem("aiSearchState");
+          console.log("[AI Search] State restored from sessionStorage");
         }
         // 2. Redis에서 히스토리 복원 (임시 주석 처리)
         // localStorage에서 conversation_id 조회 후 Redis에서 복원
@@ -675,8 +708,8 @@ export function AISearchPage() {
         //   }
         // }
       } catch (error) {
-        console.error('[AI Search] Failed to restore state:', error);
-        sessionStorage.removeItem('aiSearchState');
+        console.error("[AI Search] Failed to restore state:", error);
+        sessionStorage.removeItem("aiSearchState");
       } finally {
         // 다음 렌더링에서 플래그 해제
         setTimeout(() => setIsRestoringState(false), 0);
@@ -693,7 +726,7 @@ export function AISearchPage() {
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
+        if (items[i].type.indexOf("image") !== -1) {
           e.preventDefault();
           const file = items[i].getAsFile();
           if (file) {
@@ -703,13 +736,13 @@ export function AISearchPage() {
       }
     };
 
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
   // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만)
   useEffect(() => {
-    if (isRestoringState) return;  // 복원 중이면 API 호출 안 함
+    if (isRestoringState) return; // 복원 중이면 API 호출 안 함
 
     if (contentType === "products" && currentSearchQuery) {
       fetchProducts(currentSearchQuery);
@@ -898,9 +931,7 @@ export function AISearchPage() {
                 재주문 옵션
               </h2>
               {currentSearchQuery && (
-                <p className="text-sm text-gray-600">
-                  {currentSearchQuery}
-                </p>
+                <p className="text-sm text-gray-600">{currentSearchQuery}</p>
               )}
             </div>
 
@@ -1395,7 +1426,10 @@ export function AISearchPage() {
           {uploadedImages.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
               {uploadedImages.map((img, index) => (
-                <div key={index} className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden">
+                <div
+                  key={index}
+                  className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden"
+                >
                   <img
                     src={img.preview}
                     alt={`Upload ${index + 1}`}
@@ -1429,8 +1463,8 @@ export function AISearchPage() {
                   multiple
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    files.forEach(file => handleImageAdd(file));
-                    e.target.value = '';
+                    files.forEach((file) => handleImageAdd(file));
+                    e.target.value = "";
                   }}
                   className="hidden"
                 />
@@ -1449,7 +1483,11 @@ export function AISearchPage() {
 
               <Input
                 type="text"
-                placeholder={uploadedImages.length > 0 ? "이미지에 대해 설명해주세요..." : "메시지를 입력하세요..."}
+                placeholder={
+                  uploadedImages.length > 0
+                    ? "이미지에 대해 설명해주세요..."
+                    : "메시지를 입력하세요..."
+                }
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="h-10 flex-1"
@@ -1458,7 +1496,10 @@ export function AISearchPage() {
 
             <Button
               type="submit"
-              disabled={(!searchInput.trim() && uploadedImages.length === 0) || isLoading}
+              disabled={
+                (!searchInput.trim() && uploadedImages.length === 0) ||
+                isLoading
+              }
               className="h-10 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
             >
               <Send className="mr-2 h-4 w-4" />

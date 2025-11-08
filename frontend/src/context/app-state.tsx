@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 interface AppStateValue {
   currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
   login: (user: User) => void;
   logout: () => void;
   cart: CartItem[];
@@ -201,6 +202,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           recentlyViewed: Array.isArray(user.recentlyViewed)
             ? user.recentlyViewed
             : [],
+          isSeller: user.isSeller || false,
+          sellerInfo: user.sellerInfo || undefined,
         });
 
         // 로그인 후 최근 본 상품 데이터는 백엔드에서 Redis 사전 로드됨
@@ -520,6 +523,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppStateValue>(
     () => ({
       currentUser,
+      setCurrentUser,
       login,
       logout,
       cart,

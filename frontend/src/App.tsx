@@ -20,6 +20,7 @@ import PaymentSuccess from "./components/PaymentSuccess"; // 결제 성공 컴�
 import PaymentFail from "./components/PaymentFail"; // 결제 실패 컴포넌트
 import { RepeatPurchasePage } from "./components/RepeatPurchasePage";
 import { RecentlyViewedPage } from "./components/RecentlyViewedPage";
+import { BecomeSellerPage } from "./components/BecomeSellerPage";
 
 function ScrollToTop() {
   const location = useLocation();
@@ -52,6 +53,7 @@ function AppRoutes() {
           <Route path="/recently-viewed" element={<RecentlyViewedPage />} />
           {/* 마이페이지용 라우트  추가 */}
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/become-seller" element={<BecomeSellerPage />} />
           <Route path="/add-product" element={<AddProductPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />
           <Route path="/aisearch" element={<AISearchPage />} />
