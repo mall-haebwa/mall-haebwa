@@ -35,6 +35,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 대화 히스토리 제한 상수
+INTENT_HISTORY_LIMIT = 10  # Intent 파악에 사용할 히스토리 개수
+REPLY_HISTORY_LIMIT = 3    # Reply 생성에 사용할 히스토리 개수
+MAX_USER_MESSAGE_LENGTH = 500  # 사용자 입력 최대 길이
+
 app = FastAPI(title="AI Shop API")
 
 origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
@@ -102,7 +107,7 @@ async def chat(request: ChatRequest):
     7. ChatResponse 반환
     """
     start_time = time.time()
-    user_message = request.message
+    user_message = request.message[:MAX_USER_MESSAGE_LENGTH]  # 입력 길이 제한
     user_id = request.user_id  # user_id 추출
     conv_id = request.conversation_id or str(uuid.uuid4())
     has_image = bool(request.images and len(request.images) > 0)
@@ -125,7 +130,7 @@ async def chat(request: ChatRequest):
     try:
         intent = await parser.parse(
             message=user_message,
-            conversation_history=history[-10:]  # 최근 10개만 컨텍스트로 전달
+            conversation_history=history[-INTENT_HISTORY_LIMIT:]
         )
         logger.info(f"[Intent] Type: {intent.type.value}, Confidence: {intent.confidence}")
 
@@ -171,7 +176,7 @@ async def chat(request: ChatRequest):
         reply = await generate_reply(
             intent=intent,
             data=result.get("data"),
-            conversation_history=history[-3:],  # 최근 3개만 답변 생성 컨텍스트로
+            conversation_history=history[-REPLY_HISTORY_LIMIT:],
             has_image=has_image
         )
         logger.info(f"[Reply] Generated: {reply[:50]}")
