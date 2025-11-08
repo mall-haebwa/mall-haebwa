@@ -95,7 +95,6 @@ export function AISearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [contentType, setContentType] = useState<ContentType>("idle");
   const [conversationId, setConversationId] = useState<string>("");
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
@@ -124,7 +123,6 @@ export function AISearchPage() {
   const [selectedMultiCategory, setSelectedMultiCategory] =
     useState<string>("");
 
-  const isChatting = messages.length > 0;
 
   // 이미지 처리 유틸리티 함수
   const fileToBase64 = (file: File): Promise<string> => {
@@ -193,8 +191,7 @@ export function AISearchPage() {
       conversationId,
       multiSearchResults,
       multiSearchQueries,
-      selectedMultiCategory,
-      isChatCollapsed
+      selectedMultiCategory
     };
     sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
     console.log('[AI Search] State saved to sessionStorage');
@@ -546,15 +543,14 @@ export function AISearchPage() {
         conversationId,
         multiSearchResults,
         multiSearchQueries,
-        selectedMultiCategory,
-        isChatCollapsed
+        selectedMultiCategory
       };
       sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory, isChatCollapsed]);
+  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
 
   // 상태 복원 (컴포넌트 마운트 시)
   useEffect(() => {
@@ -579,7 +575,6 @@ export function AISearchPage() {
           if (state.multiSearchResults) setMultiSearchResults(state.multiSearchResults);
           if (state.multiSearchQueries) setMultiSearchQueries(state.multiSearchQueries);
           if (state.selectedMultiCategory) setSelectedMultiCategory(state.selectedMultiCategory);
-          if (typeof state.isChatCollapsed === 'boolean') setIsChatCollapsed(state.isChatCollapsed);
 
           // 복원 후 삭제
           sessionStorage.removeItem('aiSearchState');
@@ -643,52 +638,6 @@ export function AISearchPage() {
     return () => document.removeEventListener('paste', handlePaste);
   }, []);
 
-  // 전역 스크롤 감지 - 마우스 휠 이벤트로 스크롤 방향 감지
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      // 채팅 영역 내부에서의 스크롤은 무시
-      if (chatContainerRef.current?.contains(e.target as Node)) {
-        return;
-      }
-
-      // 결과 영역의 현재 스크롤 위치 확인
-      if (resultsContainerRef.current) {
-        const scrollTop = resultsContainerRef.current.scrollTop;
-
-        // 아래로 스크롤 (deltaY > 0) 그리고 50px 이상 스크롤된 경우에만 채팅창 닫기
-        if (e.deltaY > 0 && scrollTop > 50) {
-          setIsChatCollapsed(true);
-        }
-      }
-    };
-
-    const handleScroll = () => {
-      if (resultsContainerRef.current) {
-        const scrollTop = resultsContainerRef.current.scrollTop;
-        // 아래로 스크롤된 경우에만 채팅창 닫기
-        if (scrollTop > 50) {
-          setIsChatCollapsed(true);
-        }
-      }
-    };
-
-    // 전역 휠 이벤트 리스너
-    window.addEventListener("wheel", handleWheel, { passive: true });
-
-    // 결과 영역 스크롤 리스너 (터치 스크롤용)
-    const container = resultsContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", handleScroll);
-    }
-
-    return () => {
-      window.removeEventListener("wheel", handleWheel);
-      if (container) {
-        container.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
-
   // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만)
   useEffect(() => {
     if (isRestoringState) return;  // 복원 중이면 API 호출 안 함
@@ -716,200 +665,11 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="relative h-[calc(100vh-80px)] bg-gray-50">
-      {/* 상단 채팅 메시지 영역 - Floating */}
-      <div
-        className={`absolute left-0 right-0 top-0 z-10 flex flex-col border-b border-gray-200 bg-white shadow-lg transition-all duration-300 ${
-          isChatCollapsed ? "h-0 opacity-0" : "h-[calc((100vh-80px)/2-60px)]"
-        }`}
-      >
-        <div
-          className="flex-1 overflow-y-auto px-6 py-6 md:px-8"
-          ref={chatContainerRef}
-        >
-          <div className="mx-auto max-w-3xl space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-4 ${
-                    msg.role === "user"
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  {msg.role === "assistant" && (
-                    <div className="mb-2 flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
-                        <Sparkles className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        AI 어시스턴트
-                      </span>
-                    </div>
-                  )}
-                  {msg.images && msg.images.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {msg.images.map((imgUrl, imgIdx) => (
-                        <img
-                          key={imgIdx}
-                          src={imgUrl}
-                          alt={`Message image ${imgIdx + 1}`}
-                          className="h-24 w-24 rounded object-cover"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-lg bg-gray-100 p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-xs text-gray-500">AI 어시스턴트</span>
-                  </div>
-                  <div className="flex gap-1">
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "300ms" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-      </div>
-
-      {/* 입력창 영역 - Always Visible, Floating */}
-      <div
-        className={`absolute left-0 right-0 z-20 border-b border-t border-gray-200 bg-white shadow-lg transition-all duration-300 ${
-          isChatCollapsed ? "top-0" : "top-[calc((100vh-80px)/2-60px)]"
-        }`}
-      >
-        <div className="px-6 py-4 md:px-8">
-          <div className="mx-auto max-w-3xl">
-            {uploadedImages.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {uploadedImages.map((img, index) => (
-                  <div key={index} className="relative h-20 w-20 rounded-lg border-2 border-purple-300 overflow-hidden">
-                    <img
-                      src={img.preview}
-                      alt={`Upload ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      onClick={() => handleImageRemove(index)}
-                      className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchInput.trim() || uploadedImages.length > 0) {
-                  handleSearch(searchInput.trim());
-                }
-              }}
-              className="flex gap-2"
-            >
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    files.forEach(file => handleImageAdd(file));
-                    e.target.value = '';
-                  }}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 w-12 p-0"
-                  disabled={isLoading || isProcessingImages}
-                  asChild
-                >
-                  <span>
-                    <ImagePlus className="h-5 w-5" />
-                  </span>
-                </Button>
-              </label>
-
-              <Input
-                type="text"
-                placeholder={uploadedImages.length > 0 ? "이미지에 대해 설명해주세요..." : "메시지를 입력하세요..."}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-12 flex-1"
-              />
-              <Button
-                type="submit"
-                disabled={(!searchInput.trim() && uploadedImages.length === 0) || isLoading}
-                className="h-12 bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-
-            <p className="mt-2 text-xs text-gray-500 text-center">
-              Ctrl+V로 이미지를 붙여넣거나, 파일을 선택하여 업로드할 수 있습니다
-            </p>
-          </div>
-        </div>
-
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-          className="absolute -bottom-10 right-6 flex items-center gap-2 rounded-b-lg bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 text-white shadow-md transition-colors hover:from-purple-600 hover:to-pink-600 md:right-8"
-        >
-          {isChatCollapsed ? (
-            <>
-              <ChevronDown className="h-4 w-4" />
-              <span className="text-sm">채팅 열기</span>
-            </>
-          ) : (
-            <>
-              <ChevronUp className="h-4 w-4" />
-              <span className="text-sm">채팅 접기</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* 하단 결과 영역 */}
+    <div className="flex h-[calc(100vh-80px)] bg-gray-50">
+      {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
-        className={`absolute bottom-0 left-0 right-0 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white transition-all duration-300 ${
-          isChatCollapsed ? "top-[120px]" : "top-[calc((100vh-80px)/2+60px)]"
-        }`}
+        className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white"
       >
         {contentType === "idle" && (
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
@@ -1434,6 +1194,168 @@ export function AISearchPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* 우측 채팅 영역 */}
+      <div className="flex w-[400px] flex-col border-l border-gray-200 bg-white">
+        {/* 채팅 메시지 영역 */}
+        <div
+          className="flex-1 overflow-y-auto px-4 py-4"
+          ref={chatContainerRef}
+        >
+          <div className="space-y-4">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-lg p-3 ${
+                    msg.role === "user"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "bg-gray-100 text-gray-900"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                        <Sparkles className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        AI 어시스턴트
+                      </span>
+                    </div>
+                  )}
+                  {msg.images && msg.images.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {msg.images.map((imgUrl, imgIdx) => (
+                        <img
+                          key={imgIdx}
+                          src={imgUrl}
+                          alt={`Message image ${imgIdx + 1}`}
+                          className="h-20 w-20 rounded object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="rounded-lg bg-gray-100 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                      <Sparkles className="h-3 w-3 text-white" />
+                    </div>
+                    <span className="text-xs text-gray-500">AI 어시스턴트</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* 입력창 영역 */}
+        <div className="border-t border-gray-200 bg-white p-4">
+          {uploadedImages.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {uploadedImages.map((img, index) => (
+                <div key={index} className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden">
+                  <img
+                    src={img.preview}
+                    alt={`Upload ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    onClick={() => handleImageRemove(index)}
+                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchInput.trim() || uploadedImages.length > 0) {
+                handleSearch(searchInput.trim());
+              }
+            }}
+            className="flex flex-col gap-2"
+          >
+            <div className="flex gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(file => handleImageAdd(file));
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 w-10 p-0"
+                  disabled={isLoading || isProcessingImages}
+                  asChild
+                >
+                  <span>
+                    <ImagePlus className="h-4 w-4" />
+                  </span>
+                </Button>
+              </label>
+
+              <Input
+                type="text"
+                placeholder={uploadedImages.length > 0 ? "이미지에 대해 설명해주세요..." : "메시지를 입력하세요..."}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-10 flex-1"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={(!searchInput.trim() && uploadedImages.length === 0) || isLoading}
+              className="h-10 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+            >
+              <Send className="mr-2 h-4 w-4" />
+              전송
+            </Button>
+          </form>
+
+          <p className="mt-2 text-xs text-gray-500 text-center">
+            Ctrl+V로 이미지 붙여넣기
+          </p>
+        </div>
       </div>
     </div>
   );
