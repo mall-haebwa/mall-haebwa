@@ -138,38 +138,32 @@ export function Header() {
             </form>
 
             {/* AI 검색 */}
-            <div className="relative flex-1">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (aiSearchQuery.trim()) {
+                  setSearchQuery(aiSearchQuery);
+                  navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
+                  setAiSearchQuery("");
+                }
+              }}
+              className="relative flex-1"
+            >
               <Input
                 type="text"
                 placeholder="AI 자연어 검색"
                 value={aiSearchQuery}
                 onChange={(event) => setAiSearchQuery(event.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (aiSearchQuery.trim()) {
-                      setSearchQuery(aiSearchQuery);
-                      navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
-                      setAiSearchQuery("");
-                    }
-                  }
-                }}
                 className="h-12 w-full rounded-lg border-2 border-purple-300 pl-4 pr-32 focus-visible:border-purple-500 focus-visible:ring-0"
               />
               <Button
-                onClick={() => {
-                  if (aiSearchQuery.trim()) {
-                    setSearchQuery(aiSearchQuery);
-                    navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
-                    setAiSearchQuery("");
-                  }
-                }}
+                type="submit"
                 className="absolute right-0 top-0 h-12 rounded-l-none rounded-r-lg bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 AI 검색
               </Button>
-            </div>
+            </form>
           </div>
 
           <div className="ml-auto flex items-center gap-1">
