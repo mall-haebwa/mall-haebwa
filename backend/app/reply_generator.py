@@ -20,8 +20,6 @@ REPLY_SYSTEM_PROMPT = """당신은 친절하고 전문적인 쇼핑 어시스턴
 - 주문내역: "최근 주문 내역 3건을 찾았어요."
 - 일반 대화: "안녕하세요! 무엇을 도와드릴까요?"
 - 이미지 검색: "업로드하신 이미지를 분석했어요. 파란색 청바지로 보이네요. 비슷한 상품을 찾아볼게요!"
-
-중요: 순수 텍스트만 반환 (JSON 형식 사용 금지)
 """
 
 
@@ -77,6 +75,10 @@ async def generate_reply(
             max_tokens=300
         )
 
+        # None 체크
+        if reply is None:
+            return _get_fallback_reply(intent, data, has_image)
+
         return reply.strip()
 
     except Exception as e:
@@ -113,6 +115,10 @@ def _build_prompt(
             total = data.get('total', 0)
             products = data.get('products', [])
 
+            # 검색 결과가 0개인 경우 처리
+            if total == 0:
+                return f'"{query}"로 검색했지만 상품을 찾지 못했어요. 다른 검색어로 시도해보시겠어요?'
+
             # 상위 3개 상품 정보만 전달
             product_summary = []
             for p in products[:3]:
@@ -122,13 +128,12 @@ def _build_prompt(
 
             products_text = "\n".join(product_summary) if product_summary else "상품 정보 없음"
 
-            return f"""사용자가 "{query}"를 검색했습니다.
-총 {total}개의 상품을 찾았습니다.
+            return f"""{query} 검색 결과 {total}개를 찾았습니다.
 
 상위 상품:
 {products_text}
 
-위 정보를 바탕으로 검색 결과를 친절하게 안내하세요."""
+이 결과를 1-2문장으로 요약해서 사용자에게 알려주세요."""
         else:
             return f'"{query}" 검색을 시작했다고 간단히 안내하세요.'
 
@@ -144,12 +149,11 @@ def _build_prompt(
                 summary.append(f"- {q}: {len(items)}개")
 
             results_text = "\n".join(summary) if summary else "검색 결과 없음"
-            return f"""사용자가 "{main_query}"에 필요한 여러 상품을 검색했습니다.
+            return f"""{main_query} 검색 결과입니다.
 
-검색 결과:
 {results_text}
 
-위 결과를 자연스럽게 안내하세요."""
+이 결과를 1-2문장으로 요약해서 사용자에게 알려주세요."""
         else:
             return f'"{main_query}"에 필요한 상품들을 찾고 있다고 안내하세요.'
 
@@ -159,7 +163,7 @@ def _build_prompt(
             total_items = data.get('total_items', 0)
             total_amount = data.get('total_amount', 0)
 
-            return f"""사용자의 장바구니:
+            return f"""장바구니 정보:
 - 총 {total_items}개 상품
 - 총액: {total_amount:,}원
 
@@ -232,6 +236,10 @@ def _get_fallback_reply(
 
         if has_image:
             return f"업로드하신 이미지를 분석했어요. {query}로 보이네요. 비슷한 상품을 찾아볼게요!"
+
+        # data를 확인하여 검색 결과 0개 처리
+        if data and data.get('total', 0) == 0:
+            return f'"{query}"로 검색했지만 상품을 찾지 못했어요. 다른 검색어를 시도해보시겠어요?'
 
         return f'"{query}" 검색 결과를 보여드릴게요!'
 

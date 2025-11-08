@@ -2,7 +2,9 @@ from google import genai
 from typing import List, Dict, Optional
 import os
 import traceback
+import logging
 
+logger = logging.getLogger(__name__)
 
 class GeminiClient:
     def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
@@ -56,7 +58,7 @@ class GeminiClient:
             # 현재 사용자 메시지
             current_message = chat_messages[-1]["content"]
             prompt_parts.append(f"사용자: {current_message}")
-            prompt_parts.append("어시스턴트:")
+            # prompt_parts.append("어시스턴트:")
 
             full_prompt = "\n\n".join(prompt_parts)
             print(f"[LLM] Sending request to Gemini API...")
@@ -85,11 +87,16 @@ class GeminiClient:
                 config={
                     "temperature": temperature,
                     "max_output_tokens": max_tokens,
-                    "response_mime_type": "application/json",
+                    "response_mime_type": "text/plain",
                 }
             )
 
-            response_text = response.text
+            response_text = response.text if response.text else ""
+            if not response_text:   # response_text가 None인 경우 처리
+                # 빈 응답 시 즉시 fallback으로 전환
+                logger.warning(f"[LLM] Empty response - using fallback")
+                return None  # reply_generator에서 _get_fallback_reply 호출하도록
+
             print(f"[LLM] Response received (length: {len(response_text)})")
             print(f"[LLM] Response text: {response_text[:200]}...")
 

@@ -28,6 +28,10 @@ class CommandMatcher:
             (r'(찜|wishlist|위시리스트|좋아요)\s*(보여|확인|조회|목록)',
             lambda m: ViewWishlistIntent()),
             
+            # MULTISEARCH 패턴 (SEARCH보다 먼저 체크)
+            (r'(재료|필요한\s*것|필요한거|준비물|꾸미|세팅)',
+            lambda m: None),  # None 반환하여 LLM으로 넘김
+
             # 간단한 상품 검색 (단일 키워드)
             # 예: "수영복", "노트북 보여줘"
             (r'^(?!.*(?:장바구니|주문|배송|찜))(.+?)\s*(찾아|보여|추천|알려)?$', lambda m: SearchIntent(query=m.group(1).strip())
@@ -51,4 +55,6 @@ class CommandMatcher:
                 if intent:                      # None이 아닌 경우
                     intent.confidence = 1.0     # 정규식 매칭은 확신도 100%
                     return intent
+                else:
+                    return None # None 반환 시 즉시 종료 (다음 패턴 체크 안 함)
         return None     # 매칭 실패
