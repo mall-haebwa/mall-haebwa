@@ -32,30 +32,9 @@ export function RecentlyViewedPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      // 1단계: sessionStorage에서 먼저 확인 (현재 세션 캐시)
-      const cached = sessionStorage.getItem("recentlyViewed");
-      if (cached) {
-        try {
-          const cachedItems = JSON.parse(cached) as RecentlyViewedItem[];
-          if (Array.isArray(cachedItems) && cachedItems.length > 0) {
-            console.log(
-              "[Recently Viewed] 🚀 sessionStorage에서 로드:",
-              cachedItems.length,
-              "개"
-            );
-            setItems(cachedItems);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to parse cached items:", e);
-        }
-      }
+      // Redis에서 최근 본 상품 조회
+      console.log("[Recently Viewed] 📦 Redis에서 조회 중...");
 
-      // 2단계: sessionStorage에 없으면 API 요청 (Redis/DB)
-      console.log(
-        "[Recently Viewed] 📦 API에서 조회 (Redis 캐시 또는 DB)"
-      );
       const response = await fetch("/api/users/recently-viewed", {
         credentials: "include",
       });
@@ -82,16 +61,12 @@ export function RecentlyViewedPage() {
         })
         .filter(Boolean) as RecentlyViewedItem[];
 
-      // 3단계: sessionStorage에 캐시 저장
-      sessionStorage.setItem("recentlyViewed", JSON.stringify(normalized));
       console.log(
-        "[Recently Viewed] 💾 sessionStorage에 저장:",
+        "[Recently Viewed] ✅ 로드 완료:",
         normalized.length,
-        "개"
-      );
-      console.log(
-        "[Recently Viewed] 캐시 출처:",
-        data?.cacheSource || "unknown"
+        "개 (캐시출처:",
+        data?.cacheSource,
+        ")"
       );
 
       setItems(normalized);

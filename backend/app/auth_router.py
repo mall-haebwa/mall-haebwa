@@ -89,6 +89,47 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
     # 적립금 계산
     points = await calculate_user_points(uid, db)
 
+    # 최근 본 상품을 Redis에 사전 로드 (로그인 시점에)
+    try:
+        recently_viewed = user.get("recentlyViewed", [])
+        if recently_viewed:
+            # DB의 최근 본 상품을 product 정보와 함께 구성
+            from .user_router import find_product_by_id
+            from .product_router import _reshape_product
+            from datetime import datetime
+
+            items_with_products = []
+            for entry in recently_viewed:
+                product_id = entry.get("productId")
+                if not product_id:
+                    continue
+
+                product_doc = await find_product_by_id(db, product_id)
+                if not product_doc:
+                    continue
+
+                product = _reshape_product(product_doc)
+                viewed_at = entry.get("viewedAt")
+                if isinstance(viewed_at, str):
+                    viewed_at_str = viewed_at
+                elif isinstance(viewed_at, datetime):
+                    viewed_at_str = viewed_at.isoformat()
+                else:
+                    viewed_at_str = datetime.utcnow().isoformat()
+
+                items_with_products.append({"product": product, "viewedAt": viewed_at_str})
+
+            # Redis에 캐시 저장
+            if items_with_products:
+                success = await redis_client.set_recently_viewed(uid, items_with_products)
+                if success:
+                    print(f"[Login] 최근 본 상품 Redis 사전 로드 완료: user {uid}, {len(items_with_products)}개")
+                else:
+                    print(f"[Login] 최근 본 상품 Redis 사전 로드 실패: user {uid}")
+    except Exception as e:
+        print(f"[Login] 최근 본 상품 Redis 사전 로드 중 오류: {e}")
+        # 오류가 발생해도 로그인 프로세스는 계속 진행
+
     # 프론트가 바로 user 정보 쓰도록 반환
     user_out = {
         "_id": uid,
@@ -129,7 +170,7 @@ async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase
 
 
 @router.post("/logout", response_model=BasicResp)
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, db: AsyncIOMotorDatabase = Depends(get_db)):
     # 토큰에서 user_id 추출
     at = request.cookies.get(COOKIE_ACCESS)
     if at:
@@ -137,15 +178,49 @@ async def logout(request: Request, response: Response):
             payload = decode_token(at)
             if payload.get("scope") == "access":
                 user_id = payload["sub"]
-                # Redis에서 해당 사용자의 모든 대화 삭제
-                await redis_client.delete_user_conversations(user_id)
-                print(f"[Logout] Deleted conversations for user {user_id}")
+
+                # Redis에서 최근 본 상품 조회 (최대 10개)
+                recently_viewed_cache = await redis_client.get_recently_viewed(user_id)
+
+                if recently_viewed_cache:
+                    # Redis의 최근 본 상품을 DB에 저장
+                    try:
+                        # DB에 저장할 형식으로 변환 (productId와 viewedAt만)
+                        items_for_db = []
+                        for item in recently_viewed_cache[:10]:  # 최대 10개만 저장
+                            if item.get("product") and item.get("product").get("id"):
+                                items_for_db.append({
+                                    "productId": item["product"]["id"],
+                                    "viewedAt": item.get("viewedAt", datetime.utcnow()),
+                                })
+
+                        # DB에 저장
+                        if items_for_db:
+                            await db[USERS_COL].update_one(
+                                {"_id": ObjectId(user_id)},
+                                {
+                                    "$set": {
+                                        "recentlyViewed": items_for_db,
+                                    }
+                                }
+                            )
+                            print(f"[Logout] Redis의 최근 본 상품 {len(items_for_db)}개를 DB에 저장: user {user_id}")
+                        else:
+                            print(f"[Logout] Redis에 저장할 최근 본 상품이 없음: user {user_id}")
+                    except Exception as e:
+                        print(f"[Logout] Redis → DB 저장 중 오류: {e}")
+                else:
+                    print(f"[Logout] Redis에 최근 본 상품이 없음: user {user_id}")
 
                 # Redis에서 최근 본 상품 캐시 삭제
                 await redis_client.delete_recently_viewed(user_id)
-                print(f"[Logout] Deleted recently viewed cache for user {user_id}")
+                print(f"[Logout] Redis에서 최근 본 상품 캐시 삭제: user {user_id}")
+
+                # Redis에서 해당 사용자의 모든 대화 삭제
+                await redis_client.delete_user_conversations(user_id)
+                print(f"[Logout] Redis에서 대화 히스토리 삭제: user {user_id}")
         except Exception as e:
-            print(f"[Logout] Failed to delete caches: {e}")
+            print(f"[Logout] 로그아웃 처리 중 오류: {e}")
 
     # 쿠키 삭제 - 설정 시와 동일한 속성 사용
     response.delete_cookie(COOKIE_ACCESS, path="/", samesite="lax", httponly=True)

@@ -135,6 +135,20 @@ app.include_router(user_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
 
 
+@app.get("/api/chat/history/{conversation_id}")
+async def get_chat_history(user_id: str, conversation_id: str):
+    """대화 히스토리 조회 (프론트엔드에서 페이지 로드 시 사용)"""
+    if not user_id:
+        return {"messages": [], "error": "User ID is required"}
+
+    try:
+        history = await redis_client.get_conversation(user_id, conversation_id)
+        return {"messages": history}
+    except Exception as e:
+        print(f"[Error] Failed to get chat history: {e}")
+        return {"messages": [], "error": str(e)}
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """AI 쇼핑 어시스턴트 채팅 (멀티모달 지원, Redis 기반)"""
