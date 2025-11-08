@@ -32,15 +32,14 @@ class IntentParser:
         Returns:
             Intent: 파악된 의도
         """
-        # 1단계: 빠른 매칭 시도
-        intent = self.command_matcher.match(message)
+        # # 1단계: 빠른 매칭 시도
+        # intent = self.command_matcher.match(message)
+        # if intent:
+        #     print(f"✓ Command Matcher 성공: {intent.type.value}")
+        #     return intent
 
-        if intent:
-            print(f"✓ Command Matcher 성공: {intent.type.value}")
-            return intent
-
-        # 2단계: LLM 호출
-        print("○ Command Matcher 실패 → LLM으로 전달")
+        # 2단계: LLM 호출 - 현재 모든 Intent를 LLM이 처리
+        print("LLM으로 Intent 파악 시작")
         resolver = LLMIntentResolver(conversation_history)
         intent = await resolver.resolve(message)
         print(f"✓ LLM Resolver 결과: {intent.type.value} (confidence: {intent.confidence})")
