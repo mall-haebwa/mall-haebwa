@@ -5,33 +5,47 @@ from .intent_types import *
 from app.llm_client import llm_client
 
 # 의도 파악 전용 프롬프트
-INTENT_SYSTEM_PROMPT = """당신은 의도 분류 전문가입니다.
-사용자 메시지를 분석하여 의도만 파악하고 JSON으로 반환하세요.
+INTENT_SYSTEM_PROMPT = """당신은 쇼핑몰 AI 어시스턴트의 의도 분류 전문가입니다.
+
+사용자 메시지를 분석하여 아래 형식의 JSON으로 응답하세요.
 
 ## Intent 타입
 
 1. **SEARCH**: 단일 상품 검색
-    예: "수영복", "노트북 보여줘"
+    예: "노트북", "수영복 찾아줘"
     
-2. **MULTISEARCH**: 다중 카테고리 검색
-    예: "김치찌개 재료", "홈오피스 꾸미기"
-    키워드: 재료, 필요한 것, 준비물
+2. **MULTISEARCH**: 다중 카테고리 검색 (여러 상품을 한번에)
+    예: "김치찌개 재료", "감자, 핸드폰, 타코야끼 찾아줘"
+    키워드: 재료, 필요한 것, 준비물, 쉼표로 구분된 여러 상품
     
 3. **VIEW_CART**: 장바구니 조회
 4. **VIEW_ORDERS**: 주문 내역 조회
 5. **TRACK_DELIVERY**: 배송 추적
 6. **VIEW_WISHLIST**: 찜 목록 조회
-7. **CHAT**: 일반 대화
+7. **CHAT**: 일반 대화 (인사, 질문 등)
 
-## 응답 형식 (순수 JSON만)
+## 응답 형식
 
+**반드시 아래 형식의 JSON으로 응답하세요:**
+
+SEARCH 예시:
 {
 "intent_type": "SEARCH",
-"parameters": {"query": "검색어"},
+"parameters": {"query": "노트북"},
 "confidence": 0.9
 }
 
-MULTISEARCH 예시:
+MULTISEARCH 예시 (여러 상품을 쉼표로 구분):
+{
+"intent_type": "MULTISEARCH",
+"parameters": {
+    "queries": ["감자", "핸드폰", "타코야끼"],
+    "main_query": "감자 핸드폰 타코야끼 찾아줘"
+},
+"confidence": 0.9
+}
+
+MULTISEARCH 예시2 (재료 요청):
 {
 "intent_type": "MULTISEARCH",
 "parameters": {
@@ -41,10 +55,18 @@ MULTISEARCH 예시:
 "confidence": 0.85
 }
 
-중요:
-- 마크다운 코드블록 금지
-- 순수 JSON만 반환
-- 답변 생성하지 말 것 (의도만 파악)
+VIEW_CART 예시:
+{
+"intent_type": "VIEW_CART",
+"parameters": {},
+"confidence": 1.0
+}
+
+**중요 규칙**:
+1. 반드시 JSON 형식으로 응답하세요
+2. 마크다운 코드블록(```)을 사용하지 마세요
+3. 여러 상품이 언급되거나 쉼표로 구분되면 MULTISEARCH를 사용하세요
+4. confidence는 0.0~1.0 사이 값입니다
 """
 
 class LLMIntentResolver:
@@ -75,6 +97,11 @@ class LLMIntentResolver:
                 temperature=0.3,  # 낮은 temperature (일관성 중요)
                 max_tokens=500    # 짧은 응답
             )
+
+            # None 체크
+            if response is None:
+                print(f"[LLM Intent] Empty response - returning UnknownIntent")
+                return UnknownIntent(original_message=message, confidence=0.0)
 
             # JSON 파싱 (main.py와 동일한 방식)
             cleaned = response.strip()
