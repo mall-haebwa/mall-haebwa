@@ -1,7 +1,10 @@
 """LLM 답변 생성 전용 모듈 (Action은 생성하지 않음)"""
+import logging
 from typing import Dict, Any, List, Optional
 from app.intents import Intent, IntentType
 from app.llm_client import llm_client
+
+logger = logging.getLogger(__name__)
 
 
 # 답변 생성용 시스템 프롬프트
@@ -82,7 +85,7 @@ async def generate_reply(
         return reply.strip()
 
     except Exception as e:
-        print(f"[Reply Generator] LLM 호출 실패: {e}")
+        logger.error(f"[Reply Generator] LLM 호출 실패: {e}")
         return _get_fallback_reply(intent, data, has_image)
 
 

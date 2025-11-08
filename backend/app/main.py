@@ -91,12 +91,12 @@ async def get_chat_history(user_id: str, conversation_id: str):
 async def chat(request: ChatRequest):
     """
     AI 쇼핑 어시스턴트 채팅 (Intent + Orchestrator 방식)
-    
+
     Flow:
-    1. 인증 사전 체크
-    2. Redis에서 대화 히스토리 로드
-    3. Intent 파악 (정규식 -> LLM)
-    4. Orchestrator가 데이터 수집 (ES, DB)
+    1. Redis에서 대화 히스토리 로드
+    2. Intent 파악 (LLM)
+    3. Orchestrator가 데이터 수집 (ES, DB)
+    4. 인증 체크 (Orchestrator 결과 기반)
     5. Reply Generator가 자연스러운 답변 생성
     6. Redis에 대화 저장
     7. ChatResponse 반환
@@ -109,19 +109,7 @@ async def chat(request: ChatRequest):
 
     logger.info(f"[Chat] User: {user_id}, Conv: {conv_id[:8]}, Message: {user_message[:50]}, Image: {has_image}")
 
-    # 1단계: 인증 사전 체크
-    if not user_id:
-        auth_keywords = ["주문", "구매", "배송", "장바구니", "카트", "찜"]
-        if any(keyword in user_message for keyword in auth_keywords):
-            logger.warning(f"[Auth] 비로그인 사용자 차단: {user_message[:30]}")
-            return ChatResponse(
-                reply="로그인이 필요한 기능입니다.",
-                action={"type": "ERROR", "params": {}}, conversation_id=conv_id,
-                llm_used=False,
-                processing_time_ms=int((time.time() - start_time) * 1000)
-            )
-
-    # 2단계: Redis에서 대화 히스토리 로드
+    # 1단계: Redis에서 대화 히스토리 로드
     history = []
     if user_id:
         try:
@@ -131,7 +119,7 @@ async def chat(request: ChatRequest):
             logger.error(f"[Redis] 히스토리 로드 실패: {e}")
             history = []
 
-    # 3단계: Intent 파악
+    # 2단계: Intent 파악
     parser = IntentParser()
 
     try:
@@ -147,7 +135,7 @@ async def chat(request: ChatRequest):
         from .intents import ChatIntent
         intent = ChatIntent(message=user_message, confidence=0.0)
 
-    # 4단계: Orchestrator로 데이터 수집
+    # 3단계: Orchestrator로 데이터 수집
     db = get_db()
     es = get_search_client()
     orchestrator = ChatOrchestrator(db, es)
@@ -167,9 +155,9 @@ async def chat(request: ChatRequest):
             processing_time_ms=int((time.time() - start_time) * 1000)
         )
 
-    # === 5단계: 인증 재확인 (Orchestrator 결과 기반) ===
+    # 4단계: 인증 체크 (Orchestrator 결과 기반)
     if result.get("requires_auth") and not user_id:
-        logger.warning(f"[Auth] Orchestrator 인증 필요 판단: {intent.type.value}")
+        logger.warning(f"[Auth] 인증 필요: {intent.type.value}")
         return ChatResponse(
             reply="로그인이 필요한 기능입니다.",
             action={"type": "ERROR", "params": {}},
@@ -178,7 +166,7 @@ async def chat(request: ChatRequest):
             processing_time_ms=int((time.time() - start_time) * 1000)
         )
 
-    # === 6단계: Reply Generator로 자연스러운 답변 생성 ===
+    # 5단계: Reply Generator로 자연스러운 답변 생성
     try:
         reply = await generate_reply(
             intent=intent,
@@ -195,7 +183,7 @@ async def chat(request: ChatRequest):
         reply = _get_fallback_reply(intent, result.get("data"), has_image)
         logger.warning(f"[Reply] Fallback 사용: {reply[:50]}")
 
-    # === 7단계: Redis에 대화 저장 ===
+    # 6단계: Redis에 대화 저장
     if user_id:
         try:
             await redis_client.add_message(user_id, conv_id, "user", user_message)
@@ -204,7 +192,7 @@ async def chat(request: ChatRequest):
         except Exception as e:
             logger.error(f"[Redis] 대화 저장 실패: {e}")
 
-    # === 8단계: 응답 반환 ===
+    # 7단계: 응답 반환
     processing_time = int((time.time() - start_time) * 1000)
     logger.info(f"[Chat] 완료 - {processing_time}ms")
 

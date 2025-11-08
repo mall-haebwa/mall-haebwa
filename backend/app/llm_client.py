@@ -21,10 +21,9 @@ class GeminiClient:
     ):
         """제미나이 API 호출 (async, 새 SDK)"""
         try:
-            print(f"[LLM] Starting chat with {len(messages)} messages")
-            print(f"[LLM] Model: {self.model_name}")
-            print(
-                f"[LLM] Temperature: {temperature}, Max tokens: {max_tokens}")
+            logger.debug(f"[LLM] Starting chat with {len(messages)} messages")
+            logger.debug(f"[LLM] Model: {self.model_name}")
+            logger.debug(f"[LLM] Temperature: {temperature}, Max tokens: {max_tokens}")
 
             # 새 SDK는 OpenAI 스타일의 메시지 형식을 그대로 사용
             # System 프롬프트 포함 전체 메시지를 하나의 contents로 변환
@@ -36,8 +35,7 @@ class GeminiClient:
             if messages and messages[0]["role"] == "system":
                 system_instruction = messages[0]["content"]
                 chat_messages = messages[1:]
-                print(
-                    f"[LLM] System instruction detected (length: {len(system_instruction)})")
+                logger.debug(f"[LLM] System instruction detected (length: {len(system_instruction)})")
 
         # 메시지를 단일 프롬프트로 결합
             # 새 SDK는 대화 히스토리를 자동으로 처리하지 않으므로 직접 구성
@@ -61,8 +59,8 @@ class GeminiClient:
             # prompt_parts.append("어시스턴트:")
 
             full_prompt = "\n\n".join(prompt_parts)
-            print(f"[LLM] Sending request to Gemini API...")
-            print(f"[LLM] Current user message: {current_message}")
+            logger.debug(f"[LLM] Sending request to Gemini API...")
+            logger.debug(f"[LLM] Current user message: {current_message}")
 
             # 멀티모달 컨텐츠 구성
             parts = []
@@ -97,18 +95,18 @@ class GeminiClient:
                 logger.warning(f"[LLM] Empty response - using fallback")
                 return None  # reply_generator에서 _get_fallback_reply 호출하도록
 
-            print(f"[LLM] Response received (length: {len(response_text)})")
-            print(f"[LLM] Response text: {response_text[:200]}...")
+            logger.debug(f"[LLM] Response received (length: {len(response_text)})")
+            logger.debug(f"[LLM] Response text: {response_text[:200]}...")
 
             return response_text
 
         except Exception as e:
-            print(f"\n{'='*60}")
-            print(f"[LLM ERROR] Exception Type: {type(e).__name__}")
-            print(f"[LLM ERROR] Exception Message: {str(e)}")
-            print(f"[LLM ERROR] Full Traceback:")
-            print(traceback.format_exc())
-            print(f"{'='*60}\n")
+            logger.error(f"\n{'='*60}")
+            logger.error(f"[LLM ERROR] Exception Type: {type(e).__name__}")
+            logger.error(f"[LLM ERROR] Exception Message: {str(e)}")
+            logger.error(f"[LLM ERROR] Full Traceback:")
+            logger.error(traceback.format_exc())
+            logger.error(f"{'='*60}\n")
             return "죄송합니다. 일시적인 오류가 발생했어요. 다시 시도해주세요."
 
 
@@ -117,23 +115,23 @@ GEMINI_API_KEY = os.getenv(
     "GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-print(f"\n{'='*60}")
-print("[LLM Init] Initializing Gemini Client (New SDK)...")
-print(f"[LLM Init] API Key present: {bool(GEMINI_API_KEY)}")
+logger.info(f"\n{'='*60}")
+logger.info("[LLM Init] Initializing Gemini Client (New SDK)...")
+logger.info(f"[LLM Init] API Key present: {bool(GEMINI_API_KEY)}")
 if GEMINI_API_KEY:
-    print(f"[LLM Init] API Key (first 10 chars): {GEMINI_API_KEY[:10]}...")
-print(f"[LLM Init] Model: {GEMINI_MODEL}")
-print(f"{'='*60}\n")
+    logger.info(f"[LLM Init] API Key (first 10 chars): {GEMINI_API_KEY[:10]}...")
+logger.info(f"[LLM Init] Model: {GEMINI_MODEL}")
+logger.info(f"{'='*60}\n")
 
 if not GEMINI_API_KEY:
-    print("WARNING: GEMINI_API_KEY not found in environment variables")
+    logger.warning("WARNING: GEMINI_API_KEY not found in environment variables")
     llm_client = None
 else:
     try:
         llm_client = GeminiClient(
             api_key=GEMINI_API_KEY, model_name=GEMINI_MODEL)
-        print("[LLM Init] ✓ Gemini Client initialized successfully with new SDK")
+        logger.info("[LLM Init] ✓ Gemini Client initialized successfully with new SDK")
     except Exception as e:
-        print(f"[LLM Init] ✗ Failed to initialize Gemini Client: {e}")
-        print(traceback.format_exc())
+        logger.error(f"[LLM Init] ✗ Failed to initialize Gemini Client: {e}")
+        logger.error(traceback.format_exc())
         llm_client = None
