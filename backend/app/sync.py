@@ -40,6 +40,7 @@ def to_es_doc(doc):
         "tags": doc.get("tags", []),
         "search_keyword": doc.get("search_keyword", ""),
         "rank": int(doc.get("rank") or 999),
+        "price": int(doc.get("price") or doc.get("lprice") or doc.get("numericPrice") or 0),
         "numericPrice": int(doc.get("numericPrice") or doc.get("lprice") or 0),
         "reviewCount": int(doc.get("reviewCount") or 0),
         "rating": float(doc.get("rating") or 0),

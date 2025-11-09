@@ -20,6 +20,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 
 def _build_es_filters(category, category2, brand_list, min_price, max_price):
+    # 검색어로 찾은 상품 중에서 카테고리, 브랜드, 가격 범위 등을 기준으로 걸러내기 위한 조건 생성기
     filters = [{"range": {"numericPrice": {"gte": min_price, "lte": max_price}}}]
     if category and category != "all":
         filters.append({"term": {"category1": category}})
@@ -31,17 +32,22 @@ def _build_es_filters(category, category2, brand_list, min_price, max_price):
 
 
 ES_SORT_MAP = {
-    "relevance": [{"rank": "asc"}],  # 검색 결과를 rank 순으로 정렬 (네이버 순위 높은 순)
-    "price-low": [{"numericPrice": "asc"}, {"_score": "desc"}],
-    "price-high": [{"numericPrice": "desc"}, {"_score": "desc"}],
-    "rating": [{"rating": "desc"}, {"reviewCount": "desc"}],
-    "latest": [{"updated_at": "desc"}, {"created_at": "desc"}],
-    "popular": [{"reviewCount": "desc"}, {"_score": "desc"}],
+    # 검색 결과를 어떤 순서로 정렬할지 결정하는 정렬 테이블
+    "relevance": [{"_score": "desc"}, {"rank": "asc"}],
+    "price-low": [{"numericPrice": "asc"}, {"_score": "desc"}, {"rank": "asc"}],
+    "price-high": [{"numericPrice": "desc"}, {"_score": "desc"}, {"rank": "asc"}],
+    "rating": [{"rating": "desc"}, {"reviewCount": "desc"}, {"_score": "desc"}, {"rank": "asc"}],
+    "latest": [{"updated_at": "desc"}, {"created_at": "desc"}, {"_score": "desc"}, {"rank": "asc"}],
+    "popular": [{"reviewCount": "desc"}, {"_score": "desc"}, {"rank": "asc"}],
 }
+# 앞에 았을수록 우선 적용
+# _score desc: 엘라스틱서치의 BM25 + analyzer 검색 점수 기반 정렬
+# rank asc: 네이버 쇼핑 순위 정렬
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
     """안전하게 정수로 변환하고 실패 시 기본값을 반환한다."""
+    # 혹시라도 숫자가 문자열로 들어올 것을 대비하는 함수
     try:
         if value is None:
             # None 또는 유사 값은 즉시 기본값을 돌려준다.
@@ -65,6 +71,7 @@ def _normalise_list(raw: str | None) -> list[str]:
         return []
     # 콤마 기준으로 나누고 항목마다 공백을 제거한다.
     return [item.strip() for item in raw.split(",") if item.strip()]
+# 혹시라도 " 애플, 삼성 " 이렇게 들어올 경우 ["애플", "삼성"] 으로 분리
 
 
 def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
@@ -130,18 +137,19 @@ def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
 @router.get("/search")
 async def search_products(
     # 헤더 입력에서 전달되는 검색어.
-    q: str | None = Query(None, description="Search keyword"),
+    q: str | None = Query(None, description="Search keyword"), # 검색어
     # 선택적으로 전달되는 필터들.
-    category: str | None = Query(None, description="Category"),
-    category2: str | None = Query(None, description="Category 2"),
-    brands: str | None = Query(None, description="Comma separated brand list"),
+    category: str | None = Query(None, description="Category"), # 카테고리 필터
+    category2: str | None = Query(None, description="Category 2"), # 카테고리 필터
+    brands: str | None = Query(None, description="Comma separated brand list"), 
     minPrice: int = Query(0, ge=0, alias="minPrice"),
     maxPrice: int = Query(1_000_000_000, ge=0, alias="maxPrice"),
-    sort: str = Query("relevance"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=60),
+    sort: str = Query("relevance"), # 정렬 방식 선택
+    page: int = Query(1, ge=1), # 페이지네이션
+    limit: int = Query(20, ge=1, le=60), # 페이지네이션
     es: Elasticsearch = Depends(get_search_client)
 ):
+    # 이건 필터링 조건
     brand_list = _normalise_list(brands)
     filters = _build_es_filters(
         category, category2, brand_list, minPrice, maxPrice)
@@ -149,12 +157,51 @@ async def search_products(
 
     if q:
         # 검색어의 모든 단어가 반드시 포함되어야 함 (필수 조건)
+        # 정확한 매칭 또는 오타 허용 매칭 중 하나만 만족하면 됨
         must_queries.append({
-            "multi_match": {
-                "query": q,
-                "fields": ["title", "summary", "tags", "brand"],
-                "operator": "and",  # 모든 검색어 단어가 반드시 포함
-                "type": "cross_fields",
+            "bool": {
+                "should": [
+                    # 1) 정확한 매칭 (cross_fields)
+                    {
+                        "multi_match": {
+                            "query": q,
+                            "fields": [
+                                "category1^6",      # 카테고리 (최우선)
+                                "category2^6",
+                                "category3^6",
+                                "category4^6",
+                                "tags^3",           # 태그
+                                "title.nori^2",     # 타이틀 (낮춤)
+                                "title.ngram^1",
+                                "summary^1",
+                                "brand^1"
+                            ],
+                            "operator": "and",
+                            "type": "cross_fields",
+                        }
+                    },
+                    # 2) 오타 허용 매칭 (best_fields + fuzziness)
+                    {
+                        "multi_match": {
+                            "query": q,
+                            "fields": [
+                                "category1^6",
+                                "category2^6",
+                                "category3^6",
+                                "category4^6",
+                                "tags^3",
+                                "title.nori^2",
+                                "summary^1",
+                                "brand^1"
+                            ],
+                            "operator": "and",
+                            "type": "best_fields",
+                            "fuzziness": "AUTO",
+                            "prefix_length": 1,
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
             }
         })
 
@@ -162,28 +209,40 @@ async def search_products(
         must_queries.append({
             "bool": {
                 "should": [
-                    # 1. 제목 정확한 phrase 매칭 (띄어쓰기 포함하여 정확히 일치) - 최우선
+                    # 1. search_keyword 정확 매칭 (최우선)
+                    # "한우 국거리" 검색어와 정확히 일치
+                    {"term": {"search_keyword": {"value": q, "boost": 25}}},
+
+                    # 2. 카테고리 정확 매칭
+                    {"term": {"category1": {"value": q, "boost": 20}}},
+                    {"term": {"category2": {"value": q, "boost": 20}}},
+                    {"term": {"category3": {"value": q, "boost": 20}}},
+                    {"term": {"category4": {"value": q, "boost": 20}}},
+
+                    # 3. 제목 정확한 phrase 매칭 (띄어쓰기 포함하여 정확히 일치)
+                    # "한우 국거리" 로 완벽하게 맞도록
                     {"match_phrase": {
-                        "title": {
+                        "title.nori": {
                             "query": q,
-                            "boost": 20,
+                            "boost": 15,
                             "slop": 0,
                         }
                     }},
-                    # 2. 제목에서 모든 검색어 단어 포함 (순서 무관)
+
+                    # 4. 제목에서 모든 검색어 단어 포함 (순서 무관)
+                    # "국거리 한우"도 가능
                     {"match": {
-                        "title": {
+                        "title.nori": {
                             "query": q,
                             "operator": "and",
-                            "boost": 10,
+                            "boost": 8,
                         }
                     }},
-                    # 3. search_keyword exact match
-                    {"term": {"search_keyword": {"value": q, "boost": 8}}},
-                    # 4. 일반 텍스트 검색
+
+                    # 5. 일반 텍스트 검색
                     {"multi_match": {
                         "query": q,
-                        "fields": ["title^2", "summary", "tags^1.5"],
+                        "fields": ["tags^3", "title^2", "summary^1"],
                         "type": "best_fields",
                     }},
                 ],
@@ -192,6 +251,8 @@ async def search_products(
         })
 
     bool_query: dict[str, Any] = {"filter": filters}
+    # filter = 검색 범위 제한 (점수 변화 x)
+    # must = 검색 정확도 계산 (점수 변화 o)
     if must_queries:
         bool_query["must"] = must_queries
     else:
@@ -205,13 +266,26 @@ async def search_products(
             "function_score": {
                 "query": {"bool": bool_query},
                 "functions": [
+                    # 리뷰 개수 반영: log1p(reviewCount) * 0.001
+                    # 예) 100개 리뷰 → log1p(100) * 0.001 ≈ 0.0046점 추가
                     {"field_value_factor": {"field": "reviewCount",
                                             "missing": 0, "factor": 0.001, "modifier": "log1p"}},
+                    # 평점 반영: rating * 0.1
+                    # 예) 4.5점 → 4.5 * 0.1 = 0.45점 추가
                     {"field_value_factor": {"field": "rating",
                                             "missing": 0, "factor": 0.1}},
+                    # 네이버 순위 반영: rank가 낮을수록(순위 높을수록) 점수 높임
+                    # rank 1 → 10/(1+1) = 5점 추가
+                    # rank 10 → 10/(10+1) ≈ 0.9점 추가
+                    # rank 999 → 10/(999+1) ≈ 0.01점 추가
+                    {"script_score": {
+                        "script": {
+                            "source": "10.0 / (doc['rank'].value + 1)"
+                        }
+                    }},
                 ],
-                "score_mode": "sum",
-                "boost_mode": "sum",  # multiply에서 sum으로 변경 - 검색 관련도 우선
+                "score_mode": "sum",      # 여러 함수 점수를 더함
+                "boost_mode": "sum",      # 검색 점수 + 인기도 점수 (검색 관련도 우선)
             }
         },
         "from": (page - 1) * limit,
