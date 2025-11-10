@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Sparkles,
   Search,
@@ -179,7 +179,7 @@ export function AISearchPage() {
   };
 
   // 상태 저장 함수 (상품 페이지로 이동 전)
-  const saveSearchState = () => {
+  const saveSearchState = useCallback(() => {
     const stateToSave = {
       messages,
       products,
@@ -195,7 +195,7 @@ export function AISearchPage() {
     };
     sessionStorage.setItem('aiSearchState', JSON.stringify(stateToSave));
     console.log('[AI Search] State saved to sessionStorage');
-  };
+  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
 
   // 상품 클릭 핸들러
   const handleProductClick = (productId: string) => {
@@ -527,24 +527,13 @@ export function AISearchPage() {
     }
   }, [messages]);
 
-  // 뒤로가기 감지 및 상태 저장
-  useEffect(() => {
-    const handlePopState = () => {
-      console.log('[AI Search] Back button clicked, saving state before unmount');
-      saveSearchState();
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
-
-  // 언마운트 시 (홈으로 갈 때 등) 상태 저장
+  // 언마운트 시 (홈으로 갈 때 등 또는 뒤로가기) 상태 저장
   useEffect(() => {
     return () => {
       console.log('[AI Search] Component unmounting, saving state');
       saveSearchState();
     };
-  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
+  }, [saveSearchState]);
 
   // 상태 복원 (컴포넌트 마운트 시)
   useEffect(() => {

@@ -19,9 +19,18 @@ export function Header() {
     useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
   const [aiSearchQuery, setAiSearchQuery] = useState(""); // 추가
-  const [selectedSearchTab, setSelectedSearchTab] = useState<"rollup" | "ai">(
-    "ai"
-  );
+  const [selectedSearchTab, setSelectedSearchTabState] = useState<"rollup" | "ai">(() => {
+    // localStorage에서 사용자의 마지막 탭 선택 기억
+    const saved = localStorage.getItem('selectedSearchTab');
+    return (saved as "rollup" | "ai") || "ai";
+  });
+
+  // localStorage에 저장과 상태 업데이트를 한 번에 처리
+  const setSelectedSearchTab = (value: "rollup" | "ai") => {
+    setSelectedSearchTabState(value);
+    localStorage.setItem('selectedSearchTab', value);
+  };
+
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
