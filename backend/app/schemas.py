@@ -239,6 +239,7 @@ class SellerDashboardStats(BaseModel):
     hourlyOrdersChart: list[HourlyOrdersDataPoint]
     repurchaseRate: float
     aiInsights: list[str] = Field(default_factory=list)
+    dynamicSalesChart: list[ChartDataPoint] = Field(default_factory=list)
 
 
 
