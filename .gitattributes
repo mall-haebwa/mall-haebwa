@@ -1,3 +1,2 @@
 # 모든 텍스트 파일은 LF로 강제
 * text eol=lf
-backend/data_batches/* filter=lfs diff=lfs merge=lfs -text
