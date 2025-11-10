@@ -178,3 +178,70 @@ class ProductOut(BaseModel):
     sellerId: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+# 판매자 대시보드 - 매출 통계
+class SalesStats(BaseModel):
+    amount: int = 0
+    change: float = 0.0  # 변화율 (%)
+    orders: int = 0
+
+# 판매자 대시보드 - 주문 상태 통계
+class OrderStats(BaseModel):
+    pending: int = 0      # 처리대기
+    shipping: int = 0     # 배송중
+    completed: int = 0    # 완료
+
+# 판매자 대시보드 - 인기 상품
+class TopProduct(BaseModel):
+    rank: int
+    name: str
+    sales: int        # 판매량
+    revenue: int      # 매출
+
+# 판매자 대시보드 - 재고 알림 아이템
+class StockAlertItem(BaseModel):
+    name: str
+    stock: int
+    status: str  # "품절" 또는 "부족"
+
+# 판매자 대시보드 - 재고 알림
+class StockAlerts(BaseModel):
+    outOfStock: int = 0   # 품절 상품 수
+    lowStock: int = 0     # 재고 부족 상품 수
+    items: list[StockAlertItem] = Field(default_factory=list)
+
+# 판매자 대시보드 - 차트 데이터 포인트
+class ChartDataPoint(BaseModel):
+    label: str  # 날짜/주/월 레이블
+    value: int  # 매출액
+    
+class CategorySalesDataPoint(BaseModel):
+    name: str
+    value: int
+
+class HourlyOrdersDataPoint(BaseModel):
+    time: str
+    orders: int
+    
+# 판매자 대시보드 - 전체 응답
+class SellerDashboardStats(BaseModel):
+    today: SalesStats = Field(default_factory=SalesStats)
+    week: SalesStats = Field(default_factory=SalesStats)
+    newOrders: int = 0
+    stockAlertsCount: int = 0
+    orderStats: OrderStats = Field(default_factory=OrderStats)
+    topProducts: list[TopProduct] = Field(default_factory=list)
+    stockAlerts: StockAlerts = Field(default_factory=StockAlerts)
+    dailySalesChart: list[ChartDataPoint] = Field(default_factory=list)
+    weeklySalesChart: list[ChartDataPoint] = Field(default_factory=list)
+    monthlySalesChart: list[ChartDataPoint] = Field(default_factory=list)
+    categorySalesChart: list[CategorySalesDataPoint]
+    hourlyOrdersChart: list[HourlyOrdersDataPoint]
+    repurchaseRate: float
+    aiInsights: list[str] = Field(default_factory=list)
+
+
+
+class ProductListResponse(BaseModel):
+    total: int
+    items: list[ProductOut]

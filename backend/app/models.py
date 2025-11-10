@@ -6,6 +6,8 @@ from pymongo.errors import OperationFailure
 USERS_COL = "users"
 ORDERS_COL = "orders"
 CARTS_COL = "carts"
+PRODUCTS_COL = "products"
+
 
 
 async def ensure_indexes(db: AsyncIOMotorDatabase):

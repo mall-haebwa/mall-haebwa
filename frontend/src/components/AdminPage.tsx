@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart3,
   Home,
@@ -24,7 +24,6 @@ import {
   Bell,
   Truck,
   Check,
-  X as XIcon,
   ChevronRight,
   Wand2,
 } from "lucide-react";
@@ -49,83 +48,53 @@ import {
   Cell,
 } from "recharts";
 
-// 목업 데이터
-const salesData = {
+interface ChartDataPoint {
+  label: string;
+  value: number;
+}
+
+interface DashboardData {
   today: {
-    amount: 2450000,
-    change: 18.2,
-    orders: 28,
-  },
+    amount: number;
+    change: number;
+    orders: number;
+  };
   week: {
-    amount: 15240000,
-    change: 6.4,
-    orders: 156,
-  },
-  newOrders: 5,
-  stockAlerts: 10,
-};
-
-const dailySalesChart = [
-  { date: "11/02", sales: 1200000 },
-  { date: "11/03", sales: 1800000 },
-  { date: "11/04", sales: 1600000 },
-  { date: "11/05", sales: 2100000 },
-  { date: "11/06", sales: 2300000 },
-  { date: "11/07", sales: 1900000 },
-  { date: "11/08", sales: 2450000 },
-];
-
-const weeklySalesChart = [
-  { week: "40주", sales: 12000000 },
-  { week: "41주", sales: 13500000 },
-  { week: "42주", sales: 14200000 },
-  { week: "43주", sales: 14300000 },
-  { week: "44주", sales: 15240000 },
-];
-
-const monthlySalesChart = [
-  { month: "6월", sales: 45000000 },
-  { month: "7월", sales: 52000000 },
-  { month: "8월", sales: 48000000 },
-  { month: "9월", sales: 56000000 },
-  { month: "10월", sales: 61000000 },
-  { month: "11월", sales: 15240000 },
-];
-
-const orderStats = {
-  pending: 5,
-  shipping: 12,
-  completed: 143,
-};
-
-const orderPieData = [
-  { name: "처리대기", value: orderStats.pending, color: "#EF4444" },
-  { name: "배송중", value: orderStats.shipping, color: "#F59E0B" },
-  { name: "완료", value: orderStats.completed, color: "#10B981" },
-];
-
-const topProducts = [
-  { rank: 1, name: "여름 린넨 반팔 셔츠", sales: 23, revenue: 687700 },
-  { rank: 2, name: "데일리 클래식 스니커즈", sales: 18, revenue: 898200 },
-  { rank: 3, name: "민감성 보습 크림", sales: 15, revenue: 373500 },
-  { rank: 4, name: "프리미엄 요가 매트", sales: 12, revenue: 478800 },
-  { rank: 5, name: "무선 블루투스 이어폰", sales: 11, revenue: 879000 },
-  { rank: 6, name: "스마트워치 밴드", sales: 10, revenue: 290000 },
-  { rank: 7, name: "휴대용 보조배터리", sales: 9, revenue: 341100 },
-  { rank: 8, name: "캠핑 접이식 의자", sales: 8, revenue: 399200 },
-  { rank: 9, name: "LED 무드등", sales: 7, revenue: 209300 },
-  { rank: 10, name: "실리콘 에어팟 케이스", sales: 7, revenue: 139300 },
-];
-
-const stockAlerts = {
-  outOfStock: 3,
-  lowStock: 7,
-  items: [
-    { name: "민감성 보습 크림", stock: 0, status: "품절" },
-    { name: "무선 블루투스 이어폰", stock: 3, status: "부족" },
-    { name: "캠핑 접이식 의자", stock: 4, status: "부족" },
-  ],
-};
+    amount: number;
+    change: number;
+    orders: number;
+  };
+  newOrders: number;
+  stockAlertsCount: number;
+  orderStats: {
+    pending: number;
+    shipping: number;
+    completed: number;
+  };
+  topProducts: Array<{
+    rank: number;
+    name: string;
+    sales: number;
+    revenue: number;
+  }>;
+  stockAlerts: {
+    outOfStock: number;
+    lowStock: number;
+    items: Array<{
+      name: string;
+      stock: number;
+      status: string;
+    }>;
+  };
+  dailySalesChart: ChartDataPoint[];
+  weeklySalesChart: ChartDataPoint[];
+  monthlySalesChart: ChartDataPoint[];
+  categorySalesChart: Array<{ name: string; value: number }>;
+  hourlyOrdersChart: Array<{ time: string; orders: number }>;
+  repurchaseRate: number;
+  aiInsights: string[];
+  // 여기에 ProductListResponse 타입은 포함하지 않습니다. 별도로 관리합니다.
+}
 
 type MenuItem =
   | "dashboard"
@@ -144,7 +113,74 @@ export function AdminPage() {
     "daily" | "weekly" | "monthly"
   >("daily");
 
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 상품 관리 페이지 상태
+  const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [productStatusFilter, setProductStatusFilter] = useState("all"); // 판매중, 품절, 재고부족
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+
   const finalUser = location.state?.updatedUser ?? currentUser;
+
+  // 대시보드 데이터 불러오기
+  useEffect(() => {
+    if (!finalUser?.isSeller) return;
+
+    const fetchDashboard = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/seller/dashboard", {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("대시보드 데이터를 불러오지 못했습니다.");
+        }
+
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error("대시보드 데이터 로드 오류:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, [finalUser]);
+
+  // orderPieData 동적 생성
+  const dynamicOrderPieData = dashboardData
+    ? [
+        {
+          name: "처리대기",
+          value: dashboardData.orderStats.pending,
+          color: "#EF4444",
+        },
+        {
+          name: "배송중",
+          value: dashboardData.orderStats.shipping,
+          color: "#F59E0B",
+        },
+        {
+          name: "완료",
+          value: dashboardData.orderStats.completed,
+          color: "#10B981",
+        },
+      ]
+    : [
+        { name: "처리대기", value: 0, color: "#EF4444" },
+        { name: "배송중", value: 0, color: "#F59E0B" },
+        { name: "완료", value: 0, color: "#10B981" },
+      ];
 
   // 판매자가 아닌 경우 판매자 등록 UI 표시
   if (!finalUser?.isSeller) {
@@ -316,25 +352,20 @@ export function AdminPage() {
   }
 
   const getCurrentChart = () => {
+    if (!dashboardData) return [];
+
     switch (salesPeriod) {
       case "daily":
-        return dailySalesChart;
+        return dashboardData.dailySalesChart;
       case "weekly":
-        return weeklySalesChart;
+        return dashboardData.weeklySalesChart;
       case "monthly":
-        return monthlySalesChart;
+        return dashboardData.monthlySalesChart;
     }
   };
 
   const getChartLabel = () => {
-    switch (salesPeriod) {
-      case "daily":
-        return "date";
-      case "weekly":
-        return "week";
-      case "monthly":
-        return "month";
-    }
+    return "label"; // 백엔드에서 모두 "label" 필드로 통일
   };
 
   // 판매자인 경우 대시보드 표시
@@ -449,102 +480,116 @@ export function AdminPage() {
         {/* 대시보드 콘텐츠 */}
         {activeMenu === "dashboard" && (
           <div className="p-8">
-            {/* 요약 카드 */}
-            <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {/* 오늘 매출 */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      오늘 매출
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">
-                      ₩{salesData.today.amount.toLocaleString()}
-                    </p>
-                    <div className="mt-2 flex items-center gap-1 text-sm">
-                      <TrendingUp className="h-4 w-4 text-emerald-600" />
-                      <span className="font-medium text-emerald-600">
-                        +{salesData.today.change}%
-                      </span>
-                      <span className="text-gray-500">vs 어제</span>
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="text-gray-500">로딩 중...</div>
+              </div>
+            ) : dashboardData ? (
+              <>
+                {/* 요약 카드 */}
+                <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                  {/* 오늘 매출 */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          오늘 매출
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-gray-900">
+                          ₩{dashboardData.today.amount.toLocaleString()}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1 text-sm">
+                          <TrendingUp className="h-4 w-4 text-emerald-600" />
+                          <span className="font-medium text-emerald-600">
+                            +{dashboardData.today.change}%
+                          </span>
+                          <span className="text-gray-500">vs 어제</span>
+                        </div>
+                      </div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                        <TrendingUp className="h-6 w-6 text-purple-600" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </Card>
+                  </Card>
 
-              {/* 이번 주 매출 */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      이번 주 매출
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">
-                      ₩{salesData.week.amount.toLocaleString()}
-                    </p>
-                    <div className="mt-2 flex items-center gap-1 text-sm">
-                      <TrendingUp className="h-4 w-4 text-emerald-600" />
-                      <span className="font-medium text-emerald-600">
-                        +{salesData.week.change}%
-                      </span>
-                      <span className="text-gray-500">vs 지난 주</span>
+                  {/* 이번 주 매출 */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          이번 주 매출
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-gray-900">
+                          ₩{dashboardData.week.amount.toLocaleString()}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1 text-sm">
+                          <TrendingUp className="h-4 w-4 text-emerald-600" />
+                          <span className="font-medium text-emerald-600">
+                            +{dashboardData.week.change}%
+                          </span>
+                          <span className="text-gray-500">vs 지난 주</span>
+                        </div>
+                      </div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                        <BarChart3 className="h-6 w-6 text-blue-600" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                    <BarChart3 className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-              </Card>
+                  </Card>
 
-              {/* 신규 주문 */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      신규 주문
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">
-                      {salesData.newOrders}건
-                    </p>
-                    <div className="mt-2 flex items-center gap-1 text-sm">
-                      <span className="font-medium text-orange-600">
-                        처리 필요
-                      </span>
-                      <ArrowRight className="h-3 w-3 text-gray-400" />
+                  {/* 신규 주문 */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          신규 주문
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-gray-900">
+                          {dashboardData.newOrders}건
+                        </p>
+                        <div className="mt-2 flex items-center gap-1 text-sm">
+                          <span className="font-medium text-orange-600">
+                            처리 필요
+                          </span>
+                          <ArrowRight className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                        <ShoppingCart className="h-6 w-6 text-orange-600" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-                    <ShoppingCart className="h-6 w-6 text-orange-600" />
-                  </div>
-                </div>
-              </Card>
+                  </Card>
 
-              {/* 재고 알림 */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      재고 부족
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">
-                      {salesData.stockAlerts}건
-                    </p>
-                    <div className="mt-2 flex items-center gap-1 text-sm">
-                      <span className="font-medium text-red-600">
-                        확인 필요
-                      </span>
-                      <ArrowRight className="h-3 w-3 text-gray-400" />
+                  {/* 재고 알림 */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          재고 부족
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-gray-900">
+                          {dashboardData.stockAlertsCount}건
+                        </p>
+                        <div className="mt-2 flex items-center gap-1 text-sm">
+                          <span className="font-medium text-red-600">
+                            확인 필요
+                          </span>
+                          <ArrowRight className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                        <AlertTriangle className="h-6 w-6 text-red-600" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
-                  </div>
+                  </Card>
                 </div>
-              </Card>
-            </div>
+              </>
+            ) : (
+              <div className="flex justify-center items-center py-12">
+                <div className="text-gray-500">
+                  데이터를 불러올 수 없습니다.
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-3">
               {/* 매출 추이 차트 - 2열 */}
@@ -619,173 +664,197 @@ export function AdminPage() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar dataKey="sales" fill="#9333ea" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="value" fill="#9333ea" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
 
               {/* 주문 현황 - 1열 */}
-              <Card className="p-6">
-                <h2 className="mb-6 text-lg font-semibold text-gray-900">
-                  주문 현황
-                </h2>
+              {dashboardData && (
+                <Card className="p-6">
+                  <h2 className="mb-6 text-lg font-semibold text-gray-900">
+                    주문 현황
+                  </h2>
 
-                <div className="mb-6">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={orderPieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {orderPieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg bg-red-50 p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <span className="text-sm font-medium text-gray-700">
-                        처리대기
-                      </span>
-                    </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      {orderStats.pending}건
-                    </span>
+                  <div className="mb-6">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={dynamicOrderPieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {dynamicOrderPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg bg-orange-50 p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-orange-500" />
-                      <span className="text-sm font-medium text-gray-700">
-                        배송중
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between rounded-lg bg-red-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-red-500" />
+                        <span className="text-sm font-medium text-gray-700">
+                          처리대기
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-900">
+                        {dashboardData.orderStats.pending}건
                       </span>
                     </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      {orderStats.shipping}건
-                    </span>
-                  </div>
 
-                  <div className="flex items-center justify-between rounded-lg bg-emerald-50 p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-medium text-gray-700">
-                        완료
+                    <div className="flex items-center justify-between rounded-lg bg-orange-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-orange-500" />
+                        <span className="text-sm font-medium text-gray-700">
+                          배송중
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-900">
+                        {dashboardData.orderStats.shipping}건
                       </span>
                     </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      {orderStats.completed}건
-                    </span>
+
+                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                        <span className="text-sm font-medium text-gray-700">
+                          완료
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-900">
+                        {dashboardData.orderStats.completed}건
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
 
               {/* 인기 상품 TOP 10 - 2열 */}
-              <Card className="p-6 lg:col-span-2">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  인기 상품 TOP 10
-                </h2>
+              {dashboardData && (
+                <Card className="p-6 lg:col-span-2">
+                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                    인기 상품 TOP 10
+                  </h2>
 
-                <div className="space-y-3">
-                  {topProducts.map((product) => (
-                    <div
-                      key={product.rank}
-                      className="flex items-center justify-between rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-3">
+                  <div className="space-y-3">
+                    {dashboardData.topProducts.length > 0 ? (
+                      dashboardData.topProducts.map((product) => (
                         <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                            product.rank === 1
-                              ? "bg-yellow-100 text-yellow-700"
-                              : product.rank === 2
-                              ? "bg-gray-100 text-gray-700"
-                              : product.rank === 3
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-gray-50 text-gray-600"
-                          }`}
+                          key={product.rank}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50"
                         >
-                          {product.rank}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                                product.rank === 1
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : product.rank === 2
+                                  ? "bg-gray-100 text-gray-700"
+                                  : product.rank === 3
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-gray-50 text-gray-600"
+                              }`}
+                            >
+                              {product.rank}
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {product.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <span className="text-sm text-gray-600">
+                              {product.sales}개 판매
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              ₩{product.revenue.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {product.name}
-                        </span>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center text-sm text-gray-500">
+                        판매 데이터가 없습니다.
                       </div>
-                      <div className="flex items-center gap-6">
-                        <span className="text-sm text-gray-600">
-                          {product.sales}개 판매
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900">
-                          ₩{product.revenue.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                    )}
+                  </div>
+                </Card>
+              )}
 
               {/* 재고 알림 - 1열 */}
-              <Card className="p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  재고 알림
-                </h2>
+              {dashboardData && (
+                <Card className="p-6">
+                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                    재고 알림
+                  </h2>
 
-                <div className="mb-4 space-y-3">
-                  <div className="flex items-center justify-between rounded-lg bg-red-50 p-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">품절</p>
-                      <p className="text-2xl font-bold text-red-600">
-                        {stockAlerts.outOfStock}건
-                      </p>
+                  <div className="mb-4 space-y-3">
+                    <div className="flex items-center justify-between rounded-lg bg-red-50 p-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          품절
+                        </p>
+                        <p className="text-2xl font-bold text-red-600">
+                          {dashboardData.stockAlerts.outOfStock}건
+                        </p>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-red-500" />
                     </div>
-                    <AlertTriangle className="h-8 w-8 text-red-500" />
+
+                    <div className="flex items-center justify-between rounded-lg bg-orange-50 p-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          재고 부족
+                        </p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {dashboardData.stockAlerts.lowStock}건
+                        </p>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-orange-500" />
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg bg-orange-50 p-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        재고 부족
-                      </p>
-                      <p className="text-2xl font-bold text-orange-600">
-                        {stockAlerts.lowStock}건
-                      </p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-orange-500" />
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-600">
+                      최근 알림
+                    </p>
+                    {dashboardData.stockAlerts.items.length > 0 ? (
+                      dashboardData.stockAlerts.items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="rounded border border-gray-200 p-2 text-xs"
+                        >
+                          <p className="font-medium text-gray-900">
+                            {item.name}
+                          </p>
+                          <p
+                            className={`mt-1 ${
+                              item.status === "품절"
+                                ? "text-red-600"
+                                : "text-orange-600"
+                            }`}
+                          >
+                            {item.status === "품절"
+                              ? "품절"
+                              : `재고 ${item.stock}개`}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-4 text-center text-xs text-gray-500">
+                        재고 알림이 없습니다.
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-600">최근 알림</p>
-                  {stockAlerts.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="rounded border border-gray-200 p-2 text-xs"
-                    >
-                      <p className="font-medium text-gray-900">{item.name}</p>
-                      <p
-                        className={`mt-1 ${
-                          item.status === "품절"
-                            ? "text-red-600"
-                            : "text-orange-600"
-                        }`}
-                      >
-                        {item.status === "품절"
-                          ? "품절"
-                          : `재고 ${item.stock}개`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                </Card>
+              )}
             </div>
           </div>
         )}
@@ -827,20 +896,19 @@ export function AdminPage() {
                   <h3 className="mb-2 text-lg font-semibold text-gray-900">
                     AI 인사이트
                   </h3>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p>
-                      • 이번 주 매출이 지난 주 대비 18.2% 증가했습니다. 주요
-                      요인은 '무선 블루투스 이어폰'의 판매량 급증입니다.
+                  {dashboardData?.aiInsights &&
+                  dashboardData.aiInsights.length > 0 ? (
+                    <div className="space-y-2 text-sm text-gray-700">
+                      {dashboardData.aiInsights.map((insight, index) => (
+                        <p key={index}>• {insight}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      분석할 데이터가 충분하지 않아 인사이트를 생성할 수
+                      없습니다.
                     </p>
-                    <p>
-                      • 주말 오후 2-4시에 주문이 집중되고 있습니다. 이 시간대에
-                      프로모션을 집중하면 효과적일 것으로 예상됩니다.
-                    </p>
-                    <p>
-                      • 재고가 부족한 상품이 10개 있습니다. 특히 '민감성 보습
-                      크림'은 품절 상태로 잠재 매출 손실이 발생하고 있습니다.
-                    </p>
-                  </div>
+                  )}
                 </div>
               </div>
             </Card>
@@ -853,10 +921,10 @@ export function AdminPage() {
                   일별 매출 추이
                 </h3>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dailySalesChart}>
+                  <LineChart data={dashboardData?.dailySalesChart || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis
-                      dataKey="date"
+                      dataKey="label"
                       tick={{ fill: "#6b7280", fontSize: 12 }}
                     />
                     <YAxis
@@ -878,7 +946,7 @@ export function AdminPage() {
                     />
                     <Line
                       type="monotone"
-                      dataKey="sales"
+                      dataKey="value"
                       stroke="#9333ea"
                       strokeWidth={2}
                       dot={{ fill: "#9333ea", r: 4 }}
@@ -895,28 +963,29 @@ export function AdminPage() {
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
-                      data={[
-                        { name: "패션", value: 35, color: "#9333ea" },
-                        { name: "뷰티", value: 25, color: "#ec4899" },
-                        { name: "전자기기", value: 20, color: "#3b82f6" },
-                        { name: "스포츠", value: 12, color: "#10b981" },
-                        { name: "기타", value: 8, color: "#f59e0b" },
-                      ]}
+                      data={dashboardData?.categorySalesChart || []}
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
                       dataKey="value"
                       label
                     >
-                      {[
-                        { name: "패션", value: 35, color: "#9333ea" },
-                        { name: "뷰티", value: 25, color: "#ec4899" },
-                        { name: "전자기기", value: 20, color: "#3b82f6" },
-                        { name: "스포츠", value: 12, color: "#10b981" },
-                        { name: "기타", value: 8, color: "#f59e0b" },
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
+                      {(dashboardData?.categorySalesChart || []).map(
+                        (entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              [
+                                "#9333ea",
+                                "#ec4899",
+                                "#3b82f6",
+                                "#10b981",
+                                "#f59e0b",
+                              ][index % 5]
+                            }
+                          />
+                        )
+                      )}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -929,17 +998,7 @@ export function AdminPage() {
                   시간대별 주문 분포
                 </h3>
                 <ResponsiveContainer width="100%" height={250}>
-                  <BarChart
-                    data={[
-                      { time: "00-06", orders: 5 },
-                      { time: "06-09", orders: 12 },
-                      { time: "09-12", orders: 28 },
-                      { time: "12-15", orders: 45 },
-                      { time: "15-18", orders: 38 },
-                      { time: "18-21", orders: 32 },
-                      { time: "21-24", orders: 18 },
-                    ]}
-                  >
+                  <BarChart data={dashboardData?.hourlyOrdersChart || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis
                       dataKey="time"
@@ -968,7 +1027,9 @@ export function AdminPage() {
                   고객 재구매율
                 </h3>
                 <div className="mb-4 text-center">
-                  <div className="text-5xl font-bold text-purple-600">68%</div>
+                  <div className="text-5xl font-bold text-purple-600">
+                    {dashboardData?.repurchaseRate.toFixed(0)}%
+                  </div>
                   <p className="mt-2 text-sm text-gray-600">
                     전체 고객 중 재구매 고객 비율
                   </p>
@@ -977,36 +1038,39 @@ export function AdminPage() {
                   <div>
                     <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">1회 구매</span>
-                      <span className="font-medium text-gray-900">32%</span>
+                      <span className="font-medium text-gray-900">
+                        {(100 - (dashboardData?.repurchaseRate || 0)).toFixed(
+                          0
+                        )}
+                        %
+                      </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-gray-200">
                       <div
                         className="h-2 rounded-full bg-gray-400"
-                        style={{ width: "32%" }}
+                        style={{
+                          width: `${(
+                            100 - (dashboardData?.repurchaseRate || 0)
+                          ).toFixed(0)}%`,
+                        }}
                       />
                     </div>
                   </div>
                   <div>
                     <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">2-3회 구매</span>
-                      <span className="font-medium text-gray-900">45%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-2 rounded-full bg-purple-400"
-                        style={{ width: "45%" }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">4회 이상 구매</span>
-                      <span className="font-medium text-gray-900">23%</span>
+                      <span className="text-gray-600">2회 이상 구매</span>
+                      <span className="font-medium text-gray-900">
+                        {(dashboardData?.repurchaseRate || 0).toFixed(0)}%
+                      </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-gray-200">
                       <div
                         className="h-2 rounded-full bg-purple-600"
-                        style={{ width: "23%" }}
+                        style={{
+                          width: `${(
+                            dashboardData?.repurchaseRate || 0
+                          ).toFixed(0)}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -1029,7 +1093,7 @@ export function AdminPage() {
         )}
 
         {/* 상품 관리 페이지 */}
-        {activeMenu === "products" && (
+        {activeMenu === "products" && finalUser?.isSeller && (
           <div className="p-8">
             {/* 검색 및 필터 */}
             <div className="mb-6 flex items-center gap-4">

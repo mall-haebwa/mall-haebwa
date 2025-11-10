@@ -7,7 +7,7 @@ import base64
 from datetime import datetime
 from bson import ObjectId
 from .database import get_db
-from .models import ORDERS_COL, USERS_COL, CARTS_COL
+from .models import ORDERS_COL, USERS_COL, CARTS_COL, PRODUCTS_COL
 from .auth_router import COOKIE_ACCESS
 from .security import decode_token
 
@@ -77,11 +77,25 @@ async def get_payment_config():
 @router.post("/orders")
 async def create_order(
     order: OrderCreate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
 ):
     """주문 생성"""
     import time
     order_id = f"ORDER_{int(time.time() * 1000)}"
+
+    # items에 sellerID 추가
+    enriched_items = []
+    for item in order.items:
+        try:
+            product = await db[PRODUCTS_COL].find_one({"_id": ObjectId(item.product_id)})
+        except Exception:
+            product = None
+            
+        item_dict = item.dict()
+        item_dict["sellerId"] = product.get("sellerId") if product else None
+        enriched_items.append(item_dict)
+
 
     orders[order_id] = {
         "order_id": order_id,
@@ -89,7 +103,7 @@ async def create_order(
         "amount": order.amount,
         "order_name": order.order_name,
         "customer_name": order.customer_name,
-        "items": [item.dict() for item in order.items],
+        "items": enriched_items,
         "cart_item_ids": order.cart_item_ids,  # 장바구니 아이템 ID 저장
         "status": "READY"
     }

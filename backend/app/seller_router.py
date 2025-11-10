@@ -1,11 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from .models import ORDERS_COL
 from .database import get_db
 from .user_router import get_current_user
-from .schemas import SellerProductCreate, SellerProductUpdate, ProductOut
+from .schemas import (
+    SellerProductCreate,
+    SellerProductUpdate,
+    ProductOut,
+    SellerDashboardStats,
+    SalesStats,
+    OrderStats,
+    TopProduct,
+    StockAlertItem,
+    StockAlerts,
+    ChartDataPoint,
+    CategorySalesDataPoint,
+    HourlyOrdersDataPoint,
+)
 
 router = APIRouter(prefix="/seller", tags=["seller"])
 
@@ -205,3 +219,339 @@ async def delete_seller_product(
         )
 
     return None
+
+
+@router.get("/dashboard", response_model=SellerDashboardStats)
+async def get_seller_dashboard(
+    current_user=Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """판매자 대시보드 통계 조회"""
+
+    if not current_user.get("isSeller"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="판매자만 접근할 수 있습니다.",
+        )
+
+    seller_id = str(current_user["_id"])
+    now = datetime.utcnow()
+    today_start = datetime(now.year, now.month, now.day)
+    week_start = now - timedelta(days=7)
+    
+    # 오늘 매출
+    today_orders_cursor = db[ORDERS_COL].find({
+        "status": "PAID",
+        "created_at": {"$gte": today_start},
+        "items.sellerId": seller_id
+    })
+    
+    today_orders_list = await today_orders_cursor.to_list(length=1000)
+    
+    today_amount = 0
+    today_order_count = 0
+    for order in today_orders_list:
+        for item in order.get("items", []):
+            if item.get("sellerId") == seller_id:
+                today_amount += item.get("price", 0) * item.get("quantity", 1)
+                today_order_count += 1
+                
+    # 이번 주 매출
+    week_orders_cursor = db[ORDERS_COL].find({
+        "status": "PAID",
+        "created_at": {"$gte": week_start},
+        "items.sellerId": seller_id
+    })
+    
+    week_orders_list = await week_orders_cursor.to_list(length=1000)
+    
+    week_amount = 0
+    week_order_count = 0
+    for order in week_orders_list:
+        for item in order.get("items", []):
+            if item.get("sellerId") == seller_id:
+                week_amount += item.get("price", 0) * item.get("quantity", 1)
+                week_order_count += 1
+                
+    # 신규 주문
+    new_orders_count = await db[ORDERS_COL].count_documents({
+        "status": {"$in": ["PAID", "READY", "PENDING"]},
+        "items.sellerId": seller_id
+    })
+    
+    # 주문 상태별 통계
+    pending_count = await db[ORDERS_COL].count_documents({
+        "status": {"$in": ["PAID", "PENDING"]},
+        "items.sellerId": seller_id
+    })
+
+    shipping_count = await db[ORDERS_COL].count_documents({        
+        "status": "SHIPPING",
+        "items.sellerId": seller_id
+    })
+
+    completed_count = await db[ORDERS_COL].count_documents({       
+        "status": "COMPLETED",
+        "items.sellerId": seller_id
+    })
+
+    # 재고 알림
+    out_of_stock_count = await db[PRODUCTS_COL].count_documents({
+        "sellerId": seller_id,
+        "stock": 0
+    })
+
+    low_stock_count = await db[PRODUCTS_COL].count_documents({     
+        "sellerId": seller_id,
+        "stock": {"$gt": 0, "$lt": 10}
+    })
+
+    stock_alert_items_cursor = db[PRODUCTS_COL].find({
+        "sellerId": seller_id,
+        "stock": {"$lt": 10}
+    }).sort("stock", 1).limit(3)
+
+    stock_alert_items_list = await stock_alert_items_cursor.to_list(length=3)
+    stock_alert_items = [
+        StockAlertItem(
+            name=item.get("title", ""),
+            stock=item.get("stock", 0),
+            status="품절" if item.get("stock", 0) == 0 else "부족"
+        )
+        for item in stock_alert_items_list
+    ]
+
+    # 6. 인기 상품 TOP 10 (판매량 기준)
+    # MongoDB aggregation으로 집계
+    pipeline = [
+        {"$match": {"status": "PAID"}},
+        {"$unwind": "$items"},
+        {"$match": {"items.sellerId": seller_id}},
+        {"$group": {
+            "_id": "$items.product_id",
+            "product_name": {"$first": "$items.product_name"},     
+            "total_sales": {"$sum": "$items.quantity"},
+            "total_revenue": {
+                "$sum": {
+                    "$multiply": ["$items.price", "$items.quantity"]
+                }
+            }
+        }},
+        {"$sort": {"total_sales": -1}},
+        {"$limit": 10}
+    ]
+
+    top_products_cursor = db[ORDERS_COL].aggregate(pipeline)       
+    top_products_list = await top_products_cursor.to_list(length=10)
+
+    top_products = [
+        TopProduct(
+            rank=idx + 1,
+            name=p.get("product_name", ""),
+            sales=p.get("total_sales", 0),
+            revenue=p.get("total_revenue", 0)
+        )
+        for idx, p in enumerate(top_products_list)
+    ]
+    
+    # 카테고리별 매출 집계 (아래는 리포트 용)
+    category_pipeline = [
+        {"$match": {"status": "PAID", "items.sellerId": seller_id}},
+        {"$unwind": "$items"},
+        {"$match": {"items.sellerId": seller_id}},
+        # product_id를 string에서 ObjectId로 변환
+        {"$addFields": {
+            "converted_product_id": {"$toObjectId": "$items.product_id"}
+        }},
+        {
+            "$lookup": {
+                "from": PRODUCTS_COL,
+                # 변환된 ID를 사용하여 lookup
+                "localField": "converted_product_id",
+                "foreignField": "_id",
+                "as": "product_info"
+            }
+        },
+        {"$unwind": "$product_info"},
+        {"$group": {
+            "_id": "$product_info.category1",
+            "value": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}}
+        }},
+        {"$project": {
+            "_id": 0,
+            "name": "$_id",
+            "value": "$value"
+        }},
+        {"$sort": {"value": -1}}
+    ]
+    category_sales_cursor = db[ORDERS_COL].aggregate(category_pipeline)
+    category_sales_chart = await category_sales_cursor.to_list(length=5)
+
+    # 시간대별 주문 분포 집계
+    hourly_pipeline = [
+        {"$match": {"status": "PAID", "items.sellerId": seller_id}},
+        {"$project": {
+            # UTC로 저장된 created_at을 한국 시간(KST)으로 변환하여 시간 추출
+            "hour": {"$hour": {"date": "$created_at", "timezone": "Asia/Seoul"}}
+        }},
+        {"$group": {
+            "_id": "$hour",
+            "orders": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}},
+        {"$project": {
+            "_id": 0,
+            "time": {
+                "$concat": [
+                    {"$cond": [{"$lt": ["$_id", 10]}, "0", ""]},
+                    {"$toString": "$_id"},
+                    ":00"
+                ]
+            },
+            "orders": "$orders"
+        }}
+    ]
+    hourly_orders_cursor = db[ORDERS_COL].aggregate(hourly_pipeline)
+    hourly_orders_chart = await hourly_orders_cursor.to_list(length=24)
+
+    # 고객 재구매율 계산
+    re_purchase_pipeline = [
+        {"$match": {"items.sellerId": seller_id, "status": "PAID"}},
+        {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+        {"$group": {
+            "_id": None,
+            "totalCustomers": {"$sum": 1},
+            "repeatCustomers": {
+                "$sum": {"$cond": [{"$gt": ["$count", 1]}, 1, 0]}
+            }
+        }}
+    ]   
+    repurchase_cursor = db[ORDERS_COL].aggregate(re_purchase_pipeline)
+    repurchase_data = await repurchase_cursor.to_list(length=1)
+
+    repurchase_rate = 0
+    if repurchase_data and repurchase_data[0]["totalCustomers"] > 0:
+        repurchase_rate = (repurchase_data[0]["repeatCustomers"] / repurchase_data[0]["totalCustomers"]) * 100
+
+    # TODO: 변화율 계산 (어제/지난주 대비)
+    today_change = 0.0
+    week_change = 0.0
+
+    # 7. 일별 매출 차트 (최근 7일)
+    daily_sales_chart = []
+    for i in range(6, -1, -1):  # 7일 전부터 오늘까지
+        day_start = datetime(now.year, now.month, now.day) - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+
+        day_orders_cursor = db[ORDERS_COL].find({
+            "status": "PAID",
+            "created_at": {"$gte": day_start, "$lt": day_end},
+            "items.sellerId": seller_id
+        })
+        day_orders_list = await day_orders_cursor.to_list(length=1000)
+
+        day_amount = 0
+        for order in day_orders_list:
+            for item in order.get("items", []):
+                if item.get("sellerId") == seller_id:
+                    day_amount += item.get("price", 0) * item.get("quantity", 1)
+
+        daily_sales_chart.append(ChartDataPoint(
+            label=day_start.strftime("%m/%d"),
+            value=day_amount
+        ))
+
+    # 8. 주간 매출 차트 (최근 5주)
+    weekly_sales_chart = []
+    for i in range(4, -1, -1):  # 5주 전부터 이번 주까지
+        week_start_date = now - timedelta(days=now.weekday()) - timedelta(weeks=i)
+        week_end_date = week_start_date + timedelta(days=7)
+
+        week_orders_cursor = db[ORDERS_COL].find({
+            "status": "PAID",
+            "created_at": {"$gte": week_start_date, "$lt": week_end_date},
+            "items.sellerId": seller_id
+        })
+        week_orders_list = await week_orders_cursor.to_list(length=1000)
+
+        week_amount = 0
+        for order in week_orders_list:
+            for item in order.get("items", []):
+                if item.get("sellerId") == seller_id:
+                    week_amount += item.get("price", 0) * item.get("quantity", 1)
+
+        # 주차 계산
+        week_number = week_start_date.isocalendar()[1]
+        weekly_sales_chart.append(ChartDataPoint(
+            label=f"{week_number}주",
+            value=week_amount
+        ))
+
+    # 9. 월간 매출 차트 (최근 6개월)
+    monthly_sales_chart = []
+    for i in range(5, -1, -1):  # 6개월 전부터 이번 달까지
+        # 월 계산
+        target_year = now.year
+        target_month = now.month - i
+
+        if target_month <= 0:
+            target_month += 12
+            target_year -= 1
+
+        month_start = datetime(target_year, target_month, 1)
+
+        # 다음 달 첫날 (종료일)
+        if target_month == 12:
+            month_end = datetime(target_year + 1, 1, 1)
+        else:
+            month_end = datetime(target_year, target_month + 1, 1)
+
+        month_orders_cursor = db[ORDERS_COL].find({
+            "status": "PAID",
+            "created_at": {"$gte": month_start, "$lt": month_end},
+            "items.sellerId": seller_id
+        })
+        month_orders_list = await month_orders_cursor.to_list(length=1000)
+
+        month_amount = 0
+        for order in month_orders_list:
+            for item in order.get("items", []):
+                if item.get("sellerId") == seller_id:
+                    month_amount += item.get("price", 0) * item.get("quantity", 1)
+
+        monthly_sales_chart.append(ChartDataPoint(
+            label=f"{target_month}월",
+            value=month_amount
+        ))
+
+    return SellerDashboardStats(
+        today=SalesStats(
+            amount=today_amount,
+            change=today_change,
+            orders=today_order_count
+        ),
+        week=SalesStats(
+            amount=week_amount,
+            change=week_change,
+            orders=week_order_count
+        ),
+        newOrders=new_orders_count,
+        stockAlertsCount=out_of_stock_count + low_stock_count,
+        orderStats=OrderStats(
+            pending=pending_count,
+            shipping=shipping_count,
+            completed=completed_count
+        ),
+        topProducts=top_products,
+        stockAlerts=StockAlerts(
+            outOfStock=out_of_stock_count,
+            lowStock=low_stock_count,
+            items=stock_alert_items
+        ),
+        dailySalesChart=daily_sales_chart,
+        weeklySalesChart=weekly_sales_chart,
+        monthlySalesChart=monthly_sales_chart,
+        categorySalesChart=category_sales_chart,
+        hourlyOrdersChart=hourly_orders_chart,
+        repurchaseRate=repurchase_rate,
+    )
