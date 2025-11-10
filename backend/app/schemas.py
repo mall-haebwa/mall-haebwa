@@ -245,3 +245,9 @@ class SellerDashboardStats(BaseModel):
 class ProductListResponse(BaseModel):
     total: int
     items: list[ProductOut]
+
+
+
+class ProductListResponse(BaseModel):
+    total: int
+    items: list[ProductOut]

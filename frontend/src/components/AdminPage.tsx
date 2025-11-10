@@ -16,6 +16,7 @@ import {
   Sparkles,
   Search,
   Filter,
+  Loader2,
   Edit,
   Trash2,
   Eye,
@@ -31,6 +32,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { useAppState } from "../context/app-state";
 import {
@@ -47,6 +49,14 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { toast } from "sonner";
 
 interface ChartDataPoint {
   label: string;
@@ -93,7 +103,40 @@ interface DashboardData {
   hourlyOrdersChart: Array<{ time: string; orders: number }>;
   repurchaseRate: number;
   aiInsights: string[];
-  // 여기에 ProductListResponse 타입은 포함하지 않습니다. 별도로 관리합니다.
+}
+
+// AddProductPage.tsx에서 사용되는 카테고리 목록을 가져옵니다.
+const categories = [
+  "패션의류",
+  "뷰티",
+  "식품",
+  "생활/주방",
+  "가전디지털",
+  "스포츠/레저",
+  "출산/육아",
+  "도서",
+];
+
+// 백엔드 ProductOut 스키마에 맞춰 프론트엔드 타입 정의
+interface SellerProduct {
+  id: string;
+  title: string;
+  brand: string | null;
+  category1: string | null;
+  category2: string | null;
+  category3: string | null;
+  category4: string | null;
+  numericPrice: number;
+  hprice: number | null;
+  image: string | null;
+  images: string[];
+  colors: string[];
+  sizes: string[];
+  description: string | null;
+  stock: number;
+  sellerId: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 type MenuItem =
@@ -117,6 +160,115 @@ export function AdminPage() {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
+
+  // 상품 검색 form submit 핸들러
+  const handleProductSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault(); // form의 기본 동작(페이지 새로고침) 방지
+    setCurrentPage(1); // 검색 시 1페이지부터 보도록 설정
+    setSearchTrigger((prev) => prev + 1); // 검색 실행
+  };
+  // 상품 삭제 핸들러
+
+  // 필터 초기화 핸들러
+  const handleResetFilters = () => {
+    setProductSearchQuery("");
+    setProductCategoryFilter("all");
+    setProductStatusFilter("all");
+    setCurrentPage(1);
+    setSearchTrigger((prev) => prev + 1); // 초기화 후 검색 실행
+  };
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm("정말로 이 상품을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/seller/products/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "상품 삭제에 실패했습니다.");
+      }
+
+      // 상태 업데이트: 삭제된 상품을 목록에서 제거
+      setSellerProducts((prev) => prev.filter((p) => p.id !== productId));
+      setTotalProducts((prev) => prev - 1); // 전체 개수 감소
+
+      toast.success("상품이 삭제되었습니다.");
+    } catch (error) {
+      console.error("상품 삭제 오류:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "상품 삭제 중 오류가 발생했습니다."
+      );
+    }
+  };
+
+  // 상품 수정 핸들러
+  const handleUpdateProduct = async () => {
+    if (!editingProduct) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `/api/seller/products/${editingProduct.id}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: editingProduct.title,
+            numericPrice: editingProduct.numericPrice,
+            stock: editingProduct.stock,
+            description: editingProduct.description,
+            brand: editingProduct.brand,
+            category1: editingProduct.category1,
+            hprice: editingProduct.hprice,
+            // 문자열을 배열로 변환하여 전송
+            colors: editingProduct.colors.map((c) => c.trim()).filter(Boolean),
+            sizes: editingProduct.sizes.map((s) => s.trim()).filter(Boolean),
+            images: editingProduct.images
+              .map((img) => img.trim())
+              .filter(Boolean),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "상품 수정에 실패했습니다.");
+      }
+
+      const updatedProduct = await response.json();
+
+      // 상태 업데이트: 수정된 상품 정보로 목록 업데이트
+      setSellerProducts((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+
+      setEditingProduct(null); // 모달 닫기
+      toast.success("상품 정보가 수정되었습니다.");
+    } catch (error) {
+      console.error("상품 수정 오류:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "상품 수정 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // 상품 관리 페이지 상태
   const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
@@ -156,6 +308,57 @@ export function AdminPage() {
 
     fetchDashboard();
   }, [finalUser]);
+
+  // 상품 관리 데이터 불러오기
+  useEffect(() => {
+    if (activeMenu !== "products" || !finalUser?.isSeller) {
+      return;
+    }
+
+    const fetchSellerProducts = async () => {
+      setIsProductsLoading(true);
+      setProductsError(null);
+      try {
+        const params = new URLSearchParams({
+          skip: String((currentPage - 1) * 10), // 페이지당 10개
+          limit: String(10),
+        });
+
+        if (productSearchQuery) params.set("q", productSearchQuery);
+        if (productCategoryFilter !== "all")
+          params.set("category", productCategoryFilter);
+        if (productStatusFilter !== "all")
+          params.set("status", productStatusFilter);
+
+        const response = await fetch(
+          `/api/seller/products?${params.toString()}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("상품 목록을 불러오지 못했습니다.");
+        }
+
+        const data = await response.json();
+        setSellerProducts(data.items || []);
+        setTotalProducts(data.total || 0);
+      } catch (error) {
+        console.error("상품 목록 로드 오류:", error);
+        setProductsError("상품 목록을 불러오는 데 실패했습니다.");
+      } finally {
+        setIsProductsLoading(false);
+      }
+    };
+
+    fetchSellerProducts();
+  }, [
+    activeMenu,
+    finalUser,
+    currentPage,
+    searchTrigger, // 검색 버튼 클릭 시에만 API 호출
+  ]);
 
   // orderPieData 동적 생성
   const dynamicOrderPieData = dashboardData
@@ -1093,17 +1296,67 @@ export function AdminPage() {
         )}
 
         {/* 상품 관리 페이지 */}
-        {activeMenu === "products" && finalUser?.isSeller && (
+        {activeMenu === "products" && (
           <div className="p-8">
             {/* 검색 및 필터 */}
-            <div className="mb-6 flex items-center gap-4">
+            <form
+              onSubmit={handleProductSearchSubmit}
+              className="mb-6 flex flex-wrap items-center gap-4"
+            >
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <Input placeholder="상품명, SKU로 검색..." className="pl-10" />
+                <Input
+                  placeholder="상품명으로 검색..."
+                  className="pl-10"
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                />
               </div>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                필터
+              {/* 카테고리 필터 */}
+              <Select
+                value={productCategoryFilter}
+                onValueChange={setProductCategoryFilter}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="카테고리 필터" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 카테고리</SelectItem>
+                  <SelectItem value="패션의류">패션의류</SelectItem>
+                  <SelectItem value="뷰티">뷰티</SelectItem>
+                  <SelectItem value="식품">식품</SelectItem>
+                  <SelectItem value="생활/주방">생활/주방</SelectItem>
+                  <SelectItem value="가전디지털">가전디지털</SelectItem>
+                  <SelectItem value="스포츠/레저">스포츠/레저</SelectItem>
+                  <SelectItem value="출산/육아">출산/육아</SelectItem>
+                  <SelectItem value="도서">도서</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* 상태 필터 */}
+              <Select
+                value={productStatusFilter}
+                onValueChange={setProductStatusFilter}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="상태 필터" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 상태</SelectItem>
+                  <SelectItem value="판매중">판매중</SelectItem>
+                  <SelectItem value="재고부족">재고 부족</SelectItem>
+                  <SelectItem value="품절">품절</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit">
+                <Search className="mr-2 h-4 w-4" />
+                검색
+              </Button>
+              <Button
+                type="button" // form 제출 방지
+                variant="outline"
+                onClick={handleResetFilters}
+              >
+                초기화
               </Button>
               <Button
                 variant="outline"
@@ -1112,7 +1365,7 @@ export function AdminPage() {
                 <Sparkles className="mr-2 h-4 w-4" />
                 AI 상품 설명 생성
               </Button>
-            </div>
+            </form>
 
             {/* AI 가격 추천 카드 */}
             <Card className="mb-6 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6">
@@ -1180,106 +1433,140 @@ export function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {[
-                      {
-                        name: "무선 블루투스 이어폰",
-                        category: "전자기기",
-                        price: 79900,
-                        stock: 23,
-                        status: "판매중",
-                      },
-                      {
-                        name: "여름 린넨 반팔 셔츠",
-                        category: "패션",
-                        price: 29900,
-                        stock: 156,
-                        status: "판매중",
-                      },
-                      {
-                        name: "민감성 보습 크림",
-                        category: "뷰티",
-                        price: 24900,
-                        stock: 0,
-                        status: "품절",
-                      },
-                      {
-                        name: "프리미엄 요가 매트",
-                        category: "스포츠",
-                        price: 39900,
-                        stock: 8,
-                        status: "판매중",
-                      },
-                    ].map((product, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <Checkbox />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">
-                            {product.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-600">
-                            {product.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-gray-900">
-                            ₩{product.price.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`text-sm font-medium ${
-                              product.stock === 0
-                                ? "text-red-600"
-                                : product.stock < 10
-                                ? "text-orange-600"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {product.stock}개
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                              product.status === "판매중"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {product.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
+                    {isProductsLoading ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="py-8 text-center text-gray-500"
+                        >
+                          <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                          <p className="mt-2">상품 목록을 불러오는 중...</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : productsError ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="py-8 text-center text-red-500"
+                        >
+                          {productsError}
+                        </td>
+                      </tr>
+                    ) : sellerProducts.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="py-8 text-center text-gray-500"
+                        >
+                          등록된 상품이 없습니다.
+                        </td>
+                      </tr>
+                    ) : (
+                      sellerProducts.map((product) => (
+                        <tr key={product.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <Checkbox />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-gray-900">
+                              {product.title}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-gray-600">
+                              {product.category1}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-medium text-gray-900">
+                              ₩{product.numericPrice.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`text-sm font-medium ${
+                                product.stock === 0
+                                  ? "text-red-600"
+                                  : product.stock < 10
+                                  ? "text-orange-600"
+                                  : "text-gray-900"
+                              }`}
+                            >
+                              {product.stock}개
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                product.stock === 0
+                                  ? "bg-red-100 text-red-700"
+                                  : product.stock < 10
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                              }`}
+                            >
+                              {product.stock === 0
+                                ? "품절"
+                                : product.stock < 10
+                                ? "재고 부족"
+                                : "판매중"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingProduct(product)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteProduct(product.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* 페이지네이션 */}
               <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
-                <p className="text-sm text-gray-600">총 4개 상품</p>
+                <p className="text-sm text-gray-600">
+                  총 {totalProducts}개 상품
+                </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={currentPage === 1 || isProductsLoading}
+                  >
                     이전
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <span className="flex items-center text-sm font-medium text-gray-700">
+                    {currentPage} / {Math.ceil(totalProducts / 10)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    disabled={
+                      currentPage * 10 >= totalProducts || isProductsLoading
+                    }
+                  >
                     다음
                   </Button>
                 </div>
@@ -1956,6 +2243,209 @@ export function AdminPage() {
                 </div>
               </Card>
             </div>
+          </div>
+        )}
+        {editingProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <Card className="w-full max-w-2xl bg-white">
+              <div className="border-b p-4">
+                <h2 className="text-lg font-semibold">상품 수정</h2>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto p-6 space-y-4">
+                {/* 상품명 */}
+                <div>
+                  <label className="text-sm font-medium">상품명</label>
+                  <Input
+                    value={editingProduct.title}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        title: e.target.value,
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* 브랜드 */}
+                <div>
+                  <label className="text-sm font-medium">브랜드</label>
+                  <Input
+                    value={editingProduct.brand || ""}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        brand: e.target.value,
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* 카테고리 */}
+                <div>
+                  <label className="text-sm font-medium">카테고리</label>
+                  <Select
+                    value={editingProduct.category1 || ""}
+                    onValueChange={(value) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        category1: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="카테고리 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 판매가, 정가, 재고 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">판매가</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editingProduct.numericPrice}
+                      onChange={(e) =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          numericPrice: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">재고</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editingProduct.stock}
+                      onChange={(e) =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          stock: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">
+                      정가 (할인가 적용 전)
+                    </label>
+                    <Input
+                      type="number"
+                      value={editingProduct.stock}
+                      onChange={(e) =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          stock: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* 컬러 옵션 */}
+                <div>
+                  <label className="text-sm font-medium">
+                    컬러 옵션 (쉼표로 구분)
+                  </label>
+                  <Input
+                    value={editingProduct.colors.join(", ")}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        colors: e.target.value.split(",").map((c) => c.trim()),
+                      })
+                    }
+                    className="mt-1"
+                    placeholder="예: 화이트, 블랙, 블루"
+                  />
+                </div>
+
+                {/* 사이즈 옵션 */}
+                <div>
+                  <label className="text-sm font-medium">
+                    사이즈 옵션 (쉼표로 구분)
+                  </label>
+                  <Input
+                    value={editingProduct.sizes.join(", ")}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        sizes: e.target.value.split(",").map((s) => s.trim()),
+                      })
+                    }
+                    className="mt-1"
+                    placeholder="예: S, M, L, XL"
+                  />
+                </div>
+
+                {/* 이미지 URL */}
+                <div>
+                  <label className="text-sm font-medium">
+                    이미지 URL (각 줄에 하나씩 또는 쉼표로 구분)
+                  </label>
+                  <Textarea
+                    value={editingProduct.images.join("\n")}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        images: e.target.value
+                          .split(/[\n,]/)
+                          .map((img) => img.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    className="mt-1"
+                    rows={4}
+                    placeholder="예: https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
+                  />
+                </div>
+
+                {/* 상세 설명 */}
+                <div>
+                  <label className="text-sm font-medium">상세 설명</label>
+                  <Textarea
+                    value={editingProduct.description || ""}
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        description: e.target.value,
+                      })
+                    }
+                    className="mt-1"
+                    rows={5}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 border-t p-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingProduct(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={() => handleUpdateProduct()}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "저장 중..." : "저장"}
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
       </main>
