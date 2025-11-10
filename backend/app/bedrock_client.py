@@ -22,21 +22,21 @@ class BedrockClient:
         - AWS_BEDROCK_MODEL_ID (기본: anthropic.claude-3-haiku-20240307-v1:0)
         """
         # 환경 변수에서 직접 읽기
-        bearer_token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+        self.bearer_token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
         self.region_name = os.getenv("AWS_REGION", "us-east-1")
         self.model_id = os.getenv("AWS_BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
 
-        if not bearer_token:
+        if not self.bearer_token:
             raise ValueError("AWS_BEARER_TOKEN_BEDROCK must be set")
 
-        # Bearer Token을 환경 변수로 설정 (boto3가 자동 인식) - 공식 문서 방식
-        os.environ['AWS_BEARER_TOKEN_BEDROCK'] = bearer_token
-
-        # Bedrock Runtime 클라이언트 생성 - 공식 문서와 동일하게 간단히
-        # Config 제거하고 기본 설정 사용
+        # Bedrock Runtime 클라이언트 생성 (토큰 직접 전달)
+        # boto3가 환경 변수를 자동으로 읽으므로 os.environ 수정 불필요
         self.client = boto3.client(
             service_name="bedrock-runtime",
-            region_name=self.region_name
+            region_name=self.region_name,
+            aws_access_key_id=None,
+            aws_secret_access_key=None,
+            aws_session_token=self.bearer_token  # Bearer 토큰 직접 전달
         )
 
         logger.info(f"✓ Bedrock Client initialized (model: {self.model_id}, region: {self.region_name})")

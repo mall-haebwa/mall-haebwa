@@ -5,8 +5,30 @@ from elasticsearch import AsyncElasticsearch
 from bson import ObjectId
 from datetime import datetime, timedelta
 import logging
+import functools
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================
+# 인증 데코레이터
+# ============================================
+
+def requires_authentication(func):
+    """
+    인증이 필요한 Tool에 적용하는 데코레이터
+    user_id가 None이면 에러 응답 반환
+    """
+    @functools.wraps(func)
+    async def wrapper(self, user_id: str, *args, **kwargs):
+        if not user_id:
+            logger.warning(f"[Tool] {func.__name__}: authentication required")
+            return {
+                "error": "로그인이 필요합니다. 우측 상단에서 로그인해주세요.",
+                "requires_auth": True
+            }
+        return await func(self, user_id, *args, **kwargs)
+    return wrapper
 
 
 # ============================================
@@ -74,7 +96,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "get_cart",
-            "description": "사용자의 장바구니를 조회합니다. 장바구니에 담긴 상품을 확인할 때 사용하세요.",
+            "description": "사용자의 장바구니를 조회합니다. **로그인 필요**",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -82,12 +104,13 @@ SHOPPING_TOOLS = [
                     "required": []
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "get_orders",
-            "description": "사용자의 주문 내역을 조회합니다. 과거 주문을 확인할 때 사용하세요.",
+            "description": "사용자의 주문 내역을 조회합니다. **로그인 필요**",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -100,12 +123,13 @@ SHOPPING_TOOLS = [
                     "required": []
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "search_orders_by_product",
-            "description": "과거 주문을 검색합니다. 상품명, 연도, 가격 등으로 필터링 가능합니다. '닭가슴살 재주문', '올해 구매한 3만원 이상 상품' 등의 요청에 사용하세요.",
+            "description": "과거 주문을 검색합니다. **로그인 필요**. 상품명, 연도, 가격 등으로 필터링 가능합니다.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -138,12 +162,13 @@ SHOPPING_TOOLS = [
                     "required": []
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "add_to_cart",
-            "description": "상품을 장바구니에 추가합니다. 재주문이나 장바구니 담기 요청에 사용하세요. 재주문 시에는 search_orders_by_product 결과의 matched_item 정보를 사용하세요.",
+            "description": "상품을 장바구니에 추가합니다. **로그인 필요**. 재주문 시에는 search_orders_by_product 결과의 matched_item 정보를 사용하세요.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -172,12 +197,13 @@ SHOPPING_TOOLS = [
                     "required": ["product_id"]
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "get_order_detail",
-            "description": "특정 주문의 상세 정보와 배송 현황을 조회합니다. 주문 상태, 배송 추적에 사용하세요.",
+            "description": "특정 주문의 상세 정보와 배송 현황을 조회합니다. **로그인 필요**",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -190,12 +216,13 @@ SHOPPING_TOOLS = [
                     "required": ["order_id"]
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "get_wishlist",
-            "description": "사용자의 찜 목록을 조회합니다. 찜한 상품을 확인할 때 사용하세요.",
+            "description": "사용자의 찜 목록을 조회합니다. **로그인 필요**",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -203,12 +230,13 @@ SHOPPING_TOOLS = [
                     "required": []
                 }
             }
-        }
+        },
+        "requires_auth": True
     },
     {
         "toolSpec": {
             "name": "get_recently_viewed",
-            "description": "사용자가 최근에 본 상품 목록을 조회합니다. '지난번에 봤던 상품', '최근 본 상품' 등의 요청에 사용하세요.",
+            "description": "사용자가 최근에 본 상품 목록을 조회합니다. **로그인 필요**. '지난번에 봤던 상품', '최근 본 상품' 등의 요청에 사용하세요.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -221,7 +249,8 @@ SHOPPING_TOOLS = [
                     "required": []
                 }
             }
-        }
+        },
+        "requires_auth": True
     }
 ]
 
@@ -322,20 +351,11 @@ class ToolHandlers:
             logger.error(f"[Tool] search_products error: {e}", exc_info=True)
             return {"error": str(e), "total": 0, "products": []}
 
+    @requires_authentication
     async def get_cart(self, user_id: str) -> Dict[str, Any]:
         """장바구니 조회 Tool"""
         try:
             logger.info(f"[Tool] get_cart: user_id={user_id}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] get_cart: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "total_items": 0,
-                    "total_amount": 0,
-                    "items": []
-                }
 
             # IMPORTANT: MongoDB uses "userId" (camelCase), not "user_id"
             cart = await self.db.carts.find_one({"userId": user_id})
@@ -369,19 +389,11 @@ class ToolHandlers:
             logger.error(f"[Tool] get_cart error: {e}", exc_info=True)
             return {"error": str(e), "total_items": 0, "total_amount": 0, "items": []}
 
+    @requires_authentication
     async def get_orders(self, user_id: str, limit: int = 5) -> Dict[str, Any]:
         """주문 내역 조회 Tool"""
         try:
             logger.info(f"[Tool] get_orders: user_id={user_id}, limit={limit}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] get_orders: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "orders": [],
-                    "total": 0
-                }
 
             cursor = self.db.orders.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
             orders = await cursor.to_list(length=limit)
@@ -404,19 +416,11 @@ class ToolHandlers:
             logger.error(f"[Tool] get_orders error: {e}", exc_info=True)
             return {"error": str(e), "orders": [], "total": 0}
 
+    @requires_authentication
     async def get_wishlist(self, user_id: str) -> Dict[str, Any]:
         """찜 목록 조회 Tool"""
         try:
             logger.info(f"[Tool] get_wishlist: user_id={user_id}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] get_wishlist: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "items": [],
-                    "total": 0
-                }
 
             # IMPORTANT: wishlist uses ObjectId(user_id) for user_id field
             wishlist = await self.db.wishlists.find_one({"user_id": ObjectId(user_id)})
@@ -465,6 +469,7 @@ class ToolHandlers:
             logger.error(f"[Tool] multi_search_products error: {e}", exc_info=True)
             return {"error": str(e), "results": {}, "queries": queries}
 
+    @requires_authentication
     async def search_orders_by_product(
         self,
         user_id: str,
@@ -478,15 +483,6 @@ class ToolHandlers:
         """주문 검색 Tool (상품명, 연도, 가격 필터 지원)"""
         try:
             logger.info(f"[Tool] search_orders_by_product: user_id={user_id}, keyword={product_keyword}, days_ago={days_ago}, year={year}, min_price={min_price}, max_price={max_price}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] search_orders_by_product: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "orders": [],
-                    "total": 0
-                }
 
             # 날짜 필터 구성
             query_filter = {"user_id": user_id}
@@ -578,6 +574,7 @@ class ToolHandlers:
             logger.error(f"[Tool] search_orders_by_product error: {e}", exc_info=True)
             return {"error": str(e), "orders": [], "total": 0}
 
+    @requires_authentication
     async def add_to_cart(
         self,
         user_id: str,
@@ -590,14 +587,6 @@ class ToolHandlers:
         """장바구니에 상품 추가 Tool"""
         try:
             logger.info(f"[Tool] add_to_cart: user_id={user_id}, product_id={product_id}, quantity={quantity}, price={price}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] add_to_cart: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "success": False
-                }
 
             # 상품 정보 조회 (MongoDB에서) - 파라미터로 제공되지 않은 정보만 조회
             product = None
@@ -684,18 +673,11 @@ class ToolHandlers:
             logger.error(f"[Tool] add_to_cart error: {e}", exc_info=True)
             return {"error": str(e), "success": False}
 
+    @requires_authentication
     async def get_order_detail(self, user_id: str, order_id: str) -> Dict[str, Any]:
         """주문 상세 조회 Tool (배송 현황 포함)"""
         try:
             logger.info(f"[Tool] get_order_detail: user_id={user_id}, order_id={order_id}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] get_order_detail: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "order": None
-                }
 
             # 본인 주문만 조회
             order = await self.db.orders.find_one({
@@ -742,19 +724,11 @@ class ToolHandlers:
             logger.error(f"[Tool] get_order_detail error: {e}", exc_info=True)
             return {"error": str(e), "order": None}
 
+    @requires_authentication
     async def get_recently_viewed(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
         """최근 본 상품 조회 Tool"""
         try:
             logger.info(f"[Tool] get_recently_viewed: user_id={user_id}, limit={limit}")
-
-            # 로그인 검증
-            if not user_id:
-                logger.warning(f"[Tool] get_recently_viewed: authentication required")
-                return {
-                    "error": "로그인이 필요합니다.",
-                    "items": [],
-                    "total": 0
-                }
 
             # 사용자 정보 조회
             user = await self.db.users.find_one({"_id": ObjectId(user_id)})

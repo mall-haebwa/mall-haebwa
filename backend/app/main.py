@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # 대화 제한 상수
 MAX_USER_MESSAGE_LENGTH = 500  # 사용자 입력 최대 길이
 CONVERSATION_HISTORY_LIMIT = 10  # 멀티턴 대화를 위한 히스토리 개수 (기존과 동일)
+MAX_TOOL_ITERATIONS = int(os.getenv("MAX_TOOL_ITERATIONS", "5"))  # Tool 실행 최대 반복 횟수
 
 app = FastAPI(title="AI Shop API")
 
@@ -152,6 +153,16 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
 
+    # 게스트 사용자는 인증 필요 Tool 필터링
+    if not user_id:
+        logger.info("[Chat] Guest user - filtering auth-required tools")
+        filtered_tools = [
+            tool for tool in SHOPPING_TOOLS
+            if not tool.get("requires_auth", False)
+        ]
+    else:
+        filtered_tools = SHOPPING_TOOLS
+
     # user_id를 자동으로 주입하는 래퍼 생성 (functools.partial 사용)
     original_handlers = tool_handlers_instance.get_handlers_dict()
     tool_handlers = {}
@@ -176,6 +187,13 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 
     system_prompt = f"""당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
 사용자의 쇼핑을 도와주세요. 상품 검색, 장바구니 확인, 주문 내역 조회, 재주문 등을 지원합니다.
+
+**인증 상태**: {"✓ 로그인됨" if user_id else "✗ 게스트 (비로그인)"}
+
+**게스트 사용자 제한** (로그인하지 않은 경우):
+- 장바구니, 주문 내역, 찜 목록, 최근 본 상품, 재주문 기능은 로그인 필요
+- 게스트가 이런 요청을 하면: "이 기능을 사용하시려면 로그인이 필요합니다. 우측 상단에서 로그인해주세요."
+- 상품 검색은 누구나 가능
 
 **현재 날짜 정보**:
 - 오늘: {current_date.strftime('%Y년 %m월 %d일')}
@@ -261,9 +279,9 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     try:
         result = await bedrock_client.chat_with_tools(
             messages=messages,
-            tools=SHOPPING_TOOLS,
+            tools=filtered_tools,  # 게스트 필터링 적용
             tool_handlers=tool_handlers,
-            max_iterations=3,  # Throttling 방지를 위해 5→3으로 축소
+            max_iterations=MAX_TOOL_ITERATIONS,  # 환경 변수로 제어 (기본값: 5)
             temperature=0.7,
             max_tokens=1000
         )
