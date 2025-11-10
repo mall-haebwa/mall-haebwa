@@ -118,3 +118,63 @@ class CartItemsDeleteRequest(BaseModel):
 class SellerRegistrationIn(BaseModel):
     businessName: str = Field(..., min_length=1, max_length=100)
     businessNumber: str = Field(..., min_length=10, max_length=12)
+
+# 판매자 상품 등록 스키마
+class SellerProductCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    brand: str | None = None
+    category1: str
+    category2: str | None = None
+    category3: str | None = None
+    category4: str | None = None
+    numericPrice: int = Field(..., gt=0)
+    hprice: int | None = None
+    image: str | None = None
+    images: list[str] = Field(default_factory=list)
+    colors: list[str] = Field(default_factory=list)
+    sizes: list[str] = Field(default_factory=list)
+    description: str | None = None
+    stock: int = Field(default=0, ge=0)
+    
+# 판매자 상품 수정용
+class SellerProductUpdate(BaseModel):
+    title: str | None = None
+    brand: str | None = None
+    category1: str | None = None
+    category2: str | None = None
+    category3: str | None = None
+    category4: str | None = None
+    numericPrice: int | None = None
+    hprice: int | None = None
+    image: str | None = None
+    images: list[str] | None = None
+    colors: list[str] | None = None
+    sizes: list[str] | None = None
+    description: str | None = None
+    stock: int | None = None
+    
+# 상품 상세 출력용
+class ProductOut(BaseModel):
+    id: str
+    title: str
+    brand: str | None = None
+    category1: str | None = None
+    category2: str | None = None
+    category3: str | None = None
+    category4: str | None = None
+    numericPrice: int
+    hprice: int | None = None
+    image: str | None = None
+    images: list[str] = Field(default_factory=list)
+    colors: list[str] = Field(default_factory=list)
+    sizes: list[str] = Field(default_factory=list)
+    description: str | None = None
+    stock: int = 0
+    rating: float | None = None
+    reviewCount: int | None = None
+    link: str | None = None
+    maker: str | None = None
+    mallName: str | None = None
+    sellerId: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None

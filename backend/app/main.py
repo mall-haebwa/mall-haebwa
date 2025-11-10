@@ -25,6 +25,8 @@ from .chat_models import ChatRequest, ChatResponse
 # Tool Use 관련 임포트는 엔드포인트 내부에서 동적 임포트
 from .search_client import get_search_client
 
+from .commands import match_command
+from .seller_router import router as seller_router
 import time
 import uuid
 import logging
@@ -75,6 +77,7 @@ app.include_router(product_random_router, prefix="/api")
 app.include_router(wishlist_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
+app.include_router(seller_router, prefix="/api")
 
 
 @app.get("/api/chat/history/{conversation_id}")
