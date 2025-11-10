@@ -21,6 +21,7 @@ from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .redis_client import redis_client
 from .chat_models import ChatRequest, ChatResponse
+from .vector_search_router import router as vector_search_router
 
 # Tool Use 관련 임포트는 엔드포인트 내부에서 동적 임포트
 from .search_client import get_search_client
@@ -84,6 +85,7 @@ app.include_router(seller_router, prefix="/api")
 app.include_router(seller_setting_router, prefix="/api")
 app.include_router(seller_promotion_router, prefix="/api")
 app.include_router(seller_ordermanage_router, prefix="/api")
+app.include_router(vector_search_router, prefix="/api")
 
 
 @app.get("/api/chat/history/{conversation_id}")
@@ -158,6 +160,10 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 
     # Tool Handlers 준비
     from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
+from .seller_setting import router as seller_setting_router
+from .seller_promotion import router as seller_promotion_router
+from .seller_ordermanage import router as seller_ordermanage_router
+from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
     db = get_db()
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
