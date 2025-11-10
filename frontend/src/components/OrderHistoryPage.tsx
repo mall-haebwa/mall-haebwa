@@ -77,6 +77,40 @@ export function OrderHistoryPage() {
     }
   }, [currentUser]);
 
+  async function handleCancelOrder(orderId: string) {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cancel_reason: "고객 단순 변심",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`주문이 취소되었습니다. ${data.refund_amount?.toLocaleString()}원이 환불됩니다.`);
+        // 주문 목록 새로고침
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.order_id === orderId
+              ? { ...order, status: "CANCELED" }
+              : order
+          )
+        );
+      } else {
+        toast.error(data.detail || "주문 취소에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("주문 취소 실패:", error);
+      toast.error("주문 취소 중 오류가 발생했습니다.");
+    }
+  }
+
   if (!currentUser) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
@@ -164,8 +198,18 @@ export function OrderHistoryPage() {
                       <RotateCcw className="h-4 w-4" />
                       {new Date(order.approved_at).toLocaleDateString("ko-KR")}
                     </div>
-                    <Badge className="bg-emerald-100 text-emerald-600">
-                      {order.status === "PAID" ? "결제 완료" : order.status}
+                    <Badge
+                      className={
+                        order.status === "CANCELED"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-emerald-100 text-emerald-600"
+                      }
+                    >
+                      {order.status === "PAID" && "결제 완료"}
+                      {order.status === "PREPARING" && "배송 준비 중"}
+                      {order.status === "SHIPPING" && "배송 중"}
+                      {order.status === "DELIVERED" && "배송 완료"}
+                      {order.status === "CANCELED" && "주문 취소"}
                     </Badge>
                   </div>
 
@@ -277,13 +321,14 @@ export function OrderHistoryPage() {
                         variant="outline"
                         size="sm"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={order.status === "CANCELED" || order.status === "SHIPPING" || order.status === "DELIVERED"}
                         onClick={() => {
-                          if (window.confirm("정말로 주문을 취소하시겠습니까?")) {
-                            toast.info("주문 취소 기능은 준비 중입니다.");
+                          if (window.confirm("정말로 주문을 취소하시겠습니까?\n결제 금액이 환불됩니다.")) {
+                            handleCancelOrder(order.order_id);
                           }
                         }}
                       >
-                        주문 취소
+                        {order.status === "CANCELED" ? "취소 완료" : "주문 취소"}
                       </Button>
                     </div>
                   </div>
