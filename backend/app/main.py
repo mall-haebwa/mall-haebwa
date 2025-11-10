@@ -151,7 +151,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
             logger.error(f"[Redis] 히스토리 로드 실패: {e}")
 
     # Tool Handlers 준비
-    from .tools import SHOPPING_TOOLS, ToolHandlers
+    from .tools import SHOPPING_TOOLS, ToolHandlers, ToolHandlers
     db = get_db()
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
@@ -161,7 +161,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         logger.info("[Chat] Guest user - filtering auth-required tools")
         filtered_tools = [
             tool for tool in SHOPPING_TOOLS
-            if not tool.get("requires_auth", False)
+	    if tool["toolSpec"]["name"] not in TOOL_AUTH_REQUIRED
         ]
     else:
         filtered_tools = SHOPPING_TOOLS

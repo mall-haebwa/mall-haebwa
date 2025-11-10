@@ -25,10 +25,21 @@ def requires_authentication(func):
             logger.warning(f"[Tool] {func.__name__}: authentication required")
             return {
                 "error": "로그인이 필요합니다. 우측 상단에서 로그인해주세요.",
-                "requires_auth": True
             }
         return await func(self, user_id, *args, **kwargs)
     return wrapper
+
+# 인증이 필요한 Tool 목록 (별도 관리)
+
+TOOL_AUTH_REQUIRED = {
+	"get_cart",
+	"get_orders",
+	"search_orders_by_product",
+	"add_to_cart",
+	"get_order_detaul",
+	"get_wishlist",
+	"get_recently_viewed"
+}
 
 
 # ============================================
@@ -105,7 +116,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -124,7 +134,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -163,7 +172,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -198,7 +206,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -217,7 +224,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -231,7 +237,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     },
     {
         "toolSpec": {
@@ -250,7 +255,6 @@ SHOPPING_TOOLS = [
                 }
             }
         },
-        "requires_auth": True
     }
 ]
 
