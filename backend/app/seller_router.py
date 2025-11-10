@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime, timedelta
@@ -17,6 +17,7 @@ from .schemas import (
     StockAlertItem,
     StockAlerts,
     ChartDataPoint,
+    ProductListResponse,
     CategorySalesDataPoint,
     HourlyOrdersDataPoint,
 )
@@ -61,12 +62,15 @@ async def create_product(
         **{k: v for k, v in created_product.items() if k != "_id"}
         )
 
-@router.get("/products", response_model=list[ProductOut])
+@router.get("/products", response_model=ProductListResponse)
 async def get_seller_products(
     current_user=Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
+    q: str = Query(None, description="Search query for product title"),
+    category: str = Query(None, description="Filter by category1"),
+    status: str = Query(None, description="Filter by product status (판매중, 품절, 재고부족)"),
 ):
     """판매자용 상품 목록 조회"""
     
@@ -77,18 +81,37 @@ async def get_seller_products(
         )
         
     seller_id = str(current_user["_id"])
-    
-      # 판매자의 상품만 조회
-    cursor = db[PRODUCTS_COL].find({"sellerId": seller_id}).skip(skip).limit(limit)
+    query_filter = {"sellerId": seller_id}
+
+    if q:
+        query_filter["title"] = {"$regex": q, "$options": "i"} # Case-insensitive search
+
+    if category and category != "all":
+        query_filter["category1"] = category
+
+    if status and status != "all":
+        if status == "품절":
+            query_filter["stock"] = 0
+        elif status == "재고부족":
+            query_filter["stock"] = {"$gt": 0, "$lt": 10}
+        elif status == "판매중":
+            query_filter["stock"] = {"$gte": 10}
+
+    total_count = await db[PRODUCTS_COL].count_documents(query_filter)
+
+    cursor = db[PRODUCTS_COL].find(query_filter).sort("created_at", -1).skip(skip).limit(limit)
     products = await cursor.to_list(length=limit)
 
-    return [
-        ProductOut(
-            id=str(p["_id"]),
-            **{k: v for k, v in p.items() if k != "_id"}
-        )
-        for p in products
-    ]
+    return {
+        "total": total_count,
+        "items": [
+            ProductOut(
+                id=str(p["_id"]),
+                **{k: v for k, v in p.items() if k != "_id"}
+            )
+            for p in products
+        ]
+    }
     
 
 @router.get("/products/{product_id}", response_model=ProductOut)
