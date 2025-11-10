@@ -46,9 +46,14 @@ uvicorn==0.38.0
 google-genai
 openai==1.12.0
 boto3>=1.39.0  # AWS Bedrock (API 키 지원을 위해 1.39.0 이상 필요)
+botocore>=1.39.0  # AWS SDK Core
 
 # Redis Cache
 redis[asyncio]==5.0.1
 
-
+# Search & Vector
 elasticsearch==8.12.0
+
+# Vector Processing
+numpy>=1.24.0  # 벡터 연산
+tqdm>=4.65.0  # 진행 상황 표시
