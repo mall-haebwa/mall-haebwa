@@ -659,7 +659,7 @@ export function AISearchPage() {
       console.log("[AI Search] Component unmounting, saving state");
       saveSearchState();
     };
-  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
+  }, [saveSearchState]);
 
   // 상태 복원 (컴포넌트 마운트 시)
   useEffect(() => {
