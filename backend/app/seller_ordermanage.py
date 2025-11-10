@@ -58,7 +58,7 @@ async def list_orders(
             "$in": target_values + [status_filter, status_filter.upper()]
         }
 
-    pipeline = [
+    base_stages = [
         {"$match": match_stage},
         {
             "$addFields": {
@@ -91,6 +91,9 @@ async def list_orders(
                 "itemCount": {"$size": "$sellerItems"},
             }
         },
+    ]
+
+    data_pipeline = base_stages + [
         {"$sort": {"created_at": -1}},
         {"$skip": skip},
         {"$limit": limit},
@@ -109,8 +112,24 @@ async def list_orders(
         },
     ]
 
-    cursor = db[ORDERS_COL].aggregate(pipeline)
-    raw_orders = await cursor.to_list(length=limit)
+    total_pipeline = base_stages + [{"$count": "count"}]
+
+    facet_pipeline = [
+        {
+            "$facet": {
+                "data": data_pipeline,
+                "total": total_pipeline,
+            }
+        }
+    ]
+
+    aggregate_result = await db[ORDERS_COL].aggregate(facet_pipeline).to_list(length=1)
+    raw_orders = aggregate_result[0]["data"] if aggregate_result else []
+    total = (
+        aggregate_result[0]["total"][0]["count"]
+        if aggregate_result and aggregate_result[0]["total"]
+        else 0
+    )
     orders = []
     for order in raw_orders:
         products = [
@@ -137,7 +156,6 @@ async def list_orders(
             }
         )
 
-    total = await db[ORDERS_COL].count_documents(match_stage)
     return {"items": orders, "total": total, "page": page, "limit": limit}
 
 @router.patch("/{order_id}/status")
@@ -156,14 +174,27 @@ async def update_order_status(
         order_obj_id = ObjectId(order_id)
     except Exception:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "유효하지 않은 주문 ID입니다.")
-    
+
+    order = await db[ORDERS_COL].find_one({"_id": order_obj_id})
+    if not order:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "주문을 찾을 수 없습니다.")
+
+    seller_id = str(current_user["_id"])
+    has_seller_items = any(
+        item.get("sellerId") == seller_id for item in order.get("items", [])
+    )
+    if not has_seller_items:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "해당 주문에 대한 권한이 없습니다."
+        )
+
     result = await db[ORDERS_COL].update_one(
-        {"_id": order_obj_id, "sellerId": str(current_user["_id"])},
+        {"_id": order_obj_id},
         {"$set": {"status": new_status, "updated_at": datetime.utcnow()}},
     )
 
     if result.matched_count == 0:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "주문을 찾을 수 없습니다.")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "주문 상태 변경에 실패했습니다.")
     
     updated = await db[ORDERS_COL].find_one({"_id": order_obj_id})
     updated["_id"] = str(updated["_id"])

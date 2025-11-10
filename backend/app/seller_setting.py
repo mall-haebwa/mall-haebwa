@@ -129,10 +129,10 @@ async def update_settlement_account(
         {"$set": {"sellerInfo.settlementAccount": settlement_account}}
     )
 
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="정산 계좌 등록에 실패했습니다.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다.",
         )
 
     # 업데이트된 사용자 정보 조회
@@ -170,10 +170,10 @@ async def update_delivery_settings(
         {"$set": {"sellerInfo.deliverySettings": delivery_settings}}
     )
 
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="배송 설정 수정에 실패했습니다.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다.",
         )
 
     # 업데이트된 사용자 정보 조회
@@ -211,10 +211,10 @@ async def update_notification_settings(
         {"$set": {"sellerInfo.notificationSettings": notification_settings}}
     )
 
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="알림 설정 수정에 실패했습니다.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다.",
         )
 
     # 업데이트된 사용자 정보 조회
@@ -253,10 +253,10 @@ async def update_ai_automation_settings(
         {"$set": {"sellerInfo.aiAutomationSettings": ai_automation_settings}}
     )
 
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="AI 자동화 설정 수정에 실패했습니다.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다.",
         )
 
     # 업데이트된 사용자 정보 조회
