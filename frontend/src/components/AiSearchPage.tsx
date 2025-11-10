@@ -644,11 +644,22 @@ export function AISearchPage() {
 
   // 언마운트 시 (홈으로 갈 때 등 또는 뒤로가기) 상태 저장
   useEffect(() => {
+    const handlePopState = () => {
+      console.log('[AI Search] Back button clicked, saving state before unmount');
+      saveSearchState();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
+
+  // 언마운트 시 (홈으로 갈 때 등) 상태 저장
+  useEffect(() => {
     return () => {
       console.log("[AI Search] Component unmounting, saving state");
       saveSearchState();
     };
-  }, [saveSearchState]);
+  }, [messages, products, orders, cartItems, wishlistItems, contentType, currentSearchQuery, conversationId, multiSearchResults, multiSearchQueries, selectedMultiCategory]);
 
   // 상태 복원 (컴포넌트 마운트 시)
   useEffect(() => {
@@ -682,6 +693,31 @@ export function AISearchPage() {
           sessionStorage.removeItem("aiSearchState");
           console.log("[AI Search] State restored from sessionStorage");
         }
+        // 2. Redis에서 히스토리 복원 (임시 주석 처리)
+        // localStorage에서 conversation_id 조회 후 Redis에서 복원
+        // else {
+        //   const savedConvId = localStorage.getItem('aiSearchConversationId');
+        //   if (savedConvId && currentUser?.id) {
+        //     setConversationId(savedConvId);
+        //
+        //     try {
+        //       const response = await fetch(
+        //         `/api/chat/history/${savedConvId}?user_id=${currentUser.id}`,
+        //         { credentials: 'include' }
+        //       );
+        //
+        //       if (response.ok) {
+        //         const data = await response.json();
+        //         if (data.messages && data.messages.length > 0) {
+        //           setMessages(data.messages);
+        //           console.log('[AI Search] Conversation history restored from Redis');
+        //         }
+        //       }
+        //     } catch (error) {
+        //       console.error('[AI Search] Failed to restore from Redis:', error);
+        //     }
+        //   }
+        // }
         // 2. Redis에서 히스토리 복원 (임시 주석 처리)
         // localStorage에서 conversation_id 조회 후 Redis에서 복원
         // else {
