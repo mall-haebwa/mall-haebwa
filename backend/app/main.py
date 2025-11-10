@@ -27,6 +27,7 @@ from .search_client import get_search_client
 
 from .commands import match_command
 from .seller_router import router as seller_router
+from .seller_setting import router as seller_setting_router
 import time
 import uuid
 import logging
@@ -78,6 +79,7 @@ app.include_router(wishlist_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
 app.include_router(product_router, prefix="/api")
 app.include_router(seller_router, prefix="/api")
+app.include_router(seller_setting_router, prefix="/api")
 
 
 @app.get("/api/chat/history/{conversation_id}")
