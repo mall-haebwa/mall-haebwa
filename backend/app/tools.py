@@ -36,7 +36,7 @@ TOOL_AUTH_REQUIRED = {
 	"get_orders",
 	"search_orders_by_product",
 	"add_to_cart",
-	"get_order_detaul",
+	"get_order_detail",
 	"get_wishlist",
 	"get_recently_viewed"
 }
