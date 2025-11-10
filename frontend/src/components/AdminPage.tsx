@@ -9,12 +9,22 @@ import {
   Plus,
   Sparkles,
   Wand2,
+  TrendingUp,
+  AlertTriangle,
+  Check,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { useAppState } from "../context/app-state";
 import { toast } from "sonner";
 import { DashboardTab } from "./admin-tabs/DashboardTab";
@@ -117,7 +127,7 @@ type MenuItem =
 export function AdminPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAppState();
+  const { currentUser, setCurrentUser } = useAppState();
   const [activeMenu, setActiveMenu] = useState<MenuItem>("dashboard");
   const [salesPeriod, setSalesPeriod] = useState<
     "daily" | "weekly" | "monthly"
@@ -673,7 +683,9 @@ export function AdminPage() {
 
         {activeMenu === "promotions" && <PromotionTab />}
 
-        {activeMenu === "settings" && <SettingsTab finalUser={finalUser} />}
+        {activeMenu === "settings" && (
+          <SettingsTab finalUser={finalUser} setCurrentUser={setCurrentUser} />
+        )}
 
         {editingProduct && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">

@@ -55,10 +55,72 @@ class RecentlyViewedPayload(BaseModel):
     productId: str = Field(..., min_length=1)
 
 
+class SettlementAccount(BaseModel):
+    bankName: str | None = None
+    accountNumber: str | None = None
+    accountHolder: str | None = None
+
+
+class DeliverySettings(BaseModel):
+    baseDeliveryFee: int | None = None
+    freeDeliveryMinAmount: int | None = None
+    returnExchangeDeliveryFee: int | None = None
+
+
+class NotificationSettings(BaseModel):
+    newOrderAlert: bool | None = None
+    lowStockAlert: bool | None = None
+    settlementAlert: bool | None = None
+
+
+class AIAutomationSettings(BaseModel):
+    priceOptimization: bool | None = None
+    stockAlert: bool | None = None
+    promotionRecommendation: bool | None = None
+    fraudDetection: bool | None = None
+
+
 class SellerInfo(BaseModel):
     businessName: str | None = None
     businessNumber: str | None = None
     registeredAt: datetime | None = None
+    contactEmail: str | None = None
+    contactPhone: str | None = None
+    settlementAccount: SettlementAccount | None = None
+    deliverySettings: DeliverySettings | None = None
+    notificationSettings: NotificationSettings | None = None
+    aiAutomationSettings: AIAutomationSettings | None = None
+
+
+# Seller Settings Update Schemas
+class SellerInfoUpdate(BaseModel):
+    contactEmail: str | None = None
+    contactPhone: str | None = None
+
+
+class SettlementAccountUpdate(BaseModel):
+    bankName: str
+    accountNumber: str
+    accountHolder: str
+
+
+class DeliverySettingsUpdate(BaseModel):
+    baseDeliveryFee: int
+    freeDeliveryMinAmount: int
+    returnExchangeDeliveryFee: int
+
+
+class NotificationSettingsUpdate(BaseModel):
+    newOrderAlert: bool
+    lowStockAlert: bool
+    settlementAlert: bool
+
+
+class AIAutomationSettingsUpdate(BaseModel):
+    priceOptimization: bool
+    stockAlert: bool
+    promotionRecommendation: bool
+    fraudDetection: bool
 
 
 class UserOut(BaseModel):
@@ -252,3 +314,51 @@ class ProductListResponse(BaseModel):
 class ProductListResponse(BaseModel):
     total: int
     items: list[ProductOut]
+
+# Coupon Schemas
+class CouponCreate(BaseModel):
+    name: str
+    code: str
+    discountType: str  # "percentage" or "fixed"
+    discountValue: int
+    minOrderAmount: int = 0
+    maxDiscount: int | None = None
+    totalQuantity: int
+    startDate: datetime
+    endDate: datetime
+    applicableProducts: list[str] | None = None  # 적용 가능한 상품 ID 목록
+
+
+class CouponUpdate(BaseModel):
+    name: str | None = None
+    discountType: str | None = None
+    discountValue: int | None = None
+    minOrderAmount: int | None = None
+    maxDiscount: int | None = None
+    totalQuantity: int | None = None
+    startDate: datetime | None = None
+    endDate: datetime | None = None
+    status: str | None = None  # "active", "inactive", "expired"
+    applicableProducts: list[str] | None = None  # 적용 가능한 상품 ID 목록
+
+
+class CouponOut(BaseModel):
+    model_config = {"populate_by_name": True}
+
+    id: str = Field(alias="_id")
+    sellerId: str
+    name: str
+    code: str
+    discountType: str
+    discountValue: int
+    minOrderAmount: int
+    maxDiscount: int | None = None
+    totalQuantity: int
+    usedQuantity: int
+    startDate: datetime
+    endDate: datetime
+    status: str  # "active", "inactive", "expired"
+    applicableProducts: list[str] = Field(default_factory=list)  # 적용 가능한 상품 ID 목록
+    createdAt: datetime = Field(alias="created_at")
+    updatedAt: datetime = Field(alias="updated_at")
+

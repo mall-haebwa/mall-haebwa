@@ -16,6 +16,29 @@ export interface User {
     businessName?: string; // 사업자명
     businessNumber?: string; // 사업자 등록번호
     registeredAt?: string; // 판매자 등록일
+    contactEmail?: string;
+    contactPhone?: string;
+    settlementAccount?: {
+      bankName?: string;
+      accountNumber?: string;
+      accountHolder?: string;
+    };
+    deliverySettings?: {
+      baseDeliveryFee?: number;
+      freeDeliveryMinAmount?: number;
+      returnExchangeDeliveryFee?: number;
+    };
+    notificationSettings?: {
+      newOrderAlert?: boolean;
+      lowStockAlert?: boolean;
+      settlementAlert?: boolean;
+    };
+    aiAutomationSettings?: {
+      priceOptimization?: boolean;
+      stockAlert?: boolean;
+      promotionRecommendation?: boolean;
+      fraudDetection?: boolean;
+    };
   };
 }
 
