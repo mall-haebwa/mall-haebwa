@@ -157,7 +157,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
             logger.error(f"[Redis] 히스토리 로드 실패: {e}")
 
     # Tool Handlers 준비
-    from .tools import SHOPPING_TOOLS, ToolHandlers, ToolHandlers
+    from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
     db = get_db()
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
