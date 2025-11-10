@@ -34,7 +34,8 @@ type ContentType =
   | "comparison"
   | "cart"
   | "wishlist"
-  | "multisearch";
+  | "multisearch"
+  | "reorder";
 
 interface OrderItem {
   product_id: string;
@@ -89,7 +90,7 @@ const EXAMPLE_SEARCHES = [
 export function AISearchPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, setSearchQuery } = useAppState();
+  const { currentUser, setSearchQuery, refreshCart } = useAppState();
   const [searchInput, setSearchInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -334,7 +335,7 @@ export function AISearchPage() {
 
     switch (action.type) {
       case "SEARCH":
-        // 상품 검색
+        // 상품 검색 - Tool 결과를 직접 활용 (API 재호출 불필요)
         if (action.params?.query) {
           console.log(
             "Processing SEARCH action with query:",
@@ -343,8 +344,16 @@ export function AISearchPage() {
           setCurrentSearchQuery(action.params.query);
           setContentType("products");
           setSearchQuery(action.params.query);
-          // 직접 fetchProducts 호출 (useEffect 의존성 이슈 방지)
-          fetchProducts(action.params.query);
+
+          // Tool 결과에 products 데이터가 포함되어 있으면 바로 사용
+          if (action.params.products && Array.isArray(action.params.products)) {
+            console.log("Using products from Tool result:", action.params.products.length);
+            setProducts(action.params.products);
+            setIsLoadingData(false);
+          } else {
+            // 데이터가 없으면 API 호출
+            fetchProducts(action.params.query);
+          }
         }
         break;
       case "MULTISEARCH":
@@ -363,6 +372,18 @@ export function AISearchPage() {
           setMultiSearchResults({});
           setSelectedMultiCategory("");
 
+          // Tool 결과에 이미 데이터가 있으면 바로 사용 (API 재호출 불필요)
+          if (action.params.results && typeof action.params.results === "object") {
+            console.log("Using multi-search results from Tool:", action.params.results);
+            setMultiSearchResults(action.params.results);
+            if (queries.length > 0) {
+              setSelectedMultiCategory(queries[0]);
+            }
+            setIsLoadingData(false);
+            break;
+          }
+
+          // 데이터가 없으면 API 호출 (기존 방식)
           Promise.all(
             queries.map(async (q) => {
               try {
@@ -404,13 +425,35 @@ export function AISearchPage() {
         break;
       case "VIEW_ORDERS":
         setContentType("orders");
-        // 직접 fetchOrders 호출
-        fetchOrders();
+        // Tool 결과에 데이터가 있으면 사용, 없으면 API 호출
+        if (action.params?.orders) {
+          setOrders(action.params.orders);
+          setIsLoadingData(false);
+        } else {
+          fetchOrders();
+        }
+        // 에러 처리 (로그인 필요 등)
+        if (action.params?.error) {
+          setDataError(action.params.error);
+          setIsLoadingData(false);
+        }
         break;
       case "VIEW_CART":
         setContentType("cart");
-        // 직접 fetchCart 호출
-        fetchCart();
+        // Tool 결과에 데이터가 있으면 사용, 없으면 API 호출
+        if (action.params?.items) {
+          setCartItems(action.params.items);
+          setIsLoadingData(false);
+        } else {
+          fetchCart();
+        }
+        // 에러 처리 (로그인 필요 등)
+        if (action.params?.error) {
+          setDataError(action.params.error);
+          setIsLoadingData(false);
+        }
+        // 장바구니 카운트 업데이트 (헤더의 장바구니 뱃지)
+        refreshCart();
         break;
       case "TRACK_DELIVERY":
         setContentType("orders");
@@ -419,8 +462,37 @@ export function AISearchPage() {
         break;
       case "VIEW_WISHLIST":
         setContentType("wishlist");
-        // 직접 fetchWishlist 호출
-        fetchWishlist();
+        // Tool 결과에 데이터가 있으면 사용, 없으면 API 호출
+        if (action.params?.items) {
+          setWishlistItems(action.params.items);
+          setIsLoadingData(false);
+        } else {
+          fetchWishlist();
+        }
+        // 에러 처리 (로그인 필요 등)
+        if (action.params?.error) {
+          setDataError(action.params.error);
+          setIsLoadingData(false);
+        }
+        break;
+      case "VIEW_REORDER_OPTIONS":
+        // 재주문 옵션 표시 - 과거 주문 상품을 상품 카드로 표시
+        setContentType("reorder");
+        if (action.params?.products && Array.isArray(action.params.products)) {
+          console.log("Processing VIEW_REORDER_OPTIONS with products:", action.params.products);
+          setProducts(action.params.products);
+          setCurrentSearchQuery(
+            action.params.keyword
+              ? `재주문: ${action.params.keyword}`
+              : "재주문 옵션"
+          );
+          setIsLoadingData(false);
+        }
+        // 에러 처리
+        if (action.params?.error) {
+          setDataError(action.params.error);
+          setIsLoadingData(false);
+        }
         break;
       case "CHAT":
       case "ERROR":
@@ -458,7 +530,7 @@ export function AISearchPage() {
 
       const requestBody: any = {
         message: trimmed || "이 이미지와 비슷한 상품을 찾아줘",
-        user_id: currentUser?.id,
+        // user_id는 백엔드가 JWT 쿠키에서 자동 추출
         conversation_id: conversationId || undefined,
       };
 
@@ -504,10 +576,24 @@ export function AISearchPage() {
       setUploadedImages([]);
     } catch (error) {
       console.error("AI 검색 오류:", error);
+
+      // 백엔드에서 전달한 에러 메시지 또는 기본 메시지
+      let errorContent = "죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+
+      if (error instanceof Error) {
+        // axios 에러의 경우 response에서 메시지 추출
+        const axiosError = error as any;
+        if (axiosError.response?.data?.reply) {
+          errorContent = axiosError.response.data.reply;
+        } else if (axiosError.response?.data?.error_detail) {
+          // DEBUG_MODE일 때 상세 에러
+          errorContent += `\n\n상세 오류: ${axiosError.response.data.error_detail}`;
+        }
+      }
+
       const errorMessage: ChatMessage = {
         role: "assistant",
-        content:
-          "죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        content: errorContent,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -648,7 +734,7 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-gray-50">
+    <div className="flex h-[calc(100vh-154px)] bg-gray-50">
       {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
@@ -789,6 +875,51 @@ export function AISearchPage() {
               <div className="flex flex-col items-center justify-center py-20">
                 <Package className="mb-4 h-16 w-16 text-gray-300" />
                 <p className="text-gray-600">검색 결과가 없습니다.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {products.map((product) => (
+                  <ProductPreviewCard
+                    key={product.id}
+                    product={product}
+                    onOpen={handleProductClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 재주문 옵션 */}
+        {contentType === "reorder" && (
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="mb-2 text-2xl font-semibold text-gray-900">
+                재주문 옵션
+              </h2>
+              {currentSearchQuery && (
+                <p className="text-sm text-gray-600">
+                  {currentSearchQuery}
+                </p>
+              )}
+            </div>
+
+            {isLoadingData ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <span className="ml-3 text-gray-600">
+                  과거 주문을 검색하고 있습니다...
+                </span>
+              </div>
+            ) : dataError ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Package className="mb-4 h-16 w-16 text-gray-300" />
+                <p className="text-gray-600">{dataError}</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Package className="mb-4 h-16 w-16 text-gray-300" />
+                <p className="text-gray-600">과거 주문 내역이 없습니다.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">

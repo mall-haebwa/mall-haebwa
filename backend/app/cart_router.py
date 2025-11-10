@@ -130,7 +130,8 @@ async def add_cart_item(
     items = cart.get("items", [])
     key = (payload.productId, payload.selectedColor, payload.selectedSize)
 
-    for item in items:
+    found_index = -1
+    for i, item in enumerate(items):
         if (
             item["productId"],
             item.get("selectedColor"),
@@ -143,12 +144,18 @@ async def add_cart_item(
                 item["nameSnapshot"] = payload.nameSnapshot
             if payload.imageSnapshot is not None:
                 item["imageSnapshot"] = payload.imageSnapshot
+            found_index = i
             break
-    
+
+    if found_index >= 0:
+        # 동일 상품이 있으면 맨 위로 이동
+        found_item = items.pop(found_index)
+        items.insert(0, found_item)
     else:
+        # 새 상품은 맨 앞에 추가 (최신순)
         new_item = payload.model_dump(exclude_unset=True)
         new_item["_id"] = str(uuid4())
-        items.append(new_item)
+        items.insert(0, new_item)
 
     now = datetime.utcnow()
     await db[CARTS_COL].update_one(
