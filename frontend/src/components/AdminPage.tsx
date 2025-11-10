@@ -56,6 +56,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import * as XLSX from "xlsx"; // XLSX 라이브러리 임포트
+import { saveAs } from "file-saver"; // file-saver 라이브러리 임포트
 import { toast } from "sonner";
 
 interface ChartDataPoint {
@@ -103,6 +105,7 @@ interface DashboardData {
   hourlyOrdersChart: Array<{ time: string; orders: number }>;
   repurchaseRate: number;
   aiInsights: string[];
+  dynamicSalesChart: ChartDataPoint[];
 }
 
 // AddProductPage.tsx에서 사용되는 카테고리 목록을 가져옵니다.
@@ -160,6 +163,9 @@ export function AdminPage() {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [reportPeriod, setReportPeriod] = useState<
+    "today" | "7days" | "30days" | "custom"
+  >("7days");
 
   const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(
     null
@@ -289,9 +295,12 @@ export function AdminPage() {
     const fetchDashboard = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/seller/dashboard", {
-          credentials: "include",
-        });
+        const response = await fetch(
+          `/api/seller/dashboard?report_period=${reportPeriod}`,
+          {
+            credentials: "include",
+          }
+        );
 
         if (!response.ok) {
           throw new Error("대시보드 데이터를 불러오지 못했습니다.");
@@ -307,7 +316,7 @@ export function AdminPage() {
     };
 
     fetchDashboard();
-  }, [finalUser]);
+  }, [finalUser, reportPeriod]);
 
   // 상품 관리 데이터 불러오기
   useEffect(() => {
@@ -384,6 +393,145 @@ export function AdminPage() {
         { name: "배송중", value: 0, color: "#F59E0B" },
         { name: "완료", value: 0, color: "#10B981" },
       ];
+
+  // --- Excel Download Handler (NEW) ---
+  const handleDownloadExcel = () => {
+    if (!dashboardData) {
+      toast.info("다운로드할 데이터가 없습니다.");
+      return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+
+    // 1. 일별 매출 추이 시트
+    if (
+      dashboardData.dynamicSalesChart &&
+      dashboardData.dynamicSalesChart.length > 0
+    ) {
+      const dailySalesData = [
+        ["날짜", "매출"],
+        ...dashboardData.dynamicSalesChart.map((item) => [
+          item.label,
+          item.value,
+        ]),
+      ];
+      const dailySalesSheet = XLSX.utils.aoa_to_sheet(dailySalesData);
+      XLSX.utils.book_append_sheet(workbook, dailySalesSheet, "일별 매출 추이");
+    }
+
+    // 2. 카테고리별 매출 비중 시트
+    if (
+      dashboardData.categorySalesChart &&
+      dashboardData.categorySalesChart.length > 0
+    ) {
+      const categorySalesData = [
+        ["카테고리", "매출"],
+        ...dashboardData.categorySalesChart.map((item) => [
+          item.name,
+          item.value,
+        ]),
+      ];
+      const categorySalesSheet = XLSX.utils.aoa_to_sheet(categorySalesData);
+      XLSX.utils.book_append_sheet(
+        workbook,
+        categorySalesSheet,
+        "카테고리별 매출 비중"
+      );
+    }
+
+    // 3. 시간대별 주문 분포 시트
+    if (
+      dashboardData.hourlyOrdersChart &&
+      dashboardData.hourlyOrdersChart.length > 0
+    ) {
+      const hourlyOrdersData = [
+        ["시간대", "주문건수"],
+        ...dashboardData.hourlyOrdersChart.map((item) => [
+          item.time,
+          item.orders,
+        ]),
+      ];
+      const hourlyOrdersSheet = XLSX.utils.aoa_to_sheet(hourlyOrdersData);
+      XLSX.utils.book_append_sheet(
+        workbook,
+        hourlyOrdersSheet,
+        "시간대별 주문 분포"
+      );
+    }
+
+    // 4. 고객 재구매율 시트
+    if (
+      dashboardData.repurchaseRate !== undefined &&
+      dashboardData.repurchaseRate !== null
+    ) {
+      const repurchaseData = [
+        ["항목", "비율"],
+        ["재구매율", `${dashboardData.repurchaseRate.toFixed(2)}%`],
+        [
+          "1회 구매 고객",
+          `${(100 - dashboardData.repurchaseRate).toFixed(2)}%`,
+        ],
+        ["2회 이상 구매 고객", `${dashboardData.repurchaseRate.toFixed(2)}%`],
+      ];
+      const repurchaseSheet = XLSX.utils.aoa_to_sheet(repurchaseData);
+      XLSX.utils.book_append_sheet(workbook, repurchaseSheet, "고객 재구매율");
+    }
+
+    // 5. 인기 상품 TOP 10 시트
+    if (dashboardData.topProducts && dashboardData.topProducts.length > 0) {
+      const topProductsData = [
+        ["순위", "상품명", "판매량", "매출액"],
+        ...dashboardData.topProducts.map((item) => [
+          item.rank,
+          item.name,
+          item.sales,
+          item.revenue,
+        ]),
+      ];
+      const topProductsSheet = XLSX.utils.aoa_to_sheet(topProductsData);
+      XLSX.utils.book_append_sheet(
+        workbook,
+        topProductsSheet,
+        "인기 상품 TOP 10"
+      );
+    }
+
+    // 6. 재고 알림 상품 시트
+    if (
+      dashboardData.stockAlerts.items &&
+      dashboardData.stockAlerts.items.length > 0
+    ) {
+      const stockAlertsData = [
+        ["상품명", "현재 재고", "상태"],
+        ...dashboardData.stockAlerts.items.map((item) => [
+          item.name,
+          item.stock,
+          item.status,
+        ]),
+      ];
+      const stockAlertsSheet = XLSX.utils.aoa_to_sheet(stockAlertsData);
+      XLSX.utils.book_append_sheet(
+        workbook,
+        stockAlertsSheet,
+        "재고 알림 상품"
+      );
+    }
+
+    // 워크북을 바이너리 데이터로 변환
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+    saveAs(
+      data,
+      `판매자_리포트_${new Date().toLocaleDateString("ko-KR")}.xlsx`
+    );
+    toast.success("Excel 파일 다운로드 완료!");
+  };
+  // --- End Download Handlers ---
 
   // 판매자가 아닌 경우 판매자 등록 UI 표시
   if (!finalUser?.isSeller) {
@@ -1074,16 +1222,37 @@ export function AdminPage() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={reportPeriod === "today" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setReportPeriod("today")}
+                  className={
+                    reportPeriod === "today" ? "bg-purple-600 text-white" : ""
+                  }
+                >
                   오늘
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={reportPeriod === "7days" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setReportPeriod("7days")}
+                  className={
+                    reportPeriod === "7days" ? "bg-purple-600 text-white" : ""
+                  }
+                >
                   최근 7일
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={reportPeriod === "30days" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setReportPeriod("30days")}
+                  className={
+                    reportPeriod === "30days" ? "bg-purple-600 text-white" : ""
+                  }
+                >
                   최근 30일
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled>
                   사용자 지정
                 </Button>
               </div>
@@ -1124,7 +1293,7 @@ export function AdminPage() {
                   일별 매출 추이
                 </h3>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dashboardData?.dailySalesChart || []}>
+                  <LineChart data={dashboardData?.dynamicSalesChart || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis
                       dataKey="label"
@@ -1283,11 +1452,15 @@ export function AdminPage() {
 
             {/* 다운로드 버튼 */}
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline">
+              {/* PDF 다운로드 버튼 제거 */}
+              {/* <Button
+                variant="outline"
+                onClick={() => toast.info("PDF 다운로드 기능은 준비 중입니다.")}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 PDF 다운로드
-              </Button>
-              <Button variant="outline">
+              </Button> */}
+              <Button variant="outline" onClick={handleDownloadExcel}>
                 <Download className="mr-2 h-4 w-4" />
                 Excel 다운로드
               </Button>

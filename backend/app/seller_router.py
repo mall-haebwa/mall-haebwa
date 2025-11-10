@@ -248,6 +248,7 @@ async def delete_seller_product(
 async def get_seller_dashboard(
     current_user=Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
+    report_period: str = Query("7days", description="Period for reports: today, 7days, 30days"),
 ):
     """판매자 대시보드 통계 조회"""
 
@@ -259,6 +260,54 @@ async def get_seller_dashboard(
 
     seller_id = str(current_user["_id"])
     now = datetime.utcnow()
+    
+    # --- Dynamic Sales Chart Calculation (NEW) ---
+    dynamic_chart_start_date = datetime(now.year, now.month, now.day) # Default to today
+    if report_period == "7days":
+        dynamic_chart_start_date = now - timedelta(days=7)
+    elif report_period == "30days":
+        dynamic_chart_start_date = now - timedelta(days=30)
+
+    dynamic_sales_pipeline = [
+        {"$match": {
+            "status": "PAID",
+            "created_at": {"$gte": dynamic_chart_start_date, "$lt": now + timedelta(days=1)},
+            "items.sellerId": seller_id
+        }},
+        {"$unwind": "$items"},
+        {"$match": {"items.sellerId": seller_id}},
+        {"$group": {
+            "_id": {
+                "year": {"$year": {"date": "$created_at", "timezone": "Asia/Seoul"}},
+                "month": {"$month": {"date": "$created_at", "timezone": "Asia/Seoul"}},
+                "day": {"$dayOfMonth": {"date": "$created_at", "timezone": "Asia/Seoul"}}
+            },
+            "total_amount": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}}
+        }},
+        {"$sort": {"_id.year": 1, "_id.month": 1, "_id.day": 1}},
+        {"$project": {
+            "_id": 0,
+            "label": {"$dateToString": {"format": "%m/%d", "date": {"$dateFromParts": {"year": "$_id.year", "month": "$_id.month", "day": "$_id.day"}}}},
+            "value": "$total_amount"
+        }}
+    ]
+    dynamic_sales_cursor = db[ORDERS_COL].aggregate(dynamic_sales_pipeline)
+    dynamic_sales_chart = await dynamic_sales_cursor.to_list(length=None)
+    # Pydantic 모델로 명시적 변환
+    dynamic_sales_chart_models = [ChartDataPoint(**item) for item in dynamic_sales_chart]
+    # Fill in missing dates with 0 sales for dynamic_sales_chart
+    all_dates = []
+    current_date_iter = dynamic_chart_start_date
+    while current_date_iter <= now:
+        all_dates.append(current_date_iter.strftime("%m/%d"))
+        current_date_iter += timedelta(days=1)
+
+    filled_dynamic_sales_chart: list[ChartDataPoint] = []
+    sales_map = {item.label: item.value for item in dynamic_sales_chart_models}
+    for date_label in all_dates:
+        filled_dynamic_sales_chart.append(ChartDataPoint(label=date_label, value=sales_map.get(date_label, 0)))
+    # --- End Dynamic Sales Chart Calculation ---
+
     today_start = datetime(now.year, now.month, now.day)
     week_start = now - timedelta(days=7)
     
@@ -408,7 +457,8 @@ async def get_seller_dashboard(
         {"$sort": {"value": -1}}
     ]
     category_sales_cursor = db[ORDERS_COL].aggregate(category_pipeline)
-    category_sales_chart = await category_sales_cursor.to_list(length=5)
+    raw_category_sales = await category_sales_cursor.to_list(length=5)
+    category_sales_chart = [CategorySalesDataPoint(**item) for item in raw_category_sales]
 
     # 시간대별 주문 분포 집계
     hourly_pipeline = [
@@ -435,7 +485,8 @@ async def get_seller_dashboard(
         }}
     ]
     hourly_orders_cursor = db[ORDERS_COL].aggregate(hourly_pipeline)
-    hourly_orders_chart = await hourly_orders_cursor.to_list(length=24)
+    raw_hourly_orders = await hourly_orders_cursor.to_list(length=24)
+    hourly_orders_chart = [HourlyOrdersDataPoint(**item) for item in raw_hourly_orders]
 
     # 고객 재구매율 계산
     re_purchase_pipeline = [
@@ -577,4 +628,5 @@ async def get_seller_dashboard(
         categorySalesChart=category_sales_chart,
         hourlyOrdersChart=hourly_orders_chart,
         repurchaseRate=repurchase_rate,
+        dynamicSalesChart=filled_dynamic_sales_chart,
     )
