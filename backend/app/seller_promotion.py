@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import DuplicateKeyError
 
 from .database import get_db
 from .schemas import (
@@ -90,18 +91,6 @@ async def create_coupon(
         db,
     )
 
-    #같은 판매자가 같은 코드의 쿠폰을 이미 생성했는지 확인
-    existing_coupon = await db[COUPONS_COL].find_one({
-        "sellerId": seller_id,
-        "code": payload.code.upper()
-    })
-
-    if existing_coupon:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST,
-            detail=f"쿠폰 코드 '{payload.code}'는 이미 사용 중입니다.",
-        )
-    
     # 날짜 유효성 검증
     if payload.endDate <= payload.startDate:
         raise HTTPException(
@@ -130,7 +119,13 @@ async def create_coupon(
     }
 
     # DB에 저장
-    result = await db[COUPONS_COL].insert_one(coupon_data)
+    try:
+        result = await db[COUPONS_COL].insert_one(coupon_data)
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"쿠폰 코드 '{payload.code}'는 이미 사용 중입니다.",
+        )
     created_coupon = await db[COUPONS_COL].find_one({"_id": result.inserted_id})
 
     # _id를 문자열로 변환
