@@ -19,6 +19,9 @@ export function Header() {
     useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
   const [aiSearchQuery, setAiSearchQuery] = useState(""); // 추가
+  const [selectedSearchTab, setSelectedSearchTab] = useState<"rollup" | "ai">(
+    "ai"
+  );
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -66,6 +69,7 @@ export function Header() {
     if (path === "/") {
       setSearchQueryInput("");
       setSearchQuery("");
+      setAiSearchQuery("");  // AI 검색 입력창도 초기화
     }
     // 홈으로 이동 시 쿼리 제거
     navigate(path);
@@ -93,8 +97,7 @@ export function Header() {
           <div className="hidden gap-4 md:flex">
             <button
               className="hover:underline"
-              onClick={() => goTo("/customer-service")}
-            >
+              onClick={() => goTo("/customer-service")}>
               고객센터
             </button>
             <button className="hover:underline" onClick={() => goTo("/admin")}>
@@ -110,60 +113,90 @@ export function Header() {
             <div className="flex items-center gap-2 px-3 py-1.5">
               <span
                 className="text-xl text-gray-900"
-                style={{ fontWeight: 700, letterSpacing: "-0.5px" }}
-              >
+                style={{ fontWeight: 700, letterSpacing: "-0.5px" }}>
                 MALL<span className="text-gray-600">해봐</span>
               </span>
             </div>
           </button>
 
           <div className="flex flex-1 gap-3">
-            {/* 일반 키워드 검색 */}
-            <form onSubmit={handleSearch} className="flex-1">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="키워드 검색"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQueryInput(event.target.value)}
-                  className="h-12 w-full rounded-lg border-2 border-gray-300 pl-4 pr-12 focus-visible:border-gray-900 focus-visible:ring-0"
-                />
-                <Button
-                  type="submit"
-                  className="absolute right-0 top-0 h-12 w-12 rounded-l-none rounded-r-lg bg-gray-900 p-0 text-white hover:bg-black"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
+            {/* 검색 탭 */}
+            <div className="flex flex-1 gap-3 items-center">
+              <div className="flex gap-0 border border-gray-300 rounded-lg">
+                <button
+                  onClick={() => setSelectedSearchTab("rollup")}
+                  className={`px-4 py-2 text-sm font-medium transition-all ${
+                    selectedSearchTab === "rollup"
+                      ? "bg-gray-900 text-white"
+                      : "bg-white text-gray-900 hover:bg-gray-100"
+                  }`}>
+                  일반검색
+                </button>
+                <div className="w-px bg-gray-300" />
+                <button
+                  onClick={() => setSelectedSearchTab("ai")}
+                  className={`px-4 py-2 text-sm font-medium transition-all flex items-center gap-1 ${
+                    selectedSearchTab === "ai"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "bg-white text-gray-900 hover:bg-gray-100"
+                  }`}>
+                  <Sparkles className="h-4 w-4" />
+                  AI검색
+                </button>
               </div>
-            </form>
 
-            {/* AI 검색 */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (aiSearchQuery.trim()) {
-                  setSearchQuery(aiSearchQuery);
-                  navigate("/aisearch", { state: { query: aiSearchQuery.trim() } });
-                  setAiSearchQuery("");
-                }
-              }}
-              className="relative flex-1"
-            >
-              <Input
-                type="text"
-                placeholder="AI 자연어 검색"
-                value={aiSearchQuery}
-                onChange={(event) => setAiSearchQuery(event.target.value)}
-                className="h-12 w-full rounded-lg border-2 border-purple-300 pl-4 pr-32 focus-visible:border-purple-500 focus-visible:ring-0"
-              />
-              <Button
-                type="submit"
-                className="absolute right-0 top-0 h-12 rounded-l-none rounded-r-lg bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                AI 검색
-              </Button>
-            </form>
+              {/* 일반 키워드 검색 */}
+              {selectedSearchTab === "rollup" && (
+                <form onSubmit={handleSearch} className="flex-1">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="키워드 검색"
+                      value={searchQuery}
+                      onChange={(event) =>
+                        setSearchQueryInput(event.target.value)
+                      }
+                      className="h-12 w-full rounded-lg border-2 border-gray-300 pl-4 pr-12 focus-visible:border-gray-900 focus-visible:ring-0"
+                    />
+                    <Button
+                      type="submit"
+                      className="absolute right-0 top-0 h-12 w-12 rounded-l-none rounded-r-lg bg-gray-900 p-0 text-white hover:bg-black">
+                      <Search className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {/* AI 검색 */}
+              {selectedSearchTab === "ai" && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (aiSearchQuery.trim()) {
+                      setSearchQuery(aiSearchQuery);
+                      navigate("/aisearch", {
+                        state: { query: aiSearchQuery.trim() },
+                      });
+                      setAiSearchQuery("");
+                    }
+                  }}
+                  className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder="AI 자연어 검색"
+                    value={aiSearchQuery}
+                    onChange={(event) => setAiSearchQuery(event.target.value)}
+                    className="h-12 w-full rounded-lg border-2 border-purple-300 pl-4 pr-32 focus-visible:border-purple-500 focus-visible:ring-0"
+                  />
+                  <Button
+                    type="submit"
+                    className="absolute right-0 top-0 h-12 rounded-l-none rounded-r-lg bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    AI 검색
+                  </Button>
+                </form>
+              )}
+            </div>
           </div>
 
           <div className="ml-auto flex items-center gap-1">
@@ -171,8 +204,7 @@ export function Header() {
               variant="ghost"
               size="sm"
               onClick={() => goTo("/wishlist")}
-              className="relative h-9"
-            >
+              className="relative h-9">
               <Heart className="h-5 w-5" />
             </Button>
 
@@ -180,8 +212,7 @@ export function Header() {
               variant="ghost"
               size="sm"
               onClick={() => goTo("/cart")}
-              className="relative h-9"
-            >
+              className="relative h-9">
               <ShoppingCart className="h-5 w-5" />
               {cart.length > 0 && (
                 <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-gray-900 p-0 text-xs text-white">
@@ -195,8 +226,7 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={() => goTo("/mypage")}
-                className="hidden h-9 text-sm md:flex"
-              >
+                className="hidden h-9 text-sm md:flex">
                 <User className="mr-1 h-4 w-4" />
                 {currentUser.name}
               </Button>
@@ -205,8 +235,7 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={() => goTo("/login")}
-                className="hidden h-9 text-sm md:flex"
-              >
+                className="hidden h-9 text-sm md:flex">
                 로그인
               </Button>
             )}
@@ -215,8 +244,7 @@ export function Header() {
               variant="ghost"
               size="sm"
               className="h-9 md:hidden"
-              onClick={() => setShowMobileMenu((prev) => !prev)}
-            >
+              onClick={() => setShowMobileMenu((prev) => !prev)}>
               <Menu className="h-5 w-5" />
             </Button>
           </div>
@@ -228,12 +256,10 @@ export function Header() {
           <div
             className="relative"
             onMouseEnter={() => setShowCategoryDropdown(true)}
-            onMouseLeave={() => setShowCategoryDropdown(false)}
-          >
+            onMouseLeave={() => setShowCategoryDropdown(false)}>
             <button
               onClick={() => goTo("/products")}
-              className="relative cursor-pointer whitespace-nowrap transition-all hover:text-gray-900 after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-200 hover:after:scale-x-100"
-            >
+              className="relative cursor-pointer whitespace-nowrap transition-all hover:text-gray-900 after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-200 hover:after:scale-x-100">
               전체 카테고리
             </button>
 
@@ -244,8 +270,7 @@ export function Header() {
                     <button
                       key={category}
                       onClick={() => handleCategoryClick(category)}
-                      className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50"
-                    >
+                      className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-50">
                       {category}
                     </button>
                   ))}
@@ -258,8 +283,7 @@ export function Header() {
             <button
               key={category}
               onClick={() => handleCategoryClick(category)}
-              className="relative cursor-pointer whitespace-nowrap transition-all hover:text-gray-900 after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-200 hover:after:scale-x-100"
-            >
+              className="relative cursor-pointer whitespace-nowrap transition-all hover:text-gray-900 after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-gray-900 after:transition-transform after:duration-200 hover:after:scale-x-100">
               {category}
             </button>
           ))}
@@ -274,8 +298,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   onClick={() => goTo("/mypage")}
-                  className="w-full justify-start text-sm"
-                >
+                  className="w-full justify-start text-sm">
                   마이페이지
                 </Button>
                 <Button
@@ -285,16 +308,14 @@ export function Header() {
                     setShowMobileMenu(false);
                     navigate("/");
                   }}
-                  className="w-full justify-start text-sm"
-                >
+                  className="w-full justify-start text-sm">
                   로그아웃
                 </Button>
               </div>
             ) : (
               <Button
                 onClick={() => goTo("/login")}
-                className="w-full bg-gray-900 text-sm text-white hover:bg-black"
-              >
+                className="w-full bg-gray-900 text-sm text-white hover:bg-black">
                 로그인
               </Button>
             )}
