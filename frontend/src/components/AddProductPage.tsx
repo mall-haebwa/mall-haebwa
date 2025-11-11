@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Upload, X, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { ArrowLeft, Upload, X, Sparkles, Loader2, Wand2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -18,14 +18,16 @@ import { Switch } from "./ui/switch";
 import { parse } from "path";
 
 const categories = [
-  "패션의류",
-  "뷰티",
-  "식품",
-  "생활/주방",
-  "가전디지털",
+  "가구/인테리어",
+  "디지털/가전",
+  "생활/건강",
   "스포츠/레저",
+  "식품",
+  "여가/생활편의",
   "출산/육아",
-  "도서",
+  "패션의류",
+  "패션잡화",
+  "화장품/미용",
 ];
 
 export function AddProductPage() {
@@ -93,8 +95,49 @@ export function AddProductPage() {
     }
   };
 
-  const handleAddImage = () => {
-    toast.info("Image uploads will be connected later.");
+  const handleAddImage = async () => {
+    // 파일 선택 input 생성
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files || files.length === 0) return;
+
+      toast.info(`${files.length}개의 이미지를 업로드 중...`);
+
+      try {
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const response = await fetch("/api/seller/upload-image", {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "이미지 업로드 실패");
+          }
+
+          const data = await response.json();
+          setImages((prev) => [...prev, data.image_url]);
+        }
+
+        toast.success("이미지 업로드 완료!");
+      } catch (error) {
+        console.error("이미지 업로드 오류:", error);
+        toast.error(
+          error instanceof Error ? error.message : "이미지 업로드 실패"
+        );
+      }
+    };
+
+    input.click();
   };
 
   const handleRemoveImage = (index: number) => {
@@ -168,28 +211,50 @@ ${
     }
 
     setGeneratingField("imageAnalysis");
-    await new Promise((resolve) => setTimeout(resolve, 2500));
 
-    // 목업 데이터로 자동 채우기
-    setProductName("프리미엄 여름 린넨 반팔 셔츠");
-    setCategory("패션의류");
-    setBrand("베이직코드");
-    setPrice("29900");
-    setOriginalPrice("45000");
-    setStock("150");
-    setColors("화이트, 블랙, 네이비");
-    setSizes("S, M, L, XL");
-    setDescription(`이미지 분석을 통해 감지된 상품입니다.
+    try {
+      const response = await fetch("/api/seller/ai/generate-description", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_urls: images,
+        }),
+      });
 
-주요 특징:
-• 시원한 린넨 소재로 여름에 최적
-• 깔끔한 디자인으로 데일리 착용 가능
-• 다양한 컬러와 사이즈 옵션 제공
-• 편안한 착용감과 우수한 통기성`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "AI 분석 실패");
+      }
 
-    setGeneratingField(null);
-    setShowAiSuggestions(true);
-    toast.success("이미지를 분석하여 상품 정보를 자동으로 채웠습니다!");
+      const result = await response.json();
+      const data = result.data;
+
+      // AI가 생성한 데이터로 폼 채우기
+      if (data.title) setProductName(data.title);
+      if (data.category) setCategory(data.category);
+      if (data.brand) setBrand(data.brand);
+      if (data.suggested_price) setPrice(data.suggested_price.toString());
+      if (data.description) setDescription(data.description);
+      if (data.colors && data.colors.length > 0) {
+        setColors(data.colors.join(", "));
+      }
+      if (data.sizes && data.sizes.length > 0) {
+        setSizes(data.sizes.join(", "));
+      }
+
+      setGeneratingField(null);
+      setShowAiSuggestions(true);
+      toast.success("이미지를 분석하여 상품 정보를 자동으로 채웠습니다!");
+    } catch (error) {
+      console.error("AI 분석 오류:", error);
+      setGeneratingField(null);
+      toast.error(
+        error instanceof Error ? error.message : "AI 분석에 실패했습니다"
+      );
+    }
   };
 
   return (

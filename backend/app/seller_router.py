@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime, timedelta
+from .s3_client import s3_client
+from .image_utils import process_image, create_thumbnail, generate_unique_filename
+from .bedrock_client import bedrock_client
+import logging
+import base64
+import httpx
+import json
 
 from .models import ORDERS_COL
 from .database import get_db
@@ -23,6 +30,8 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/seller", tags=["seller"])
+logger = logging.getLogger(__name__)
+
 
 PRODUCTS_COL = "products"
 
@@ -630,3 +639,160 @@ async def get_seller_dashboard(
         repurchaseRate=repurchase_rate,
         dynamicSalesChart=filled_dynamic_sales_chart,
     )
+
+
+@router.post("/upload-image")
+async def upload_product_image(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    상품 이미지 업로드
+    - 이미지를 S3에 업로드하고 URL 반환
+    - 원본 이미지: 1200px로 리사이즈 + 압축
+    - 썸네일: 200x200px
+    """
+    
+    #판매자 권한 확인
+    if not current_user.get("isSeller"):
+        raise HTTPException(status_code=403, detail="판매자 권한이 필요합니다")
+    
+    #파일 타입 검증
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="이미지 파일이 아닙니다")
+    
+    #파일 크기 제한(10MB)
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="파일 크기가 10MB를 초과합니다")
+    
+    try:
+        #고유 파일명 생성
+        filename = generate_unique_filename(file.filename or "image.jpg")
+        
+        #이미지 처리
+        processed_image, content_type = process_image(contents)
+        thumbnail_image, _ = create_thumbnail(contents)
+        
+        #S3에 업로드
+        seller_id = current_user.get("user_id")
+        main_key = f"products/{seller_id}/{filename}"
+        thumb_key = f"products/{seller_id}/thumbnails/{filename}"
+        
+        main_url = s3_client.upload_file(processed_image, main_key, content_type)
+        thumb_url = s3_client.upload_file(thumbnail_image, thumb_key, content_type)
+        
+        return {
+            "success": True,
+            "image_url": main_url,
+            "thumbnail_url": thumb_url
+        }
+        
+    except Exception as e:
+        logger.error(f"이미지 업로드 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"이미지 업로드에 실패했습니다:{str(e)}")
+    
+@router.post("/ai/generate-description")
+async def generate_product_description(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    AI 상품 설명 자동 생성
+    - 이미지 URL들을 분석하여 상품 정보 생성
+    """
+    
+    # 판매자 권한 확인
+    if not current_user.get("isSeller"):
+        raise HTTPException(status_code=403, detail="판매자 권한이 필요합니다.")
+    
+    image_urls = request.get("image_urls", [])
+    if not image_urls:
+        raise HTTPException(status_code=400, detail="이미지 URL이 필요합니다.")
+    
+    # Bedrock 클라이언트 확인
+    if bedrock_client is None:
+        raise HTTPException(status_code=503, detail="AI 서비스를 사용할 수 없습니다")
+    
+    try:
+        # 이미지 다운로드 및 base64 인코딩
+        image_contents = []
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for url in image_urls[:3]:
+                try:
+                    response = await client.get(url)
+                    if response.status_code == 200:
+                        image_base64 = base64.b64encode(response.content).decode('utf-8')
+                        image_contents.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_base64
+                            }
+                        })
+                except Exception as e:
+                    logger.error(f"이미지 다운로드 실패 {url}: {e}")
+                    continue
+                
+        if not image_contents:
+            raise HTTPException(status_code=400, detail="이미지를 불러올 수 없습니다.")
+        
+        # LLM 요청
+        messages = [{
+            "role": "user",
+            "content": [
+                *image_contents,
+                {
+                "type": "text",
+                "text": """이 상품 이미지를 분석하여 다음 정보를 JSON 형식으로 생성해주세요:
+
+{
+  "title": "상품명 (한국어, 간결하고 매력적으로)",
+  "category": "카테고리 (반드시 다음 중 정확히 하나: 가구/인테리어, 디지털/가전, 생활/건강, 스포츠/레저, 식품, 여가/생활편의, 출산/육아, 패션의류, 패션잡화, 화장품/미용)",
+  "brand": "브랜드명 (보이면 작성, 없으면 null)",
+  "description": "상세 설명 (200자 이상, 특징과 장점 포함)",
+  "colors": ["색상1", "색상2"] 또는 null,
+  "sizes": ["S", "M", "L"] 또는 null,
+  "suggested_price": 예상가격 (숫자만, 예: 29900)
+}
+
+중요: category는 반드시 위 10개 카테고리 중 정확히 하나여야 합니다. 슬래시(/)를 포함한 정확한 표기를 사용하세요. JSON 외의 다른 텍스트는 출력하지 마세요."""
+                                }
+                            ]
+                        }]
+        # Bedrock API 호출
+        response = bedrock_client.client.invoke_model(
+            modelId=bedrock_client.model_id,
+            body=json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 2000,
+                "messages": messages,
+                "temperature": 0.7
+            })
+        )
+
+        response_body = json.loads(response['body'].read())
+        ai_text = response_body['content'][0]['text']
+
+        # JSON 추출 (마크다운 코드 블록 제거)
+        ai_text = ai_text.strip()
+        if ai_text.startswith("```"):
+            ai_text = ai_text.split("```")[1]
+            if ai_text.startswith("json"):
+                ai_text = ai_text[4:]
+
+        result = json.loads(ai_text.strip())
+
+        logger.info(f"AI 상품 설명 생성 완료: {result.get('title')}")
+        return {
+            "success": True,
+            "data": result
+        }
+
+    except json.JSONDecodeError as e:
+        logger.error(f"AI 응답 JSON 파싱 실패: {e}, 응답: {ai_text}")
+        raise HTTPException(status_code=500, detail="AI 응답을 처리할 수 없습니다")
+    except Exception as e:
+        logger.error(f"AI 상품 설명 생성 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 생성 실패: {str(e)}")

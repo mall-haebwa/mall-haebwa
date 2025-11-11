@@ -82,14 +82,16 @@ export function ProductManagementTab({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">모든 카테고리</SelectItem>
-            <SelectItem value="패션의류">패션의류</SelectItem>
-            <SelectItem value="뷰티">뷰티</SelectItem>
-            <SelectItem value="식품">식품</SelectItem>
-            <SelectItem value="생활/주방">생활/주방</SelectItem>
-            <SelectItem value="가전디지털">가전디지털</SelectItem>
+            <SelectItem value="가구/인테리어">가구/인테리어</SelectItem>
+            <SelectItem value="디지털/가전">디지털/가전</SelectItem>
+            <SelectItem value="생활/건강">생활/건강</SelectItem>
             <SelectItem value="스포츠/레저">스포츠/레저</SelectItem>
+            <SelectItem value="식품">식품</SelectItem>
+            <SelectItem value="여가/생활편의">여가/생활편의</SelectItem>
             <SelectItem value="출산/육아">출산/육아</SelectItem>
-            <SelectItem value="도서">도서</SelectItem>
+            <SelectItem value="패션의류">패션의류</SelectItem>
+            <SelectItem value="패션잡화">패션잡화</SelectItem>
+            <SelectItem value="화장품/미용">화장품/미용</SelectItem>
           </SelectContent>
         </Select>
         {/* 상태 필터 */}
