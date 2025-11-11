@@ -22,6 +22,7 @@ export function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [agreements, setAgreements] = useState({
     terms: true,
     privacy: true,
@@ -41,6 +42,10 @@ export function SignupPage() {
   };
 
   const handleChange = (field: keyof typeof form, value: string) => {
+    // 아이디 입력 시 에러 초기화
+    if (field === "email" && emailError) {
+      setEmailError("");
+    }
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -51,6 +56,18 @@ export function SignupPage() {
       toast.error("필수 정보를 모두 입력해 주세요.");
       return;
     }
+
+    // 아이디 검증: 영문+숫자만 허용, 4-20자
+    const usernameRegex = /^[a-zA-Z0-9]+$/;
+    if (!usernameRegex.test(form.email)) {
+      setEmailError("아이디는 영문과 숫자만 사용할 수 있습니다");
+      return;
+    }
+    if (form.email.length < 4 || form.email.length > 20) {
+      setEmailError("아이디는 4-20자로 입력해주세요");
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       toast.error("비밀번호가 일치하지 않습니다.");
       return;
@@ -73,7 +90,8 @@ export function SignupPage() {
         },
         {
           withCredentials: true, // 쿠키 허용 시 필요
-        }
+          skipAuthRefresh: true, // 회원가입은 인터셉터 건너뛰기
+        } as any
       );
 
       toast.success(response.data.message || "가입이 완료되었습니다.");
@@ -102,28 +120,31 @@ export function SignupPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  이메일
+                  아이디
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <Mail className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
-                    type="email"
+                    type="text"
                     value={form.email}
                     onChange={(event) =>
                       handleChange("email", event.target.value)
                     }
-                    placeholder="you@example.com"
-                    className="h-11 pl-10"
+                    placeholder="영문, 숫자 4-20자"
+                    className={`h-11 pl-10 ${emailError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
                     required
                   />
                 </div>
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-500">{emailError}</p>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   이름
                 </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <User className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
                     value={form.name}
                     onChange={(event) =>
@@ -142,8 +163,8 @@ export function SignupPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   비밀번호
                 </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
                     type={showPassword ? "text" : "password"}
                     value={form.password}
@@ -156,7 +177,7 @@ export function SignupPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute right-3 text-gray-400"
                     onClick={() => setShowPassword((prev) => !prev)}>
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -170,8 +191,8 @@ export function SignupPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   비밀번호 확인
                 </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     value={form.confirmPassword}
@@ -184,7 +205,7 @@ export function SignupPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute right-3 text-gray-400"
                     onClick={() => setShowConfirmPassword((prev) => !prev)}>
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -201,8 +222,8 @@ export function SignupPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   휴대폰 번호
                 </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <Phone className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
                     value={form.phone}
                     onChange={(event) =>
@@ -217,8 +238,8 @@ export function SignupPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   주소
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="relative flex items-center">
+                  <MapPin className="absolute left-3 h-4 w-4 text-gray-400" />
                   <Input
                     value={form.address}
                     onChange={(event) =>

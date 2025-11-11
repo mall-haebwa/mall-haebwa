@@ -34,7 +34,7 @@ function ScrollToTop() {
   return null;
 }
 
-type RetriableConfig = AxiosRequestConfig & {_retry?: boolean};
+type RetriableConfig = AxiosRequestConfig & {_retry?: boolean; skipAuthRefresh?: boolean};
 
 // API URL 설정 (app-state.tsx와 동일)
 const API_URL = ((import.meta as any).env?.VITE_API_URL as string | undefined) || "";
@@ -55,7 +55,8 @@ function useJwtRefreshInterceptor(){
         const { response } = error;
         const config = error.config as RetriableConfig | undefined;
 
-        if(!response || response.status !== 401 || !config || config._retry){
+        // 로그인/회원가입 등 인증 관련 요청은 인터셉터 건너뛰기
+        if(!response || response.status !== 401 || !config || config._retry || config.skipAuthRefresh){
           return Promise.reject(error);
         }
 
