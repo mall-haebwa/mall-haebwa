@@ -278,6 +278,103 @@ class RedisClient:
             print(f"[Redis] ❌ 캐시 삭제 실패: user {user_id}, Error: {e}")
             return False
 
+    # ========================
+    # 검색 캐시 관련 메서드 (추가)
+    # ========================
+
+    async def get_search_cache(self, cache_key: str) -> Optional[Dict]:
+        """
+        검색 캐시 조회 (데이터 검증 포함)
+        
+        Args:
+            cache_key: 캐시 키
+            
+        Returns:
+            캐시된 검색 결과 또는 None
+        """
+        if not self.redis:
+            logger.warning("Redis not connected")
+            return None
+
+        try:
+            cached_data = await self.redis.get(cache_key)
+            if cached_data:
+                result = json.loads(cached_data)
+
+                # 데이터 구조 검증
+                if isinstance(result, dict) and 'items' in result and 'total' in result:
+                    logger.info(f"[Redis] 검색 캐시 히트: {result.get('total', 0)}개 상품")
+                    return result
+                else:
+                    # 잘못된 데이터 형식 - 캐시 삭제
+                    logger.warning(f"[Redis] 캐시 데이터 형식 오류, 삭제 후 재조회: {cache_key}")
+                    await self.redis.delete(cache_key)
+                    return None
+
+            logger.debug(f"[Redis] 캐시 미스")
+            return None
+
+        except json.JSONDecodeError as e:
+            logger.error(f"[Redis] JSON 파싱 실패: {e}, 캐시 삭제")
+            # 손상된 캐시 삭제
+            try:
+                await self.redis.delete(cache_key)
+            except Exception:
+                pass
+            return None
+
+        except Exception as e:
+            logger.error(f"[Redis] 캐시 조회 실패: {e}")
+            return None
+
+    async def set_search_cache(
+        self, 
+        cache_key: str, 
+        data: Dict, 
+        ttl: Optional[int] = None,
+        max_size: int = 1_000_000  # 1MB 제한
+    ) -> bool:
+        """
+        검색 캐시 저장 (크기 제한 포함)
+        
+        Args:
+            cache_key: 캐시 키
+            data: 저장할 데이터
+            ttl: TTL (초), None이면 환경변수 사용
+            max_size: 최대 캐시 크기 (바이트)
+            
+        Returns:
+            성공 여부
+        """
+        if not self.redis:
+            logger.warning("Redis not connected")
+            return False
+
+        try:
+            # TTL 기본값 (환경변수에서 읽기)
+            if ttl is None:
+                ttl = int(os.getenv("REDIS_TTL_SEARCH", 600))  # 기본 10분
+
+            # 직렬화
+            cache_data = json.dumps(data, ensure_ascii=False, default=str)
+
+            # 크기 체크
+            data_size = len(cache_data.encode('utf-8'))
+            if data_size > max_size:
+                logger.warning(
+                    f"[Redis] 캐시 크기 초과 ({data_size:,} bytes > {max_size:,} bytes), 캐싱 스킵"
+                )
+                return False
+
+            # Redis 저장
+            await self.redis.setex(cache_key, ttl, cache_data)
+            logger.info(f"[Redis] 검색 캐시 저장: {len(data.get('items', []))}개 상품, TTL {ttl}초")
+            return True
+
+        except Exception as e:
+            logger.error(f"[Redis] 캐시 저장 실패: {e}")
+            return False
+
 
 # 글로벌 Redis 클라이언트 인스턴스
 redis_client = RedisClient()

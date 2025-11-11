@@ -5,6 +5,7 @@ from typing import Any
 import random
 import json
 import hashlib
+import os
 
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -117,7 +118,7 @@ async def random_products(
     # Redis 캐시 저장 (TTL: 10분 = 600초)
     if redis_client.redis:
         try:
-            ttl = 600   # 10분
+            ttl = int(os.getenv("REDIS_TTL_RANDOM_PRODUCTS", 600))
             await redis_client.redis.setex(
                 cache_key,
                 ttl,

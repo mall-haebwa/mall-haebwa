@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -16,6 +17,7 @@ from .search_client import get_search_client, get_index_name
 from fastapi.concurrency import run_in_threadpool
 from .redis_client import redis_client
 
+logger = logging.getLogger(__name__)
 
 # /products 네임스페이스 아래 상품 관련 엔드포인트를 제공하는 FastAPI 라우터.
 router = APIRouter(prefix="/products", tags=["products"])
@@ -183,26 +185,21 @@ async def search_products(
     limit: int = Query(20, ge=1, le=60), # 페이지네이션
     es: Elasticsearch = Depends(get_search_client)
 ):
-    # Redis 캐시 조회 (추가)
+    # Redis 캐시 조회
     cache_key = _generate_search_cache_key(
         q, category, category2, brands, minPrice, maxPrice, sort, page, limit
     )
 
-    if redis_client.redis:
-        try:
-            cached_data = await redis_client.redis.get(cache_key)
-            if cached_data:
-                result = json.loads(cached_data)
-                print(f"[Redis] 검색 캐시 히트: query='{q}', page={page}, {result.get('total', 0)}개 상품")
-                return result
-            print(f"[Redis] 캐시 미스: query='{q}', page={page}, Elasticsearch 조회")
-        except Exception as e:
-            print(f"[Redis] 캐시 조회 실패: {e}")
+    cached_result = await redis_client.get_search_cache(cache_key)
+    if cached_result:
+        logger.info(f"[Search] 캐시 히트: query='{q}', page={page}")
+        return cached_result
+
+    logger.debug(f"[Search] 캐시 미스: query='{q}', page={page}, Elasticsearch 조회")
 
     # 이건 필터링 조건
     brand_list = _normalise_list(brands)
-    filters = _build_es_filters(
-        category, category2, brand_list, minPrice, maxPrice)
+    filters = _build_es_filters(category, category2, brand_list, minPrice, maxPrice)
     must_queries: list[dict[str, Any]] = []
 
     if q:
@@ -370,18 +367,8 @@ async def search_products(
         "aggregations": res.get("aggregations", {}),
     }
 
-    # Redis 캐시 저장
-    if redis_client.redis:
-        try:
-            ttl = 600   # 10분
-            await redis_client.redis.setex(
-                cache_key,
-                ttl,
-                json.dumps(result, ensure_ascii=False, default=str)
-            )
-            print(f"[Redis] 검색 캐시 저장: query='{q}', page={page}, {len(items)}개 상품, TTL 10분")
-        except Exception as e:
-            print(f"[Redis] 캐시 저장 실패: {e}")
+    # ===== Redis 캐시 저장 (간결해짐) =====
+    await redis_client.set_search_cache(cache_key, result)
 
     return result
 
