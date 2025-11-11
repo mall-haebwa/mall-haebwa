@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class UserIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     name: str
     phone: str | None = None
@@ -13,7 +13,7 @@ class UserIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     remember: bool = False
 
@@ -125,7 +125,7 @@ class AIAutomationSettingsUpdate(BaseModel):
 
 class UserOut(BaseModel):
     id: str = Field(alias="_id")
-    email: EmailStr
+    email: str
     name: str
     phone: str | None = None
     address: str | None = None

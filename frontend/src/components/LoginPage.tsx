@@ -21,11 +21,17 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    console.log("[LoginPage v2] 로그인 시도 시작");
+
+    // 에러 초기화
+    setLoginError("");
+
     if (!email || !password) {
-      toast.error("이메일과 비밀번호를 입력해주세요.");
+      setLoginError("아이디와 비밀번호를 입력해주세요.");
       return;
     }
 
@@ -40,7 +46,9 @@ export function LoginPage() {
         },
         {
           withCredentials: true, // 쿠키 전송을 위해 필요
-        }
+          timeout: 10000, // 10초 타임아웃
+          skipAuthRefresh: true, // 로그인은 인터셉터 건너뛰기
+        } as any
       );
 
       const user = response.data;
@@ -62,11 +70,22 @@ export function LoginPage() {
       toast.success(`환영합니다, ${user.name}님!`);
       navigate("/");
     } catch (error: any) {
-      console.error("Login error:", error);
-      const errorMessage = error.response?.data?.detail || "로그인에 실패했습니다.";
-      toast.error(errorMessage);
+      console.error("[LoginPage v2] Login error:", error);
+      let errorMessage = "로그인에 실패했습니다.";
+
+      if (error.response) {
+        // 서버가 응답을 반환한 경우
+        errorMessage = error.response.data?.detail || error.response.data?.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
+      } else if (error.request) {
+        // 요청은 보냈지만 응답이 없는 경우
+        errorMessage = "서버에 연결할 수 없습니다.";
+      }
+
+      setLoginError(errorMessage);
+      console.log("[LoginPage v2] 에러 메시지 설정:", errorMessage);
     } finally {
       setIsLoading(false);
+      console.log("[LoginPage v2] 로딩 상태 해제");
     }
   };
 
@@ -77,23 +96,26 @@ export function LoginPage() {
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-semibold text-gray-900">로그인</h1>
             <p className="mt-1 text-sm text-gray-500">
-              가입하신 이메일과 비밀번호를 입력해 주세요.
+              가입하신 아이디와 비밀번호를 입력해 주세요.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                이메일
+                아이디
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <div className="relative flex items-center">
+                <Mail className="absolute left-3 h-4 w-4 text-gray-400" />
                 <Input
-                  type="email"
+                  type="text"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  className="h-11 pl-10"
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    if (loginError) setLoginError("");
+                  }}
+                  placeholder="아이디를 입력해주세요"
+                  className={`h-11 pl-10 ${loginError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
                   required
                 />
               </div>
@@ -103,24 +125,30 @@ export function LoginPage() {
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 비밀번호
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3 h-4 w-4 text-gray-400" />
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    if (loginError) setLoginError("");
+                  }}
                   placeholder="••••••••"
-                  className="h-11 pl-10 pr-10"
+                  className={`h-11 pl-10 pr-10 ${loginError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute right-3 text-gray-400"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {loginError && (
+                <p className="mt-1 text-sm text-red-500">{loginError}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between text-sm text-gray-600">

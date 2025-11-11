@@ -55,7 +55,7 @@ def set_cookie(resp: Response, key: str, value: str, max_age: int | None):
 async def register(payload: UserIn, db: AsyncIOMotorDatabase = Depends(get_db)):
     exists = await db[USERS_COL].find_one({"email": payload.email})
     if exists:
-        raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
+        raise HTTPException(status_code=409, detail="이미 가입된 아이디입니다.")
     doc = {
         "email": payload.email.lower(),
         "password": hash_password(payload.password),
