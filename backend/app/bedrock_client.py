@@ -3,8 +3,11 @@ import boto3
 import json
 import logging
 import os
+import time
+import asyncio
 from typing import List, Dict, Any, Optional, Callable
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,14 @@ class BedrockClient:
         if not self.bearer_token:
             raise ValueError("AWS_BEARER_TOKEN_BEDROCK must be set")
 
+        # Retry 설정 (exponential backoff)
+        retry_config = Config(
+            retries={
+                'max_attempts': 5,
+                'mode': 'adaptive'  # Exponential backoff with adaptive retry
+            }
+        )
+
         # Bedrock Runtime 클라이언트 생성 (토큰 직접 전달)
         # boto3가 환경 변수를 자동으로 읽으므로 os.environ 수정 불필요
         self.client = boto3.client(
@@ -36,8 +47,13 @@ class BedrockClient:
             region_name=self.region_name,
             aws_access_key_id=None,
             aws_secret_access_key=None,
-            aws_session_token=self.bearer_token  # Bearer 토큰 직접 전달
+            aws_session_token=self.bearer_token,  # Bearer 토큰 직접 전달
+            config=retry_config
         )
+
+        # Rate limiting 설정
+        self.last_api_call_time = 0
+        self.min_call_interval = 0.5  # 최소 0.5초 간격 (초당 2회)
 
         logger.info(f"✓ Bedrock Client initialized (model: {self.model_id}, region: {self.region_name})")
 
@@ -91,6 +107,14 @@ class BedrockClient:
             logger.info(f"[Bedrock] Iteration {iteration}/{max_iterations}")
 
             try:
+                # Rate limiting: API 호출 간격 제한
+                current_time = time.time()
+                time_since_last_call = current_time - self.last_api_call_time
+                if time_since_last_call < self.min_call_interval:
+                    wait_time = self.min_call_interval - time_since_last_call
+                    logger.debug(f"[Bedrock] Rate limiting: waiting {wait_time:.2f}s")
+                    await asyncio.sleep(wait_time)
+
                 # Bedrock Converse API 호출
                 request_params = {
                     "modelId": self.model_id,
@@ -111,8 +135,27 @@ class BedrockClient:
                         "tools": tools
                     }
 
-                # API 호출
-                response = self.client.converse(**request_params)
+                # API 호출 (ThrottlingException 발생 시 재시도)
+                max_retries = 3
+                retry_delay = 2.0
+
+                for retry in range(max_retries):
+                    try:
+                        response = self.client.converse(**request_params)
+                        self.last_api_call_time = time.time()
+                        break
+                    except ClientError as e:
+                        error_code = e.response.get('Error', {}).get('Code', '')
+                        if error_code == 'ThrottlingException':
+                            if retry < max_retries - 1:
+                                wait_time = retry_delay * (2 ** retry)  # Exponential backoff
+                                logger.warning(f"[Bedrock] ThrottlingException: waiting {wait_time:.1f}s before retry {retry+1}/{max_retries}")
+                                await asyncio.sleep(wait_time)
+                            else:
+                                logger.error(f"[Bedrock] ThrottlingException: max retries reached")
+                                raise
+                        else:
+                            raise
 
                 # 응답 파싱
                 stop_reason = response.get("stopReason")

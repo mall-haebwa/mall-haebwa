@@ -53,6 +53,7 @@ redis[asyncio]==5.0.1
 
 # Search & Vector
 elasticsearch==8.12.0
+aiohttp>=3.13.0  # Required for AsyncElasticsearch
 
 # Vector Processing
 numpy>=1.24.0  # 벡터 연산

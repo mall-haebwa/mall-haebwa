@@ -6,6 +6,9 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 import logging
 import functools
+import boto3
+import json
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +258,95 @@ SHOPPING_TOOLS = [
                 }
             }
         },
+    },
+    {
+        "toolSpec": {
+            "name": "semantic_search",
+            "description": "의미 기반 검색으로 상품을 찾습니다. **다음과 같은 경우에 반드시 사용하세요**: (1) '비슷한 제품', '유사한 상품', '추천' 같은 요청, (2) '편안한 집에서 입는 옷', '여름에 시원한 음료' 같은 의미적 표현, (3) 이전 대화에서 언급된 상품과 비슷한 제품 찾기. 키워드 검색(search_products)보다 의미적 유사성 기반으로 더 정확한 추천이 가능합니다.",
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "의미 기반 검색 쿼리 (예: '편안한 집에서 입는 옷', '여름에 시원한 음료', '더치커피와 비슷한 콜드브루')"
+                        },
+                        "category": {
+                            "type": "string",
+                            "description": "카테고리 필터 (선택)"
+                        },
+                        "min_price": {
+                            "type": "number",
+                            "description": "최소 가격 (선택)"
+                        },
+                        "max_price": {
+                            "type": "number",
+                            "description": "최대 가격 (선택)"
+                        },
+                        "limit": {
+                            "type": "number",
+                            "description": "최대 결과 개수 (기본: 10)"
+                        }
+                    },
+                    "required": ["query"]
+                }
+            }
+        }
     }
 ]
+
+
+# ============================================
+# Bedrock 임베딩 서비스
+# ============================================
+
+class BedrockEmbeddingService:
+    """Bedrock Titan 임베딩 서비스"""
+
+    def __init__(self, region_name: str = "ap-northeast-2"):
+        self.bedrock = boto3.client(
+            service_name='bedrock-runtime',
+            region_name=region_name
+        )
+        self.model_id = "amazon.titan-embed-text-v2:0"
+        self.max_text_length = 8192
+        self.embedding_dimension = 1024  # Bedrock Titan V2 기본 차원
+
+    def create_embedding(self, text: str) -> Optional[List[float]]:
+        """텍스트를 벡터로 변환"""
+        try:
+            # 텍스트 길이 제한
+            if len(text) > self.max_text_length:
+                text = text[:self.max_text_length]
+
+            # Bedrock API 호출 (dimensions 파라미터 제거 - 기본 1024 사용)
+            body = json.dumps({
+                "inputText": text
+            })
+
+            response = self.bedrock.invoke_model(
+                body=body,
+                modelId=self.model_id,
+                accept='application/json',
+                contentType='application/json'
+            )
+
+            response_body = json.loads(response['body'].read())
+            embedding = response_body.get('embedding')
+
+            if embedding and len(embedding) == self.embedding_dimension:
+                return embedding
+            else:
+                logger.error(f"Invalid embedding dimension: expected {self.embedding_dimension}, got {len(embedding) if embedding else 0}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Embedding creation failed: {e}")
+            return None
+
+
+# 전역 임베딩 서비스 인스턴스
+embedding_service = BedrockEmbeddingService()
 
 
 # ============================================
@@ -323,7 +413,7 @@ class ToolHandlers:
             }
 
             # Elasticsearch 실행
-            response = self.es.search(index="products", body=query_body)
+            response = await self.es.search(index="products", body=query_body)
             hits = response["hits"]["hits"]
 
             products = []
@@ -796,6 +886,103 @@ class ToolHandlers:
             logger.error(f"[Tool] get_recently_viewed error: {e}", exc_info=True)
             return {"error": str(e), "items": [], "total": 0}
 
+    async def semantic_search(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        limit: int = 10
+    ) -> Dict[str, Any]:
+        """의미 기반 검색 Tool (벡터 검색)"""
+        try:
+            logger.info(f"[Tool] semantic_search: query={query}, category={category}")
+
+            # 1. 쿼리 텍스트 임베딩 생성
+            query_embedding = await run_in_threadpool(
+                lambda: embedding_service.create_embedding(query)
+            )
+
+            if not query_embedding:
+                logger.error("[Tool] semantic_search: embedding generation failed")
+                return {
+                    "error": "임베딩 생성에 실패했습니다.",
+                    "items": [],
+                    "total": 0
+                }
+
+            # 2. 필터 구성
+            filters = []
+
+            if category:
+                filters.append({
+                    "term": {"category_path": category}
+                })
+
+            if min_price is not None or max_price is not None:
+                price_filter = {"range": {"price": {}}}
+                if min_price is not None:
+                    price_filter["range"]["price"]["gte"] = min_price
+                if max_price is not None:
+                    price_filter["range"]["price"]["lte"] = max_price
+                filters.append(price_filter)
+
+            # 3. KNN 벡터 검색 쿼리 구성
+            knn_query = {
+                "field": "embedding",
+                "query_vector": query_embedding,
+                "k": min(limit * 2, 100),  # 후보는 더 많이
+                "num_candidates": min(limit * 4, 200)
+            }
+
+            if filters:
+                knn_query["filter"] = {"bool": {"filter": filters}}
+
+            # 4. Elasticsearch 검색 실행
+            search_body = {
+                "knn": knn_query,
+                "_source": [
+                    "product_id", "title", "brand", "numericPrice",
+                    "rating", "reviewCount", "image",
+                    "category1", "summary"
+                ],
+                "size": limit
+            }
+
+            # Elasticsearch 검색
+            result = await self.es.search(
+                index="products_v2_vector",
+                body=search_body
+            )
+
+            # 5. 결과 포맷팅
+            items = []
+            for hit in result["hits"]["hits"]:
+                source = hit["_source"]
+                items.append({
+                    "product_id": source.get("product_id", ""),
+                    "name": source.get("title", ""),
+                    "price": source.get("numericPrice", 0),
+                    "category": source.get("category1", ""),
+                    "brand": source.get("brand", ""),
+                    "image": source.get("image", ""),
+                    "rating": source.get("rating", 0),
+                    "reviewCount": source.get("reviewCount", 0),
+                    "similarity": hit.get("_score", 0)  # 유사도 점수
+                })
+
+            logger.info(f"[Tool] semantic_search: found {len(items)} products")
+
+            return {
+                "items": items,
+                "total": len(items),
+                "search_type": "semantic"
+            }
+
+        except Exception as e:
+            logger.error(f"[Tool] semantic_search error: {e}", exc_info=True)
+            return {"error": str(e), "items": [], "total": 0}
+
     def get_handlers_dict(self) -> Dict[str, Any]:
         """Tool 이름 → Handler 함수 매핑 반환"""
         return {
@@ -807,5 +994,6 @@ class ToolHandlers:
             "search_orders_by_product": self.search_orders_by_product,
             "add_to_cart": self.add_to_cart,
             "get_order_detail": self.get_order_detail,
-            "get_recently_viewed": self.get_recently_viewed
+            "get_recently_viewed": self.get_recently_viewed,
+            "semantic_search": self.semantic_search
         }

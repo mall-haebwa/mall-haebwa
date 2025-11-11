@@ -307,7 +307,7 @@ async def search_products(
         },
     }
 
-    res = await run_in_threadpool(lambda: es.search(index=get_index_name(), body=body))
+    res = await es.search(index=get_index_name(), body=body)
     total = res["hits"]["total"]["value"]
     items = [_reshape_product(hit["_source"]) for hit in res["hits"]["hits"]]
 
