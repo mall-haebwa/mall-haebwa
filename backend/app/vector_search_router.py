@@ -13,8 +13,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from elasticsearch import Elasticsearch
-from fastapi.concurrency import run_in_threadpool
+from elasticsearch import AsyncElasticsearch
 from pydantic import BaseModel
 import boto3
 from botocore.exceptions import ClientError
@@ -31,7 +30,7 @@ router = APIRouter(prefix="/products/vector", tags=["vector_search"])
 
 # 설정
 VECTOR_INDEX = "products_v2_vector"
-EMBEDDING_DIMENSION = 1536
+EMBEDDING_DIMENSION = 1024  # Bedrock Titan V2 기본 차원
 TITAN_MODEL_ID = "amazon.titan-embed-text-v2:0"
 MAX_TEXT_LENGTH = 8000
 
@@ -69,11 +68,10 @@ class BedrockEmbeddingService:
             if len(text) > MAX_TEXT_LENGTH:
                 text = text[:MAX_TEXT_LENGTH]
 
-            # Bedrock API 호출
+            # Bedrock API 호출 (Titan V2는 기본 1024 차원 사용)
             body = json.dumps({
-                "inputText": text,
-                "dimensions": EMBEDDING_DIMENSION,
-                "normalize": True
+                "inputText": text
+                # dimensions 파라미터 제거 - Titan V2는 항상 1024 차원 반환
             })
 
             response = self.bedrock.invoke_model(
@@ -311,9 +309,7 @@ async def vector_search(
 
     # Elasticsearch 검색 실행
     try:
-        res = await run_in_threadpool(
-            lambda: es.search(index=VECTOR_INDEX, body=body)
-        )
+        res = await es.search(index=VECTOR_INDEX, body=body)
     except Exception as e:
         logger.error(f"Elasticsearch search error: {e}")
         raise HTTPException(
@@ -404,9 +400,7 @@ async def find_similar_products(
     }
 
     try:
-        res = await run_in_threadpool(
-            lambda: es.search(index=VECTOR_INDEX, body=body)
-        )
+        res = await es.search(index=VECTOR_INDEX, body=body)
     except Exception as e:
         logger.error(f"Similar products search error: {e}")
         raise HTTPException(
