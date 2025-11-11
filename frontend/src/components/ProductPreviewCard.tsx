@@ -31,13 +31,16 @@ export function ProductPreviewCard({
   };
 
   return (
-    <Card className={cn("flex flex-col justify-between border-gray-200 p-4", className)}>
+    <Card
+      className={cn(
+        "flex flex-col justify-between border-gray-200 p-4",
+        className
+      )}>
       <div className="space-y-3">
         <button
           type="button"
           onClick={handleOpen}
-          className="block w-full cursor-pointer overflow-hidden rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-900/40"
-        >
+          className="block w-full cursor-pointer overflow-hidden rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-900/40">
           <div className="aspect-square w-full overflow-hidden">
             <ImageWithFallback
               src={imageSrc}
@@ -56,8 +59,7 @@ export function ProductPreviewCard({
           <button
             type="button"
             onClick={handleOpen}
-            className="line-clamp-2 w-full text-left text-sm font-medium text-gray-900 hover:underline"
-          >
+            className="line-clamp-1 w-full text-left text-sm font-medium text-gray-900 hover:underline">
             {product.name}
           </button>
           <p className="text-sm font-semibold text-gray-900">
@@ -71,8 +73,7 @@ export function ProductPreviewCard({
           variant="outline"
           size="sm"
           className="mt-4"
-          onClick={() => onPrimaryAction(product)}
-        >
+          onClick={() => onPrimaryAction(product)}>
           {primaryLabel}
         </Button>
       )}
