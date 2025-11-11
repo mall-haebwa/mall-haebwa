@@ -42,3 +42,6 @@ postgres_data/
 # Docker 빌드 캐시
 .dockerignore
 frontend/.env
+
+# 로컬 데이터 배치 파일
+backend/data_batches/
