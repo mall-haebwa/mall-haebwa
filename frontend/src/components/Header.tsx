@@ -19,16 +19,18 @@ export function Header() {
     useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
   const [aiSearchQuery, setAiSearchQuery] = useState(""); // 추가
-  const [selectedSearchTab, setSelectedSearchTabState] = useState<"rollup" | "ai">(() => {
+  const [selectedSearchTab, setSelectedSearchTabState] = useState<
+    "rollup" | "ai"
+  >(() => {
     // localStorage에서 사용자의 마지막 탭 선택 기억
-    const saved = localStorage.getItem('selectedSearchTab');
+    const saved = localStorage.getItem("selectedSearchTab");
     return (saved as "rollup" | "ai") || "ai";
   });
 
   // localStorage에 저장과 상태 업데이트를 한 번에 처리
   const setSelectedSearchTab = (value: "rollup" | "ai") => {
     setSelectedSearchTabState(value);
-    localStorage.setItem('selectedSearchTab', value);
+    localStorage.setItem("selectedSearchTab", value);
   };
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -78,7 +80,7 @@ export function Header() {
     if (path === "/") {
       setSearchQueryInput("");
       setSearchQuery("");
-      setAiSearchQuery("");  // AI 검색 입력창도 초기화
+      setAiSearchQuery(""); // AI 검색 입력창도 초기화
     }
     // 홈으로 이동 시 쿼리 제거
     navigate(path);
@@ -131,7 +133,7 @@ export function Header() {
           <div className="flex flex-1 gap-3">
             {/* 검색 탭 */}
             <div className="flex flex-1 gap-3 items-center">
-              <div className="flex gap-0 border border-gray-300 rounded-lg">
+              <div className="flex gap-0 border border-gray-300 rounded-lg  overflow-hidden">
                 <button
                   onClick={() => setSelectedSearchTab("rollup")}
                   className={`px-4 py-2 text-sm font-medium transition-all ${
