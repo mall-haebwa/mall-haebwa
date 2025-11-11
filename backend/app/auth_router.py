@@ -83,8 +83,7 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
     refresh = create_refresh_token(uid)  # 항상 7일 만료로 생성
 
     set_cookie(response, COOKIE_ACCESS, access, max_age=15*60)    # 15분
-    set_cookie(response, COOKIE_REFRESH, refresh, max_age=7 *
-               24*60*60 if payload.remember else None)
+    set_cookie(response, COOKIE_REFRESH, refresh, max_age=7*24*60*60)  # 항상 7일
 
     # 적립금 계산
     points = await calculate_user_points(uid, db)
@@ -148,11 +147,11 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
 
 @router.post("/refresh", response_model=BasicResp)
 async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase = Depends(get_db)):
-    print(f"[DEBUG /api/auth/refresh] All cookies: {dict(request.cookies)}")
+    # print(f"[DEBUG /api/auth/refresh] All cookies: {dict(request.cookies)}")
     rt = request.cookies.get(COOKIE_REFRESH)
-    print(f"[DEBUG /api/auth/refresh] Refresh token present: {rt is not None}")
+    # print(f"[DEBUG /api/auth/refresh] Refresh token present: {rt is not None}")
     if not rt:
-        print("[DEBUG /api/auth/refresh] No refresh token found - returning 401")
+        # print("[DEBUG /api/auth/refresh] No refresh token found - returning 401")
         raise HTTPException(status_code=401, detail="리프레시 토큰이 없습니다.")
     try:
         payload = decode_token(rt)
@@ -171,12 +170,11 @@ async def refresh(request: Request, response: Response, db: AsyncIOMotorDatabase
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
     role = user.get("role", "user")
 
-    remember = bool(payload.get("remember"))
     access = create_token(uid, extra_payload={"role": user.get("role", "user")})
     set_cookie(response, COOKIE_ACCESS, access, max_age=15*60)
 
     new_refresh = create_refresh_token(uid)
-    set_cookie(response, COOKIE_REFRESH, new_refresh, max_age=7*24*60*60 if remember else None)
+    set_cookie(response, COOKIE_REFRESH, new_refresh, max_age=7*24*60*60)  # 항상 7일
     return {"message": "access 재발급 완료"}
 
 
@@ -241,20 +239,20 @@ async def logout(request: Request, response: Response, db: AsyncIOMotorDatabase 
 
 @router.get("/me", response_model=UserOut)
 async def me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    print(f"[DEBUG /api/auth/me] All cookies: {dict(request.cookies)}")
+    # print(f"[DEBUG /api/auth/me] All cookies: {dict(request.cookies)}")
     at = request.cookies.get(COOKIE_ACCESS)
-    print(f"[DEBUG /api/auth/me] Access token present: {at is not None}")
+    # print(f"[DEBUG /api/auth/me] Access token present: {at is not None}")
     if not at:
-        print("[DEBUG /api/auth/me] No access token found - returning 401")
+        # print("[DEBUG /api/auth/me] No access token found - returning 401")
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
     try:
         payload = decode_token(at)
         if payload.get("scope") != "access":
             raise ValueError("Not access")
         uid = payload["sub"]
-        print(f"[DEBUG /api/auth/me] Token validated successfully for user: {uid}")
+        # print(f"[DEBUG /api/auth/me] Token validated successfully for user: {uid}")
     except Exception as e:
-        print(f"[DEBUG /api/auth/me] Token validation failed: {str(e)}")
+        # print(f"[DEBUG /api/auth/me] Token validation failed: {str(e)}")
         raise HTTPException(status_code=401, detail="토큰이 유효하지 않습니다.")
 
     user = await db[USERS_COL].find_one({"_id": ObjectId(uid)})
