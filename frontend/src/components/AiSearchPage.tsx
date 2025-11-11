@@ -744,17 +744,18 @@ export function AISearchPage() {
     return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
-  // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만)
+  // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만, 그리고 데이터가 없을 때만)
   useEffect(() => {
     if (isRestoringState) return; // 복원 중이면 API 호출 안 함
 
-    if (contentType === "products" && currentSearchQuery) {
+    // 이미 데이터가 있으면 API 호출 안 함 (중복 로딩 방지)
+    if (contentType === "products" && currentSearchQuery && products.length === 0) {
       fetchProducts(currentSearchQuery);
-    } else if (contentType === "orders") {
+    } else if (contentType === "orders" && orders.length === 0) {
       fetchOrders();
-    } else if (contentType === "cart") {
+    } else if (contentType === "cart" && cartItems.length === 0) {
       fetchCart();
-    } else if (contentType === "wishlist") {
+    } else if (contentType === "wishlist" && wishlistItems.length === 0) {
       fetchWishlist();
     }
   }, [contentType, currentSearchQuery, isRestoringState]);
