@@ -160,10 +160,6 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 
     # Tool Handlers 준비
     from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
-from .seller_setting import router as seller_setting_router
-from .seller_promotion import router as seller_promotion_router
-from .seller_ordermanage import router as seller_ordermanage_router
-from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
     db = get_db()
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
@@ -222,15 +218,23 @@ from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
 2. Tool 결과에 포함된 **실제 데이터를 기반으로** 구체적으로 답변하세요
 3. 추측하거나 일반적인 답변을 하지 마세요
 4. **복잡한 요청은 여러 Tool을 순차적으로 사용하세요**
-5. **절대로 임의의 데이터를 만들어내지 마세요** (예: "123456", "https://example.com" 같은 가짜 값 금지)
+5. **절대로 임의의 데이터를 만들어내지 마세요** (예: "123456", "https://example.com", "[상품명]" 같은 가짜 값 금지)
 6. Tool 결과의 정확한 필드명을 사용하세요 (orders[0].matched_item.product_id, orders[0].matched_item.image_url 등)
+7. **"비슷한 제품", "유사 상품", "추천" 요청 시 반드시 semantic_search 또는 search_products Tool을 사용하세요**
+   - "노트북 추천해줘" → search_products(query="노트북") 또는 semantic_search(query="노트북")
+   - "이전 대화의 제품과 비슷한 것" → semantic_search(이전 상품명)
+   - **Tool 없이 추천만 하는 것은 절대 금지 - 반드시 실제 검색 결과를 기반으로 답변하세요**
 
 **Tool 선택 가이드**:
 - 장바구니 확인 → get_cart Tool 사용
 - 주문 내역 확인 → get_orders Tool 사용
 - 찜 목록 확인 → get_wishlist Tool 사용
-- 단일 상품 검색 → search_products Tool 사용
+- 단일 상품 검색 (명확한 키워드) → search_products Tool 사용
 - 여러 상품 검색 → multi_search_products Tool 사용
+- **의미 기반 검색 (비슷한 제품, 유사 상품, 추천)** → semantic_search Tool 사용
+  * "비슷한 제품 추천해줘" → 이전 대화에서 언급된 상품명으로 semantic_search 실행
+  * "더치커피와 유사한 제품" → semantic_search(query="더치커피 콜드브루 원액")
+  * "편안한 집에서 입는 옷" → semantic_search(query="편안한 집에서 입는 옷")
 - **과거 주문 상품 찾기** → search_orders_by_product Tool 사용
   * "작년에 샀던 커피" → product_keyword="커피", year={current_year - 1}
   * "올해 구매한 상품" → product_keyword="", year={current_year} (키워드 없이 연도만 가능)
@@ -379,6 +383,30 @@ from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
                         "queries": tool_result.get("queries", []),
                         "main_query": tool_result.get("main_query", ""),
                         "results": tool_result.get("results", {})  # {"김치": [...], "돼지고기": [...]}
+                    }
+                }
+            elif tool_name == "semantic_search":
+                # 의미 기반 검색 결과 - items 필드를 products로 변환
+                items = tool_result.get("items", [])
+                # items를 products 형식으로 변환 (id, name, price, category, brand, image, rating, reviewCount)
+                products = []
+                for item in items:
+                    products.append({
+                        "id": item.get("product_id", ""),
+                        "name": item.get("name", ""),
+                        "price": item.get("price", 0),
+                        "category": item.get("category", ""),
+                        "brand": item.get("brand", ""),
+                        "image": item.get("image", ""),
+                        "rating": item.get("rating", 0),
+                        "reviewCount": item.get("reviewCount", 0)
+                    })
+
+                action = {
+                    "type": "SEARCH",
+                    "params": {
+                        "query": last_tool["input"].get("query", "의미 기반 검색"),
+                        "products": products
                     }
                 }
             elif tool_name == "get_cart":
