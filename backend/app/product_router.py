@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -13,6 +14,7 @@ from bson import ObjectId
 from elasticsearch import Elasticsearch
 from .search_client import get_search_client, get_index_name
 from fastapi.concurrency import run_in_threadpool
+from .redis_client import redis_client
 
 
 # /products 네임스페이스 아래 상품 관련 엔드포인트를 제공하는 FastAPI 라우터.
@@ -73,6 +75,38 @@ def _normalise_list(raw: str | None) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 # 혹시라도 " 애플, 삼성 " 이렇게 들어올 경우 ["애플", "삼성"] 으로 분리
 
+def _generate_search_cache_key(
+    q: str | None,
+    category: str | None,
+    category2: str | None,
+    brands: str | None,
+    minPrice: int,
+    maxPrice: int,
+    sort: str,
+    page: int,
+    limit: int
+) -> str:
+    """
+    검색 캐시 키 생성
+
+    브랜드는 정렬하여 "삼성,애플"과 "애플,삼성"을 동일하게 처리
+    """
+    brands_normalized = _normalise_list(brands)
+    brands_sorted = ",".join(sorted(brands_normalized)) if brands_normalized else ""
+
+    key_parts = [
+        q or "",
+        category or "",
+        category2 or "",
+        brands_sorted,
+        str(minPrice),
+        str(maxPrice),
+        sort,
+        str(page),
+        str(limit)
+    ]
+
+    return f"search:{':'.join(key_parts)}"
 
 def _reshape_product(doc: dict[str, Any]) -> dict[str, Any]:
     """Mongo 문서를 UI에서 쓰기 좋은 딕셔너리 형태로 변환한다."""
@@ -149,6 +183,22 @@ async def search_products(
     limit: int = Query(20, ge=1, le=60), # 페이지네이션
     es: Elasticsearch = Depends(get_search_client)
 ):
+    # Redis 캐시 조회 (추가)
+    cache_key = _generate_search_cache_key(
+        q, category, category2, brands, minPrice, maxPrice, sort, page, limit
+    )
+
+    if redis_client.redis:
+        try:
+            cached_data = await redis_client.redis.get(cache_key)
+            if cached_data:
+                result = json.loads(cached_data)
+                print(f"[Redis] 검색 캐시 히트: query='{q}', page={page}, {result.get('total', 0)}개 상품")
+                return result
+            print(f"[Redis] 캐시 미스: query='{q}', page={page}, Elasticsearch 조회")
+        except Exception as e:
+            print(f"[Redis] 캐시 조회 실패: {e}")
+
     # 이건 필터링 조건
     brand_list = _normalise_list(brands)
     filters = _build_es_filters(
@@ -311,7 +361,7 @@ async def search_products(
     total = res["hits"]["total"]["value"]
     items = [_reshape_product(hit["_source"]) for hit in res["hits"]["hits"]]
 
-    return {
+    result = {
         "items": items,
         "page": page,
         "limit": limit,
@@ -319,6 +369,21 @@ async def search_products(
         "totalPages": math.ceil(total / limit),
         "aggregations": res.get("aggregations", {}),
     }
+
+    # Redis 캐시 저장
+    if redis_client.redis:
+        try:
+            ttl = 600   # 10분
+            await redis_client.redis.setex(
+                cache_key,
+                ttl,
+                json.dumps(result, ensure_ascii=False, default=str)
+            )
+            print(f"[Redis] 검색 캐시 저장: query='{q}', page={page}, {len(items)}개 상품, TTL 10분")
+        except Exception as e:
+            print(f"[Redis] 캐시 저장 실패: {e}")
+
+    return result
 
 
 @router.get("/{product_id}")
