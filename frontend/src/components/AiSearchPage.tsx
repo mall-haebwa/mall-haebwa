@@ -1106,37 +1106,19 @@ export function AISearchPage() {
                   <h3 className="mb-4 text-lg font-semibold text-gray-900">
                     추천 상품
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
                     {multiSearchQueries.map((query) => {
                       const products = multiSearchResults[query] || [];
                       const representativeProduct = products[0];
                       if (!representativeProduct) return null;
 
                       return (
-                        <div
+                        <ProductPreviewCard
                           key={query}
-                          className="cursor-pointer rounded-lg bg-white p-3 shadow-sm transition-all hover:shadow-md"
-                          onClick={() =>
-                            handleProductClick(representativeProduct.id)
-                          }>
-                          <img
-                            src={
-                              representativeProduct.image ||
-                              "/placeholder-product.jpg"
-                            }
-                            alt={representativeProduct.name}
-                            className="mb-2 h-60 w-full rounded object-cover"
-                          />
-                          <p className="mb-1 text-xs font-semibold text-purple-600">
-                            {query}
-                          </p>
-                          <p className="truncate text-sm text-gray-900">
-                            {representativeProduct.name}
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-gray-900">
-                            {representativeProduct.price.toLocaleString()}원
-                          </p>
-                        </div>
+                          product={representativeProduct}
+                          onOpen={handleProductClick}
+                          meta={query}
+                        />
                       );
                     })}
                   </div>
@@ -1150,7 +1132,7 @@ export function AISearchPage() {
                       <button
                         key={query}
                         onClick={() => setSelectedMultiCategory(query)}
-                        className={`rounded-full px-6 py-2 font-medium transition-all ${
+                        className={`rounded-full px-5 py-1 font-medium transition-all ${
                           selectedMultiCategory === query
                             ? "bg-purple-600 text-white shadow-md"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"

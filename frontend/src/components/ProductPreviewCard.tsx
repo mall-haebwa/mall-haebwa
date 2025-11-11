@@ -33,10 +33,10 @@ export function ProductPreviewCard({
   return (
     <Card
       className={cn(
-        "flex flex-col justify-between border-gray-200 p-4",
+        "flex flex-col justify-between border-gray-200 py-2 px-2",
         className
       )}>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button
           type="button"
           onClick={handleOpen}
