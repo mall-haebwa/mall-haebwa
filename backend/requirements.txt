@@ -58,3 +58,6 @@ aiohttp>=3.13.0  # Required for AsyncElasticsearch
 # Vector Processing
 numpy>=1.24.0  # 벡터 연산
 tqdm>=4.65.0  # 진행 상황 표시
+
+# 이미지 처리
+Pillow==10.0.0

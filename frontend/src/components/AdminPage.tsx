@@ -12,6 +12,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Check,
+  Upload,
+  X,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -84,14 +86,16 @@ interface DashboardData {
 
 // AddProductPage.tsx에서 사용되는 카테고리 목록을 가져옵니다.
 const categories = [
-  "패션의류",
-  "뷰티",
-  "식품",
-  "생활/주방",
-  "가전디지털",
+  "가구/인테리어",
+  "디지털/가전",
+  "생활/건강",
   "스포츠/레저",
+  "식품",
+  "여가/생활편의",
   "출산/육아",
-  "도서",
+  "패션의류",
+  "패션잡화",
+  "화장품/미용",
 ];
 
 // 백엔드 ProductOut 스키마에 맞춰 프론트엔드 타입 정의
@@ -248,6 +252,71 @@ export function AdminPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // 상품 편집 모달에서 이미지 업로드
+  const handleEditModalImageUpload = async () => {
+    if (!editingProduct) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files || files.length === 0) return;
+
+      toast.info(`${files.length}개의 이미지를 업로드 중...`);
+
+      try {
+        const uploadedUrls: string[] = [];
+
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const response = await fetch("/api/seller/upload-image", {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "이미지 업로드 실패");
+          }
+
+          const data = await response.json();
+          uploadedUrls.push(data.image_url);
+        }
+
+        // 기존 이미지 배열에 새로운 URL 추가
+        setEditingProduct({
+          ...editingProduct,
+          images: [...editingProduct.images, ...uploadedUrls],
+        });
+
+        toast.success("이미지 업로드 완료!");
+      } catch (error) {
+        console.error("이미지 업로드 오류:", error);
+        toast.error(
+          error instanceof Error ? error.message : "이미지 업로드 실패"
+        );
+      }
+    };
+
+    input.click();
+  };
+
+  // 상품 편집 모달에서 이미지 삭제
+  const handleEditModalImageRemove = (index: number) => {
+    if (!editingProduct) return;
+
+    setEditingProduct({
+      ...editingProduct,
+      images: editingProduct.images.filter((_, i) => i !== index),
+    });
   };
 
   // 상품 관리 페이지 상태
@@ -835,26 +904,72 @@ export function AdminPage() {
                   />
                 </div>
 
-                {/* 이미지 URL */}
+                {/* 상품 이미지 */}
                 <div>
-                  <label className="text-sm font-medium">
-                    이미지 URL (각 줄에 하나씩 또는 쉼표로 구분)
-                  </label>
-                  <Textarea
-                    value={editingProduct.images.join("\n")}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        images: e.target.value
-                          .split(/[\n,]/)
-                          .map((img) => img.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    className="mt-1"
-                    rows={4}
-                    placeholder="예: https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
-                  />
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium">상품 이미지</label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleEditModalImageUpload}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      이미지 추가
+                    </Button>
+                  </div>
+
+                  {editingProduct.images.length === 0 ? (
+                    <div className="flex h-32 items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+                      이미지 추가 버튼을 클릭하여 이미지를 업로드하세요
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {editingProduct.images.map((image, index) => (
+                        <div
+                          key={index}
+                          className="relative overflow-hidden rounded border border-gray-200"
+                        >
+                          <img
+                            src={image}
+                            alt={`상품 이미지 ${index + 1}`}
+                            className="h-32 w-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1 h-6 w-6 bg-white/90 hover:bg-white"
+                            onClick={() => handleEditModalImageRemove(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* URL 직접 입력 (옵션) */}
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-900">
+                      URL로 직접 추가하기
+                    </summary>
+                    <Textarea
+                      value={editingProduct.images.join("\n")}
+                      onChange={(e) =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          images: e.target.value
+                            .split(/[\n,]/)
+                            .map((img) => img.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      className="mt-2"
+                      rows={3}
+                      placeholder="각 줄에 하나씩 URL 입력"
+                    />
+                  </details>
                 </div>
 
                 {/* 상세 설명 */}
