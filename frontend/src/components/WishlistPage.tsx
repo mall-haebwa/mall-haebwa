@@ -162,7 +162,7 @@ export function WishlistPage() {
         <div className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-[1280px] px-6 py-6 md:px-8">
             <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-            Wish List
+            찜 목록
             </h1>
 
             <Card className="border-gray-200 p-4">
@@ -172,7 +172,7 @@ export function WishlistPage() {
                 onCheckedChange={toggleAll}
                 />
                 <span>
-                Select all ({selectedItems.length}/{items.length})
+                전체 선택 ({selectedItems.length}/{items.length})
                 </span>
                 <Button
                 type="button"
@@ -182,7 +182,7 @@ export function WishlistPage() {
                 disabled={selectedItems.length === 0}
                 onClick={handleRemoveSelected}
                 >
-                Remove selected
+                선택한 항목 삭제
                 </Button>
             </div>
 
@@ -215,7 +215,7 @@ export function WishlistPage() {
                         {item.product.name}
                         </h3>
                         <p className="text-xs text-gray-500">
-                        {item.product.brand}
+                        {item.product.mallName}
                         </p>
                     </div>
                     <div className="flex items-center justify-between">
@@ -238,16 +238,16 @@ export function WishlistPage() {
                             onClick={() => handleAddToCart(item)}
                         >
                             <ShoppingBag className="h-3 w-3" />
-                            Shopping Cart +
+                            장바구니에 추가
                         </Button>
                         <button
                             type="button"
-                            className="flex items-center gap-1 text-xs text-gray-500 
+                            className="flex items-center gap-1 text-xs text-gray-500
     hover:text-red-500"
                             onClick={() => handleRemove(item.product.id)}
                         >
                             <Trash2 className="h-3 w-3" />
-                            Remove
+                            삭제
                         </button>
                         </div>
                     </div>

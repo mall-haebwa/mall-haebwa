@@ -18,7 +18,8 @@ const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, updateCartItem, removeFromCart, currentUser, refreshCart } = useAppState();
+  const { cart, updateCartItem, removeFromCart, currentUser, refreshCart } =
+    useAppState();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [couponCode, setCouponCode] = useState("");
 
@@ -31,7 +32,9 @@ export function CartPage() {
   // 페이지 마운트 시 장바구니 새로고침
   useEffect(() => {
     if (currentUser) {
-      console.log("🔄 장바구니 페이지 마운트 - 서버에서 최신 장바구니 가져오기");
+      console.log(
+        "🔄 장바구니 페이지 마운트 - 서버에서 최신 장바구니 가져오기"
+      );
       refreshCart();
     }
   }, [currentUser, refreshCart]);
@@ -163,7 +166,13 @@ export function CartPage() {
         .map((item) => item.id)
         .filter((id): id is string => Boolean(id));
 
-      console.log("🛒 선택된 장바구니 항목들:", selectedCartItems.map(item => ({ id: item.id, productId: item.productId })));
+      console.log(
+        "🛒 선택된 장바구니 항목들:",
+        selectedCartItems.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+        }))
+      );
       console.log("💾 서버에 전달할 장바구니 ID들:", purchasedItemIds);
 
       console.log("📝 주문 생성 요청...");
@@ -183,7 +192,7 @@ export function CartPage() {
           order_name: orderName,
           customer_name: currentUser.name || currentUser.email || "고객",
           items,
-          cart_item_ids: purchasedItemIds,  // 장바구니 아이템 ID 전달
+          cart_item_ids: purchasedItemIds, // 장바구니 아이템 ID 전달
         }),
       });
 
@@ -223,9 +232,9 @@ export function CartPage() {
 
   const applyCoupon = () => {
     if (couponCode.trim().toLowerCase() === "welcome10") {
-      toast.success("10% discount coupon applied.");
+      toast.success("10% 할인 쿠폰이 적용되었습니다.");
     } else {
-      toast.error("Invalid coupon code.");
+      toast.error("유효하지 않은 쿠폰 코드입니다.");
     }
   };
 
@@ -235,16 +244,15 @@ export function CartPage() {
         <div className="mx-auto flex max-w-[1280px] flex-col items-center px-6 py-20 text-center md:px-8">
           <ShoppingBag className="mb-4 h-16 w-16 text-gray-300" />
           <h2 className="mb-2 text-xl font-semibold text-gray-900">
-            Your cart is empty
+            장바구니가 비어있습니다
           </h2>
           <p className="mb-6 text-sm text-gray-600">
-            Browse featured products and fill your cart.
+            상품을 찾아보고 장바구니를 채워보세요.
           </p>
           <Button
             onClick={() => navigate("/")}
-            className="h-10 bg-gray-900 text-white hover:bg-black"
-          >
-            Continue shopping
+            className="h-10 bg-gray-900 text-white hover:bg-black">
+            쇼핑 계속하기
           </Button>
         </div>
       </div>
@@ -254,9 +262,7 @@ export function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-[1280px] px-6 py-6 md:px-8">
-        <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-          Shopping Cart
-        </h1>
+        <h1 className="mb-6 text-2xl font-semibold text-gray-900">장바구니</h1>
 
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2">
@@ -267,7 +273,7 @@ export function CartPage() {
                   onCheckedChange={toggleAll}
                 />
                 <span>
-                  Select all ({selectedItems.length}/{cart.length})
+                  전체 선택 ({selectedItems.length}/{cart.length})
                 </span>
                 <Button
                   type="button"
@@ -278,10 +284,9 @@ export function CartPage() {
                   onClick={() => {
                     const targets = [...selectedItems].sort((a, b) => b - a);
                     targets.forEach((index) => removeFromCart(index));
-                    toast.success("Selected items removed.");
-                  }}
-                >
-                  Remove selected
+                    toast.success("선택한 항목이 제거되었습니다.");
+                  }}>
+                  선택한 항목 삭제
                 </Button>
               </div>
 
@@ -291,8 +296,7 @@ export function CartPage() {
                 {cart.map((item, index) => (
                   <div
                     key={item.id ?? `${item.productId}-${index}`}
-                    className="flex gap-4 border border-gray-200 p-4"
-                  >
+                    className="flex gap-4 border border-gray-200 p-4">
                     <Checkbox
                       checked={selectedItems.includes(index)}
                       onCheckedChange={() => toggleItem(index)}
@@ -307,13 +311,15 @@ export function CartPage() {
                     </div>
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900 cursor-pointer"
-                        onClick={() => handleProductClick(item.productId)}>
+                        <h3
+                          className="text-sm font-medium text-gray-900 cursor-pointer"
+                          onClick={() => handleProductClick(item.productId)}>
                           {getItemName(item)}
                         </h3>
                         <p className="text-xs text-gray-500">
-                          {item.selectedColor && `Color: ${item.selectedColor}`}
-                          {item.selectedSize && ` · Size: ${item.selectedSize}`}
+                          {item.selectedColor && `색상: ${item.selectedColor}`}
+                          {item.selectedSize &&
+                            ` · 사이즈: ${item.selectedSize}`}
                         </p>
                       </div>
                       <div className="flex items-center justify-between">
@@ -325,8 +331,7 @@ export function CartPage() {
                             className="h-8 w-8"
                             onClick={() =>
                               handleQuantity(index, item.quantity - 1)
-                            }
-                          >
+                            }>
                             <Minus className="h-4 w-4" />
                           </Button>
                           <span className="w-8 text-center text-sm">
@@ -339,8 +344,7 @@ export function CartPage() {
                             className="h-8 w-8"
                             onClick={() =>
                               handleQuantity(index, item.quantity + 1)
-                            }
-                          >
+                            }>
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
@@ -354,10 +358,9 @@ export function CartPage() {
                           <button
                             type="button"
                             className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 cursor-pointer"
-                            onClick={() => removeFromCart(index)}
-                          >
+                            onClick={() => removeFromCart(index)}>
                             <Trash2 className="h-3 w-3" />
-                            Remove
+                            삭제
                           </button>
                         </div>
                       </div>
@@ -368,71 +371,70 @@ export function CartPage() {
             </Card>
 
             <Card className="border-gray-200 p-4">
-              <h2 className="mb-4 text-sm font-semibold text-gray-900">
-                Coupon
+              <h2 className="mb-4 text-2xl font-semibold text-gray-900">
+                쿠폰
               </h2>
               <div className="flex gap-2">
                 <Input
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value)}
-                  placeholder="Enter coupon code"
+                  placeholder="쿠폰 코드 입력"
                   className="h-10"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   className="h-10"
-                  onClick={applyCoupon}
-                >
-                  Apply
+                  onClick={applyCoupon}>
+                  적용
                 </Button>
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Try <code className="font-mono">WELCOME10</code> for 10% off.
+                <code className="font-mono">WELCOME10</code> 코드로 10%
+                할인받으세요.
               </p>
             </Card>
           </div>
 
           <div className="space-y-4">
             <Card className="border-gray-200 p-5">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">
-                Order summary
+              <h2 className="mb-4 text-2xl font-semibold text-gray-900">
+                결제 정보
               </h2>
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>상품 금액</span>
                   <span>₩{totals.subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Delivery fee</span>
+                  <span>배송비</span>
                   <span>
                     {totals.deliveryFee === 0
-                      ? "Free"
+                      ? "무료"
                       : `₩${totals.deliveryFee.toLocaleString()}`}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-semibold text-gray-900">
-                  <span>Total</span>
+                  <span>총 결제금액</span>
                   <span>₩{totals.total.toLocaleString()}</span>
                 </div>
               </div>
               <Button
                 type="button"
                 className="mt-6 h-11 w-full bg-gray-900 text-white hover:bg-black"
-                onClick={handleCheckout}
-              >
-                Checkout
+                onClick={handleCheckout}>
+                결제하기
               </Button>
             </Card>
 
             <Card className="border-gray-200 p-5 text-sm text-gray-600">
               <div className="flex items-center gap-2 text-gray-900">
                 <ChevronRight className="h-4 w-4" />
-                <span>Need help?</span>
+                <span>도움이 필요하신가요?</span>
               </div>
               <p className="mt-2">
-                Contact our support team for payment or delivery enquiries.
+                결제 및 배송 문의는 고객 지원팀에 연락해주세요.
               </p>
             </Card>
           </div>

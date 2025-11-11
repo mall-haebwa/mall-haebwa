@@ -20,6 +20,8 @@ import { ProductPreviewCard } from "./ProductPreviewCard";
 import { Card } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Badge } from "./ui/badge";
+import { CartPage } from "./CartPage";
+import { WishlistPage } from "./WishlistPage";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -771,8 +773,7 @@ export function AISearchPage() {
       {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
-        className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white"
-      >
+        className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white">
         {contentType === "idle" && (
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
             <header className="text-center">
@@ -792,8 +793,7 @@ export function AISearchPage() {
                   e.preventDefault();
                   handleSearch(searchInput);
                 }}
-                className="mb-8 flex w-full items-center gap-3 rounded-full border-2 border-purple-200 bg-white px-4 py-2 shadow-sm"
-              >
+                className="mb-8 flex w-full items-center gap-3 rounded-full border-2 border-purple-200 bg-white px-4 py-2 shadow-sm">
                 <Input
                   type="text"
                   value={searchInput}
@@ -805,8 +805,7 @@ export function AISearchPage() {
                 <Button
                   type="submit"
                   disabled={isLoading || !searchInput.trim()}
-                  className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
-                >
+                  className="h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50">
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -827,8 +826,7 @@ export function AISearchPage() {
                     <button
                       key={example}
                       onClick={() => handleExampleClick(example)}
-                      className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 transition-colors hover:border-purple-300 hover:bg-purple-50 md:text-sm"
-                    >
+                      className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 transition-colors hover:border-purple-300 hover:bg-purple-50 md:text-sm">
                       {example}
                     </button>
                   ))}
@@ -986,8 +984,7 @@ export function AISearchPage() {
                 {!currentUser && (
                   <Button
                     className="mt-4 bg-gray-900 text-white hover:bg-black"
-                    onClick={() => navigate("/login")}
-                  >
+                    onClick={() => navigate("/login")}>
                     로그인하기
                   </Button>
                 )}
@@ -1018,8 +1015,7 @@ export function AISearchPage() {
                             : order.status === "pending"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
+                        }`}>
                         {order.status}
                       </Badge>
                     </div>
@@ -1086,100 +1082,7 @@ export function AISearchPage() {
         )}
 
         {/* 장바구니 */}
-        {contentType === "cart" && (
-          <div className="p-6">
-            <h2 className="mb-6 text-2xl font-semibold text-gray-900">
-              장바구니
-            </h2>
-
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                <span className="ml-3 text-gray-600">
-                  장바구니를 불러오고 있습니다...
-                </span>
-              </div>
-            ) : dataError ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
-                {!currentUser && (
-                  <Button
-                    className="mt-4 bg-gray-900 text-white hover:bg-black"
-                    onClick={() => navigate("/login")}
-                  >
-                    로그인하기
-                  </Button>
-                )}
-              </div>
-            ) : cartItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">장바구니가 비어있습니다.</p>
-                <Button
-                  className="mt-4 bg-gray-900 text-white hover:bg-black"
-                  onClick={() => navigate("/")}
-                >
-                  쇼핑 계속하기
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <Card key={item.id} className="p-6">
-                    <div className="flex gap-4">
-                      {(item.imageSnapshot || item.product?.image) && (
-                        <ImageWithFallback
-                          src={item.imageSnapshot || item.product?.image || ""}
-                          alt={
-                            item.nameSnapshot || item.product?.name || "상품"
-                          }
-                          className="h-24 w-24 cursor-pointer rounded object-cover"
-                          onClick={() => handleProductClick(item.productId)}
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h3
-                          className="cursor-pointer font-semibold text-gray-900 hover:text-gray-600"
-                          onClick={() => handleProductClick(item.productId)}
-                        >
-                          {item.nameSnapshot || item.product?.name}
-                        </h3>
-                        {(item.selectedColor || item.selectedSize) && (
-                          <p className="mt-1 text-sm text-gray-500">
-                            {item.selectedColor &&
-                              `색상: ${item.selectedColor}`}
-                            {item.selectedColor && item.selectedSize && " · "}
-                            {item.selectedSize &&
-                              `사이즈: ${item.selectedSize}`}
-                          </p>
-                        )}
-                        <p className="mt-2 text-sm text-gray-600">
-                          수량: {item.quantity}개
-                        </p>
-                        <p className="mt-1 text-lg font-semibold text-gray-900">
-                          {(
-                            (item.priceSnapshot || item.product?.price || 0) *
-                            item.quantity
-                          ).toLocaleString()}
-                          원
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-                <div className="flex justify-end pt-4">
-                  <Button
-                    className="bg-gray-900 text-white hover:bg-black"
-                    onClick={() => navigate("/cart")}
-                  >
-                    장바구니 페이지로 이동
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {contentType === "cart" && <CartPage />}
 
         {/* 다중 검색 결과 */}
         {contentType === "multisearch" && (
@@ -1215,8 +1118,7 @@ export function AISearchPage() {
                           className="cursor-pointer rounded-lg bg-white p-3 shadow-sm transition-all hover:shadow-md"
                           onClick={() =>
                             handleProductClick(representativeProduct.id)
-                          }
-                        >
+                          }>
                           <img
                             src={
                               representativeProduct.image ||
@@ -1252,8 +1154,7 @@ export function AISearchPage() {
                           selectedMultiCategory === query
                             ? "bg-purple-600 text-white shadow-md"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
+                        }`}>
                         {query} ({count})
                       </button>
                     );
@@ -1268,7 +1169,7 @@ export function AISearchPage() {
                       {multiSearchResults[selectedMultiCategory]?.length || 0}
                       개)
                     </h3>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
                       {(multiSearchResults[selectedMultiCategory] || []).map(
                         (product) => (
                           <ProductPreviewCard
@@ -1295,50 +1196,7 @@ export function AISearchPage() {
         )}
 
         {/* 찜 목록 */}
-        {contentType === "wishlist" && (
-          <div className="p-6">
-            <h2 className="mb-6 text-2xl font-semibold text-gray-900">
-              찜 목록
-            </h2>
-
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                <span className="ml-3 text-gray-600">
-                  찜 목록을 불러오고 있습니다...
-                </span>
-              </div>
-            ) : dataError ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
-                {!currentUser && (
-                  <Button
-                    className="mt-4 bg-gray-900 text-white hover:bg-black"
-                    onClick={() => navigate("/login")}
-                  >
-                    로그인하기
-                  </Button>
-                )}
-              </div>
-            ) : wishlistItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">찜한 상품이 없습니다.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {wishlistItems.map((item) => (
-                  <ProductPreviewCard
-                    key={item.wishlist_id}
-                    product={item.product}
-                    onOpen={handleProductClick}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {contentType === "wishlist" && <WishlistPage />}
       </div>
 
       {/* 우측 채팅 영역 */}
@@ -1346,23 +1204,20 @@ export function AISearchPage() {
         {/* 채팅 메시지 영역 */}
         <div
           className="flex-1 overflow-y-auto px-4 py-4"
-          ref={chatContainerRef}
-        >
+          ref={chatContainerRef}>
           <div className="space-y-4">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${
                   msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+                }`}>
                 <div
                   className={`max-w-[85%] rounded-lg p-3 ${
                     msg.role === "user"
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                       : "bg-gray-100 text-gray-900"
-                  }`}
-                >
+                  }`}>
                   {msg.role === "assistant" && (
                     <div className="mb-2 flex items-center gap-2">
                       <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
@@ -1428,8 +1283,7 @@ export function AISearchPage() {
               {uploadedImages.map((img, index) => (
                 <div
                   key={index}
-                  className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden"
-                >
+                  className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden">
                   <img
                     src={img.preview}
                     alt={`Upload ${index + 1}`}
@@ -1437,8 +1291,7 @@ export function AISearchPage() {
                   />
                   <button
                     onClick={() => handleImageRemove(index)}
-                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
-                  >
+                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
                     <X className="h-3 w-3" />
                   </button>
                 </div>
@@ -1453,8 +1306,7 @@ export function AISearchPage() {
                 handleSearch(searchInput.trim());
               }
             }}
-            className="flex flex-col gap-2"
-          >
+            className="flex flex-col gap-2">
             <div className="flex gap-2">
               <label className="cursor-pointer">
                 <input
@@ -1473,8 +1325,7 @@ export function AISearchPage() {
                   variant="outline"
                   className="h-10 w-10 p-0"
                   disabled={isLoading || isProcessingImages}
-                  asChild
-                >
+                  asChild>
                   <span>
                     <ImagePlus className="h-4 w-4" />
                   </span>
@@ -1500,8 +1351,7 @@ export function AISearchPage() {
                 (!searchInput.trim() && uploadedImages.length === 0) ||
                 isLoading
               }
-              className="h-10 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-            >
+              className="h-10 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600">
               <Send className="mr-2 h-4 w-4" />
               전송
             </Button>
