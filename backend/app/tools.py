@@ -368,48 +368,155 @@ class ToolHandlers:
         max_price: Optional[float] = None,
         limit: int = 10
     ) -> Dict[str, Any]:
-        """상품 검색 Tool"""
+        """상품 검색 Tool (일반 검색과 동일한 로직)"""
         try:
             logger.info(f"[Tool] search_products: query={query}, category={category}")
 
-            # Elasticsearch 쿼리 구성 (product_router.py와 동일한 방식)
-            must_clauses = []
+            # 필터 구성
+            filter_clauses = []
 
-            # 검색어가 있으면 multi_match 사용 (title, summary, tags, brand 필드)
-            if query:
-                must_clauses.append({
-                    "multi_match": {
-                        "query": query,
-                        "fields": ["title", "summary", "tags", "brand"],
-                        "operator": "and",  # 모든 검색어 단어가 반드시 포함
-                        "type": "cross_fields"
-                    }
-                })
+            # 가격 필터
+            price_min = min_price if min_price is not None else 0
+            price_max = max_price if max_price is not None else 1_000_000_000
+            filter_clauses.append({"range": {"numericPrice": {"gte": price_min, "lte": price_max}}})
 
             # 카테고리 필터
-            filter_clauses = []
             if category:
                 filter_clauses.append({"term": {"category1": category}})
 
-            # 가격 필터
-            if min_price is not None or max_price is not None:
-                range_filter = {}
-                if min_price is not None:
-                    range_filter["gte"] = min_price
-                if max_price is not None:
-                    range_filter["lte"] = max_price
-                filter_clauses.append({"range": {"numericPrice": range_filter}})
+            # must 쿼리 구성 (product_router.py와 동일)
+            must_queries = []
+
+            if query:
+                # 검색어의 모든 단어가 반드시 포함되어야 함 (필수 조건)
+                must_queries.append({
+                    "bool": {
+                        "should": [
+                            # 1) 정확한 매칭 (cross_fields)
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": [
+                                        "category1^6",
+                                        "category2^6",
+                                        "category3^6",
+                                        "category4^6",
+                                        "tags^3",
+                                        "title.nori^2",
+                                        "title.ngram^1",
+                                        "summary^1",
+                                        "brand^1"
+                                    ],
+                                    "operator": "and",
+                                    "type": "cross_fields",
+                                }
+                            },
+                            # 2) 오타 허용 매칭 (best_fields + fuzziness)
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": [
+                                        "category1^6",
+                                        "category2^6",
+                                        "category3^6",
+                                        "category4^6",
+                                        "tags^3",
+                                        "title.nori^2",
+                                        "summary^1",
+                                        "brand^1"
+                                    ],
+                                    "operator": "and",
+                                    "type": "best_fields",
+                                    "fuzziness": "AUTO",
+                                    "prefix_length": 1,
+                                }
+                            }
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
+
+                # 점수 향상을 위한 추가 매칭 (선택 조건)
+                must_queries.append({
+                    "bool": {
+                        "should": [
+                            # 1. search_keyword 정확 매칭
+                            {"term": {"search_keyword": {"value": query, "boost": 25}}},
+
+                            # 2. 카테고리 정확 매칭
+                            {"term": {"category1": {"value": query, "boost": 20}}},
+                            {"term": {"category2": {"value": query, "boost": 20}}},
+                            {"term": {"category3": {"value": query, "boost": 20}}},
+                            {"term": {"category4": {"value": query, "boost": 20}}},
+
+                            # 3. 제목 정확한 phrase 매칭
+                            {"match_phrase": {
+                                "title.nori": {
+                                    "query": query,
+                                    "boost": 15,
+                                    "slop": 0,
+                                }
+                            }},
+
+                            # 4. 제목에서 모든 검색어 단어 포함
+                            {"match": {
+                                "title.nori": {
+                                    "query": query,
+                                    "operator": "and",
+                                    "boost": 8,
+                                }
+                            }},
+
+                            # 5. 일반 텍스트 검색
+                            {"multi_match": {
+                                "query": query,
+                                "fields": ["tags^3", "title^2", "summary^1"],
+                                "type": "best_fields",
+                            }},
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
 
             # Bool 쿼리 구성
             bool_query = {"filter": filter_clauses}
-            if must_clauses:
-                bool_query["must"] = must_clauses
+            if must_queries:
+                bool_query["must"] = must_queries
             else:
                 bool_query["must"] = [{"match_all": {}}]
 
+            # function_score로 인기도 반영
             query_body = {
-                "query": {"bool": bool_query},
-                "size": min(limit, 50)  # 최대 50개로 제한
+                "query": {
+                    "function_score": {
+                        "query": {"bool": bool_query},
+                        "functions": [
+                            # 리뷰 개수 반영
+                            {"field_value_factor": {
+                                "field": "reviewCount",
+                                "missing": 0,
+                                "factor": 0.001,
+                                "modifier": "log1p"
+                            }},
+                            # 평점 반영
+                            {"field_value_factor": {
+                                "field": "rating",
+                                "missing": 0,
+                                "factor": 0.1
+                            }},
+                            # 네이버 순위 반영
+                            {"script_score": {
+                                "script": {
+                                    "source": "10.0 / (doc['rank'].value + 1)"
+                                }
+                            }},
+                        ],
+                        "score_mode": "sum",
+                        "boost_mode": "sum",
+                    }
+                },
+                "size": min(limit, 50),
+                "sort": [{"_score": "desc"}, {"rank": "asc"}]
             }
 
             # Elasticsearch 실행
@@ -419,14 +526,13 @@ class ToolHandlers:
             products = []
             for hit in hits:
                 source = hit["_source"]
-                # product_router.py의 _reshape_product와 유사한 형식
                 products.append({
                     "id": str(source.get("mongoId", hit["_id"])),
                     "name": source.get("title", ""),
                     "price": source.get("numericPrice", 0),
                     "category": source.get("category1", ""),
                     "brand": source.get("brand", ""),
-                    "description": source.get("summary", "")[:100],  # 요약만
+                    "description": source.get("summary", "")[:100],
                     "image": source.get("image", ""),
                     "rating": source.get("rating", 0),
                     "reviewCount": source.get("reviewCount", 0)
