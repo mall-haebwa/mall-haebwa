@@ -34,20 +34,8 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
 
         # 1. 추천 가능한 상품 ID만 가져오기 (빠른 쿼리)
         pipeline = [
-            {
-                "$addFields": {
-                    "numericRank": {
-                        "$convert": {
-                            "input": "$rank",
-                            "to": "int",
-                            "onError": None,
-                            "onNull": None,
-                        }
-                    }
-                }
-            },
-            {"$match": {"numericRank": {"$gte": 1, "$lte": 5000}}},
-            {"$project": {"_id": 1}}    # ID만 프로젝션 (데이터 전송량 최소화)
+            {"$sample": {"size": 5000}},  # 전체에서 랜덤 5000개
+            {"$project": {"_id": 1}}
         ]
 
         docs = await collection.aggregate(pipeline).to_list(length=5000)
