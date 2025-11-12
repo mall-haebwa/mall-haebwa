@@ -4,6 +4,7 @@
 1시간마다 전체 상품에서 랜덤 5000개를 추출하여 Redis에 저장
 """
 import logging
+from typing import Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -12,8 +13,21 @@ from .product_random_router import update_product_pool
 
 logger = logging.getLogger(__name__)
 
-# 스케줄러 인스턴스 (전역)
-scheduler = AsyncIOScheduler()
+# 스케줄러 인스턴스 (싱글톤 패턴)
+_scheduler: Optional[AsyncIOScheduler] = None
+
+
+def get_scheduler() -> AsyncIOScheduler:
+    """
+    스케줄러 인스턴스를 반환 (싱글톤 패턴)
+    
+    Returns:
+        AsyncIOScheduler 인스턴스
+    """
+    global _scheduler
+    if _scheduler is None:
+        _scheduler = AsyncIOScheduler()
+    return _scheduler
 
 
 async def refresh_product_pool_job(db: AsyncIOMotorDatabase):
@@ -38,6 +52,13 @@ def start_scheduler(db: AsyncIOMotorDatabase):
     Args:
         db: MongoDB 데이터베이스 인스턴스
     """
+    scheduler = get_scheduler()
+
+    # 중복 시작 방지
+    if scheduler.running:
+        logger.warning("[Scheduler] 이미 실행 중")
+        return
+
     # 1시간마다 실행하는 작업 등록
     scheduler.add_job(
         refresh_product_pool_job,
@@ -57,6 +78,10 @@ def stop_scheduler():
     """
     스케줄러 중지
     """
+    scheduler = get_scheduler()
+
     if scheduler.running:
         scheduler.shutdown(wait=False)
         logger.info("[Scheduler] 스케줄러 중지 완료")
+    else:
+        logger.debug("[Scheduler] 스케줄러가 실행 중이 아님")
