@@ -68,9 +68,9 @@ async def startup():
     try:
         from .product_random_router import update_product_pool
         await update_product_pool(db)
-        print("[Startup] 상품 풀 초기화 완료")
+        logger.info("[Startup] 상품 풀 초기화 완료")
     except Exception as e:
-        print(f"[Startup] 상품 풀 초기화 실패: {e}")
+        logger.error(f"[Startup] 상품 풀 초기화 실패: {e}")
 
     logger.info("서버 시작 완료 (MongoDB, Redis 연결)")
 

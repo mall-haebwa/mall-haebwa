@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import Any
 import random
 import json
-import hashlib
-import os
+import logging
 
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -17,6 +15,8 @@ from .redis_client import redis_client
 
 
 router = APIRouter(prefix="/products", tags=["products-random"])
+
+logger = logging.getLogger(__name__)
 
 async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
     """
@@ -53,7 +53,7 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
         docs = await collection.aggregate(pipeline).to_list(length=5000)
         product_ids = [str(doc["_id"]) for doc in docs]
 
-        print(f"[Product Pool] 상품 풀 생성: {len(product_ids)}개 상품")
+        logger.info(f"[Product Pool] 상품 풀 생성: {len(product_ids)}개 상품")
 
         # 2. Redis에 저장 (TTL: 1시간)
         if redis_client.redis:
@@ -62,12 +62,12 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
                 3600,   # 1시간 TTL
                 json.dumps(product_ids)
             )
-            print(f"[Product Pool] Redis 저장 완료, TTL: 1시간")
+            logger.info(f"[Product Pool] Redis 저장 완료, TTL: 1시간")
 
         return product_ids
 
     except Exception as e:
-        print(f"[Product Pool] 생성 실패: {e}")
+        logger.error(f"[Product Pool] 생성 실패: {e}")
         return []
 
 @router.get("/random")
@@ -89,7 +89,7 @@ async def random_products(
     - 풀 없음: ~500ms (최초 1회 생성 후 1시간 동안 재사용)
     """
 
-    # exclude 파라미터 처리: 쉼표 구분/반복 파라미터 모두 지원
+    # 1. exclude 파라미터 처리: 쉼표 구분/반복 파라미터 모두 지원
     exclude_ids: list[ObjectId] = []
     for token in exclude:
         if not token:
@@ -109,26 +109,24 @@ async def random_products(
             pool_data = await redis_client.redis.get("product_pool:ids")
             if pool_data:
                 product_pool = json.loads(pool_data)
-                print(f"[Random] 상품 풀 로드: {len(product_pool)}개")
-            else:
-                print(f"[Random] 상품 풀 없음, 새로 생성 중...")
-                product_pool = await update_product_pool(db)
+                logger.info(f"[Random] 상품 풀 로드: {len(product_pool)}개")
         except Exception as e:
-            print(f"[Random] Redis 조회 실패: {e}")
+            logger.warning(f"[Random] Redis 조회 실패: {e}")
 
     # 3. 풀이 없으면 생성
     if not product_pool:
-        print(f"[Random] 상품 풀 생성 중...")
+        logger.info(f"[Random] 상품 풀 생성 중...")
         product_pool = await update_product_pool(db)
 
     if not product_pool:
-        print(f"[Random] 상품 풀 생성 실패")
+        logger.error(f"[Random] 상품 풀 생성 실패")
         return {"items": [], "limit": limit, "count": 0}
 
     # 4. exclude 처리
+    exclude_set = set(str(oid) for oid in exclude_ids)  # 문자열로 비교
     available_ids = [
         pid for pid in product_pool
-        if ObjectId(pid) not in exclude_ids
+        if pid not in exclude_set   # 문자열 비교, O(1)
     ]
 
     # 5. Python random.sample로 빠르게 선택
@@ -158,6 +156,6 @@ async def random_products(
         "count": len(items),
     }
 
-    print(f"[Random] 랜덤 상품 반환: {len(items)}개")
+    logger.info(f"[Random] 랜덤 상품 반환: {len(items)}개")
 
     return result
