@@ -51,6 +51,9 @@ botocore>=1.39.0  # AWS SDK Core
 # Redis Cache
 redis[asyncio]==5.0.1
 
+# Scheduler
+APScheduler==3.10.4
+
 # Search & Vector
 elasticsearch==8.12.0
 aiohttp>=3.13.0  # Required for AsyncElasticsearch

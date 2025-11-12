@@ -20,6 +20,7 @@ from .category_router import router as category_router
 from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .redis_client import redis_client
+from .scheduler import start_scheduler, stop_scheduler
 from .chat_models import ChatRequest, ChatResponse
 from .vector_search_router import router as vector_search_router
 
@@ -72,10 +73,23 @@ async def startup():
     except Exception as e:
         logger.error(f"[Startup] 상품 풀 초기화 실패: {e}")
 
+    # 스케쥴러 시작 (1시간마다 자동 갱신)
+    try:
+        start_scheduler(db)
+        logger.info("[Startup] 스케쥴러 시작 완료")
+    except Exception as e:
+        logger.error(f"[Startup] 스케쥴러 시작 실패: {e}")
+
     logger.info("서버 시작 완료 (MongoDB, Redis 연결)")
 
 @app.on_event("shutdown")
 async def shutdown():
+    # 스케쥴러 중지
+    try:
+        stop_scheduler()
+    except Exception as e:
+        logger.error(f"[Shutdown] 스케쥴러 중지 실패: {e}")
+
     # Redis 연결 해제
     await redis_client.disconnect()
     logger.info("서버 종료 (Redis 연결 해제)")
