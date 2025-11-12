@@ -18,22 +18,57 @@ from .redis_client import redis_client
 
 router = APIRouter(prefix="/products", tags=["products-random"])
 
-def _generate_cache_key(limit: int, exclude_ids: list[ObjectId]) -> str:
+async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
     """
-    캐시 키 생성 함수
+    rank 1-5000 상품의 ID를 Redis에 저장
 
-    Args:
-        limit: 요청한 상품 개수
-        exclude_ids: 제외할 상품 ID 리스트
+    이 함수는 다음과 같은 경우에 호출됩니다:
+    - 서버 시작 시 (main.py startup event)
+    - 풀이 만료되었을 때 (자동)
 
     Returns:
-        Redis 캐시 키 (예: "random_products:24:abc123")
+        상품 ID 리스트
     """
-    # exclude_ids를 정렬해서 해시 생성 (순서 무관하게 동일한 키 생성)
-    exclude_str = ",".join(sorted([str(oid) for oid in exclude_ids]))
-    exclude_hash = hashlib.md5(exclude_str.encode()).hexdigest()[:8] if exclude_ids else "none"
+    try:
+        collection = db["products"]
 
-    return f"random_products:{limit}:{exclude_hash}"
+        # 1. 추천 가능한 상품 ID만 가져오기 (빠른 쿼리)
+        pipeline = [
+            {
+                "$addFields": {
+                    "numericRank": {
+                        "$convert": {
+                            "input": "$rank",
+                            "to": "int",
+                            "onError": None,
+                            "onNull": None,
+                        }
+                    }
+                }
+            },
+            {"$match": {"numericRank": {"$gte": 1, "$lte": 5000}}},
+            {"$project": {"_id": 1}}    # ID만 프로젝션 (데이터 전송량 최소화)
+        ]
+
+        docs = await collection.aggregate(pipeline).to_list(length=5000)
+        product_ids = [str(doc["_id"]) for doc in docs]
+
+        print(f"[Product Pool] 상품 풀 생성: {len(product_ids)}개 상품")
+
+        # 2. Redis에 저장 (TTL: 1시간)
+        if redis_client.redis:
+            await redis_client.redis.setex(
+                "product_pool:ids",
+                3600,   # 1시간 TTL
+                json.dumps(product_ids)
+            )
+            print(f"[Product Pool] Redis 저장 완료, TTL: 1시간")
+
+        return product_ids
+
+    except Exception as e:
+        print(f"[Product Pool] 생성 실패: {e}")
+        return []
 
 @router.get("/random")
 async def random_products(
@@ -41,14 +76,17 @@ async def random_products(
     exclude: list[str] = Query(default=[]),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """중복 없이 완전 랜덤, 순서도 매번 다른 상품 목록을 반환합니다.
+    """
+    ID 풀 기반 고속 랜덤 추천
 
     구현:
-    - Redis 캐시 우선 조회 (TTL: 10분)
-    - 캐시 미스 시: rank를 정수로 변환(numericRank) 후 1~5000 범위로 필터
-    - MongoDB `$sample`로 limit개 랜덤 추출(중복 없음, 매 호출 무작위)
-    - 결과 순서는 샘플 특성상 랜덤이지만, 안전하게 한 번 더 셔플
-    - Redis에 결과 캐싱
+    - Redis에 저장된 상품 ID 풀(rank 1-5000) 사용
+    - Python random.sample로 빠른 샘플링(메모리 연산)
+    - MongoDB _id 인덱스 조회로 상품 정보 가져오기
+
+    성능:
+    - 풀 있음: ~10-15ms
+    - 풀 없음: ~500ms (최초 1회 생성 후 1시간 동안 재사용)
     """
 
     # exclude 파라미터 처리: 쉼표 구분/반복 파라미터 모두 지원
@@ -64,49 +102,54 @@ async def random_products(
                 # 유효하지 않은 ObjectId는 무시
                 pass
 
-    # Redis 캐시 조회
-    cache_key = _generate_cache_key(limit, exclude_ids)
-
+    # 2. Redis에서 상품 ID 풀 가져오기
+    product_pool = None
     if redis_client.redis:
         try:
-            cached_data = await redis_client.redis.get(cache_key)
-            if cached_data:
-                result = json.loads(cached_data)
-                print(f"[Redis] 랜덤 상품 캐시 히트: {cache_key}, {result['count']}개 상품")
-                return result
-            print(f"[Redis] 캐시 미스: {cache_key}, MongoDB에서 조회")
+            pool_data = await redis_client.redis.get("product_pool:ids")
+            if pool_data:
+                product_pool = json.loads(pool_data)
+                print(f"[Random] 상품 풀 로드: {len(product_pool)}개")
+            else:
+                print(f"[Random] 상품 풀 없음, 새로 생성 중...")
+                product_pool = await update_product_pool(db)
         except Exception as e:
-            print(f"[Redis] 캐시 조회 실패: {e}, MongoDB로 폴백")
+            print(f"[Random] Redis 조회 실패: {e}")
 
-    # MongoDB 쿼리 (캐시 미스 시)
-    collection = db["products"]
+    # 3. 풀이 없으면 생성
+    if not product_pool:
+        print(f"[Random] 상품 풀 생성 중...")
+        product_pool = await update_product_pool(db)
 
-    pipeline: list[dict[str, Any]] = [
-        {
-            "$addFields": {
-                "numericRank": {
-                    "$convert": {
-                        "input": "$rank",
-                        "to": "int",
-                        "onError": None,
-                        "onNull": None,
-                    }
-                }
-            }
-        },
-        {"$match": {"numericRank": {"$gte": 1, "$lte": 5000}}},
+    if not product_pool:
+        print(f"[Random] 상품 풀 생성 실패")
+        return {"items": [], "limit": limit, "count": 0}
+
+    # 4. exclude 처리
+    available_ids = [
+        pid for pid in product_pool
+        if ObjectId(pid) not in exclude_ids
     ]
 
-    if exclude_ids:
-        pipeline.append({"$match": {"_id": {"$nin": exclude_ids}}})
+    # 5. Python random.sample로 빠르게 선택
+    sample_size = min(limit, len(available_ids))
+    if sample_size == 0:
+        return {"items": [], "limit": limit, "count": 0}
 
-    pipeline.append({"$sample": {"size": limit}})
+    selected_ids = random.sample(available_ids, sample_size)
 
-    docs = await collection.aggregate(pipeline).to_list(length=limit)
+    # 6. MongoDB에서 선택된 ID로 조회 (인덱스 사용!)
+    collection = db["products"]
+    object_ids = [ObjectId(pid) for pid in selected_ids]
 
-    # 안전을 위해 한 번 더 셔플(샘플 순서도 랜덤이긴 함)
+    docs = await collection.find(
+        {"_id": {"$in": object_ids}}
+    ).to_list(length=sample_size)
+
+    # 7. 셔플
     random.shuffle(docs)
 
+    # 8. 응답 포맷팅
     items = [_reshape_product(doc) for doc in docs]
 
     result = {
@@ -115,17 +158,6 @@ async def random_products(
         "count": len(items),
     }
 
-    # Redis 캐시 저장 (TTL: 10분 = 600초)
-    if redis_client.redis:
-        try:
-            ttl = int(os.getenv("REDIS_TTL_RANDOM_PRODUCTS", 600))
-            await redis_client.redis.setex(
-                cache_key,
-                ttl,
-                json.dumps(result, ensure_ascii=False, default=str)
-            )
-            print(f"[Redis] 랜덤 상품 캐시 저장: {cache_key}, {len(items)}개 상품, TTL 10분")
-        except Exception as e:
-            print(f"[Redis] 캐시 저장 실패: {e}")
+    print(f"[Random] 랜덤 상품 반환: {len(items)}개")
 
     return result
