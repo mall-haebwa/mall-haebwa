@@ -75,7 +75,7 @@ async def startup():
 
     # 스케쥴러 시작 (1시간마다 자동 갱신)
     try:
-        start_scheduler(db)
+        start_scheduler()
         logger.info("[Startup] 스케쥴러 시작 완료")
     except Exception as e:
         logger.error(f"[Startup] 스케쥴러 시작 실패: {e}")
