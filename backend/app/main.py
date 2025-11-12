@@ -230,7 +230,11 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 - 주문 내역 확인 → get_orders Tool 사용
 - 찜 목록 확인 → get_wishlist Tool 사용
 - 단일 상품 검색 (명확한 키워드) → search_products Tool 사용
-- 여러 상품 검색 → multi_search_products Tool 사용
+- **여러 상품 동시 검색 (CRITICAL)** → multi_search_products Tool 사용
+  * **요리/음식 만들기 요청 시 필수 사용**: "김치찌개 해먹고싶어", "파스타 만들려고", "카레 끓이고싶어"
+    → 필요한 재료 목록을 추출하고 multi_search_products(queries=["김치", "돼지고기", "두부", "대파"], main_query="김치찌개 재료")
+  * "파티 준비물", "캠핑 갈건데", "등산 준비" 같은 복합 쇼핑 요청도 multi_search_products 사용
+  * **절대로 "김치찌개"를 단일 상품으로 검색하지 마세요** - 재료 리스트를 분석해서 multi_search_products 사용
 - **의미 기반 검색 (비슷한 제품, 유사 상품, 추천)** → semantic_search Tool 사용
   * "비슷한 제품 추천해줘" → 이전 대화에서 언급된 상품명으로 semantic_search 실행
   * "더치커피와 유사한 제품" → semantic_search(query="더치커피 콜드브루 원액")
@@ -255,7 +259,14 @@ async def chat(http_request: Request, chat_request: ChatRequest):
   * 예: "3개의 아몬드 상품을 찾았습니다. 왼쪽 화면에서 원하시는 상품을 선택해주세요."
 
 **복잡한 요청 처리 예시**:
-1. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
+1. "김치찌개 해먹고싶어" (요리 재료 검색)
+   → multi_search_products(
+        queries=["김치", "돼지고기", "두부", "대파", "고춧가루"],
+        main_query="김치찌개 재료"
+      )
+   → 응답: "김치찌개에 필요한 재료들을 찾았습니다. 김치, 돼지고기, 두부 등을 확인해보세요."
+
+2. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
    → Step 1: search_orders_by_product(product_keyword="커피", year={current_year - 1})
    → Step 2: (결과가 1개이면) add_to_cart(
         product_id=orders[0].matched_item.product_id,
@@ -265,12 +276,12 @@ async def chat(http_request: Request, chat_request: ChatRequest):
       )
    → 응답: "작년에 구매하신 [상품명]을 장바구니에 담았습니다."
 
-2. "올해 구매한 아몬드 재주문해줘" (결과 3개)
+3. "올해 구매한 아몬드 재주문해줘" (결과 3개)
    → Step 1: search_orders_by_product(product_keyword="아몬드", year={current_year})
    → Step 2: (결과가 2개 이상이므로) add_to_cart 호출하지 않음
    → 응답: "올해 구매하신 아몬드 상품 3개를 찾았습니다. 왼쪽 화면에서 원하시는 상품을 선택해주세요."
 
-3. "2024년에 구매한 커피 보여줘"
+4. "2024년에 구매한 커피 보여줘"
    → Step 1: search_orders_by_product(product_keyword="커피", year=2024)
    → 응답: "2024년에 구매하신 커피 상품을 찾았습니다."
 

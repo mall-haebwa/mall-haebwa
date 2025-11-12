@@ -53,7 +53,7 @@ class BedrockClient:
 
         # Rate limiting 설정
         self.last_api_call_time = 0
-        self.min_call_interval = 0.5  # 최소 0.5초 간격 (초당 2회)
+        self.min_call_interval = 0.0  # Rate limiting 비활성화 (빠른 응답)
 
         logger.info(f"✓ Bedrock Client initialized (model: {self.model_id}, region: {self.region_name})")
 
