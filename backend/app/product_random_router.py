@@ -5,6 +5,7 @@ import random
 import json
 import logging
 import time
+import asyncio
 
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -26,6 +27,8 @@ _memory_pool_cache = {
 }
 _MEMORY_CACHE_TTL = 3600  # 1시간
 
+# 풀 생성 동시성 제어
+_pool_creation_lock = asyncio.Lock()
 
 async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
     """
@@ -130,9 +133,28 @@ async def random_products(
             product_pool = _memory_pool_cache["ids"]
             logger.info(f"[Random] 상품 풀 로드 (메모리 캐시): {len(product_pool)}개")
         else:
-            # 메모리 캐시도 만료됨
-            logger.info(f"[Random] 상품 풀 생성 중...")
-            product_pool = await update_product_pool(db)
+            # 메모리 캐시도 만료됨 - 동시성 제어
+            async with _pool_creation_lock:
+                # Double-check locking: 락을 획득한 후 다시 확인
+                # (다른 요청이 이미 생성했을 수 있음)
+                if redis_client.redis:
+                    try:
+                        pool_data = await redis_client.redis.get("product_pool:ids")
+                        if pool_data:
+                            product_pool = json.loads(pool_data)
+                            logger.info(f"[Random] 상품 풀 로드 (Redis, 재확인): {len(product_pool)}개")
+                    except Exception:
+                        pass
+
+                # Redis에도 없으면 메모리 캐시 재확인
+                if not product_pool:
+                    if _memory_pool_cache["ids"] and time.time() < _memory_pool_cache["expires_at"]:
+                        product_pool = _memory_pool_cache["ids"]
+                        logger.info(f"[Random] 상품 풀 로드 (메모리 캐시, 재확인): {len(product_pool)}개")
+                    else:
+                        # 정말로 생성 필요
+                        logger.info(f"[Random] 상품 풀 생성 중...")
+                        product_pool = await update_product_pool(db)
 
     if not product_pool:
         logger.error(f"[Random] 상품 풀 생성 실패")
