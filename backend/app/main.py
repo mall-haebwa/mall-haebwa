@@ -162,7 +162,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
     db = get_db()
     es = get_search_client()
-    tool_handlers_instance = ToolHandlers(db, es)
+    tool_handlers_instance = ToolHandlers(db, es, redis_client=redis_client, user_id=user_id, conversation_id=conv_id)
 
     # 게스트 사용자는 인증 필요 Tool 필터링
     if not user_id:
@@ -182,8 +182,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         # user_id가 필요한 Tool에만 주입
         user_required_tools = [
             "get_cart", "get_orders", "get_wishlist",
-            "search_orders_by_product", "add_to_cart", "get_order_detail",
-            "get_recently_viewed"
+            "search_orders_by_product", "add_to_cart", "add_multiple_to_cart",
+            "add_recommended_to_cart", "get_order_detail", "get_recently_viewed"
         ]
         if tool_name in user_required_tools:
             # functools.partial을 사용하여 user_id를 바인딩 (closure 버그 방지)
@@ -266,7 +266,16 @@ async def chat(http_request: Request, chat_request: ChatRequest):
       )
    → 응답: "김치찌개에 필요한 재료들을 찾았습니다. 김치, 돼지고기, 두부 등을 확인해보세요."
 
-2. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
+2. "추천 상품들 담아줘" 또는 "전부 담아줘" (multi_search 직후)
+   → **add_recommended_to_cart** Tool 사용
+   → 이 Tool은 multi_search_products 실행 시 자동으로 저장된 추천 상품들(각 카테고리의 최상단 상품)을 장바구니에 담습니다.
+   → 응답 예시: "추천 상품 5개를 장바구니에 담았습니다."
+
+   **중요**:
+   - multi_search_products를 먼저 실행하지 않으면 add_recommended_to_cart는 실패합니다.
+   - 사용자가 "추천 상품", "전부", "다" 같은 표현을 쓰면 이 Tool을 사용하세요.
+
+3. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
    → Step 1: search_orders_by_product(product_keyword="커피", year={current_year - 1})
    → Step 2: (결과가 1개이면) add_to_cart(
         product_id=orders[0].matched_item.product_id,
@@ -276,12 +285,12 @@ async def chat(http_request: Request, chat_request: ChatRequest):
       )
    → 응답: "작년에 구매하신 [상품명]을 장바구니에 담았습니다."
 
-3. "올해 구매한 아몬드 재주문해줘" (결과 3개)
+4. "올해 구매한 아몬드 재주문해줘" (결과 3개)
    → Step 1: search_orders_by_product(product_keyword="아몬드", year={current_year})
    → Step 2: (결과가 2개 이상이므로) add_to_cart 호출하지 않음
    → 응답: "올해 구매하신 아몬드 상품 3개를 찾았습니다. 왼쪽 화면에서 원하시는 상품을 선택해주세요."
 
-4. "2024년에 구매한 커피 보여줘"
+5. "2024년에 구매한 커피 보여줘"
    → Step 1: search_orders_by_product(product_keyword="커피", year=2024)
    → 응답: "2024년에 구매하신 커피 상품을 찾았습니다."
 
@@ -323,13 +332,13 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         logger.info(f"[Chat] Reply: {reply[:50]}")
 
         # Action 생성 (Tool 호출 기반) - 프론트엔드와 일치하는 타입 사용
-        # add_to_cart가 있으면 항상 장바구니 표시 (우선순위)
+        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart가 있으면 항상 장바구니 표시 (우선순위)
         action = {"type": "CHAT", "params": {}}
 
-        # add_to_cart 우선 확인
+        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart 우선 확인
         add_to_cart_tool = None
         for tool in tool_calls:
-            if tool["name"] == "add_to_cart":
+            if tool["name"] in ["add_to_cart", "add_multiple_to_cart", "add_recommended_to_cart"]:
                 add_to_cart_tool = tool
                 break
 

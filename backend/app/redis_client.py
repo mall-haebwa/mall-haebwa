@@ -279,6 +279,79 @@ class RedisClient:
             return False
 
     # ========================
+    # Multi Search 추천 상품 관련 메서드
+    # ========================
+
+    async def set_recommended_products(
+        self,
+        user_id: str,
+        conversation_id: str,
+        products: List[Dict]
+    ) -> bool:
+        """
+        Multi Search의 추천 상품 저장 (각 카테고리의 첫 번째 상품)
+
+        Args:
+            user_id: 사용자 ID
+            conversation_id: 대화 ID
+            products: 추천 상품 리스트 (각 카테고리의 첫 번째 상품)
+
+        Returns:
+            성공 여부
+        """
+        if not self.redis:
+            logger.warning("Redis not connected")
+            return False
+
+        try:
+            key = f"recommended_products:{user_id}:{conversation_id}"
+            ttl = 3600  # 1시간 TTL
+
+            await self.redis.setex(
+                key,
+                ttl,
+                json.dumps(products, ensure_ascii=False, default=str)
+            )
+            logger.info(f"[Redis] 추천 상품 저장: user {user_id}, {len(products)}개 상품")
+            return True
+        except Exception as e:
+            logger.error(f"[Redis] 추천 상품 저장 실패: {e}")
+            return False
+
+    async def get_recommended_products(
+        self,
+        user_id: str,
+        conversation_id: str
+    ) -> Optional[List[Dict]]:
+        """
+        Multi Search의 추천 상품 조회
+
+        Args:
+            user_id: 사용자 ID
+            conversation_id: 대화 ID
+
+        Returns:
+            추천 상품 리스트 또는 None
+        """
+        if not self.redis:
+            logger.warning("Redis not connected")
+            return None
+
+        try:
+            key = f"recommended_products:{user_id}:{conversation_id}"
+            data = await self.redis.get(key)
+
+            if data:
+                products = json.loads(data)
+                logger.info(f"[Redis] 추천 상품 조회: user {user_id}, {len(products)}개 상품")
+                return products
+            logger.debug(f"[Redis] 추천 상품 없음: user {user_id}")
+            return None
+        except Exception as e:
+            logger.error(f"[Redis] 추천 상품 조회 실패: {e}")
+            return None
+
+    # ========================
     # 검색 캐시 관련 메서드 (추가)
     # ========================
 

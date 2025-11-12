@@ -39,6 +39,8 @@ TOOL_AUTH_REQUIRED = {
 	"get_orders",
 	"search_orders_by_product",
 	"add_to_cart",
+	"add_multiple_to_cart",
+	"add_recommended_to_cart",
 	"get_order_detail",
 	"get_wishlist",
 	"get_recently_viewed"
@@ -212,6 +214,51 @@ SHOPPING_TOOLS = [
     },
     {
         "toolSpec": {
+            "name": "add_multiple_to_cart",
+            "description": "여러 상품을 한번에 장바구니에 추가합니다. **로그인 필요**. product_id를 직접 알고 있을 때 사용합니다.",
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {
+                        "products": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "product_id": {
+                                        "type": "string",
+                                        "description": "상품 ID"
+                                    },
+                                    "quantity": {
+                                        "type": "number",
+                                        "description": "수량 (기본: 1)"
+                                    }
+                                },
+                                "required": ["product_id"]
+                            },
+                            "description": "추가할 상품 목록"
+                        }
+                    },
+                    "required": ["products"]
+                }
+            }
+        },
+    },
+    {
+        "toolSpec": {
+            "name": "add_recommended_to_cart",
+            "description": "최근 multi_search로 찾은 추천 상품들을 장바구니에 담습니다. **로그인 필요**. '추천 상품들 담아줘', '전부 담아줘' 같은 요청에 반드시 이 tool을 사용하세요. multi_search_products 실행 후에만 사용 가능합니다.",
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        },
+    },
+    {
+        "toolSpec": {
             "name": "get_order_detail",
             "description": "특정 주문의 상세 정보와 배송 현황을 조회합니다. **로그인 필요**",
             "inputSchema": {
@@ -356,9 +403,12 @@ embedding_service = BedrockEmbeddingService()
 class ToolHandlers:
     """쇼핑몰 Tool 실행 핸들러"""
 
-    def __init__(self, db: AsyncIOMotorDatabase, es: AsyncElasticsearch):
+    def __init__(self, db: AsyncIOMotorDatabase, es: AsyncElasticsearch, redis_client=None, user_id: str = None, conversation_id: str = None):
         self.db = db
         self.es = es
+        self.redis_client = redis_client
+        self.user_id = user_id
+        self.conversation_id = conversation_id
 
     async def search_products(
         self,
@@ -653,16 +703,43 @@ class ToolHandlers:
             logger.info(f"[Tool] multi_search_products: queries={queries}, main_query={main_query}")
 
             results = {}
+            recommended_products = []  # 각 카테고리의 첫 번째 상품
+
             for query in queries[:5]:  # 최대 5개까지만
                 # 각 쿼리에 대해 search_products 호출
                 search_result = await self.search_products(query=query, limit=20)
-                results[query] = search_result.get("products", [])
-                logger.info(f"[Tool] multi_search_products: {query} → {len(results[query])} products")
+                products = search_result.get("products", [])
+                results[query] = products
+
+                # 첫 번째 상품을 추천 상품으로 저장
+                if products:
+                    recommended_products.append({
+                        "product_id": products[0].get("id"),
+                        "name": products[0].get("name"),
+                        "price": products[0].get("price"),
+                        "image": products[0].get("image"),
+                        "category": query
+                    })
+
+                logger.info(f"[Tool] multi_search_products: {query} → {len(products)} products")
+
+            # Redis에 추천 상품 저장 (user_id와 conversation_id가 있을 때만)
+            if self.redis_client and self.user_id and self.conversation_id and recommended_products:
+                try:
+                    await self.redis_client.set_recommended_products(
+                        self.user_id,
+                        self.conversation_id,
+                        recommended_products
+                    )
+                    logger.info(f"[Tool] multi_search_products: Saved {len(recommended_products)} recommended products to Redis")
+                except Exception as redis_error:
+                    logger.error(f"[Tool] multi_search_products: Failed to save to Redis: {redis_error}")
 
             return {
                 "results": results,  # {"김치": [...], "돼지고기": [...]}
                 "queries": queries,
-                "main_query": main_query
+                "main_query": main_query,
+                "recommended_count": len(recommended_products)
             }
 
         except Exception as e:
@@ -871,6 +948,109 @@ class ToolHandlers:
 
         except Exception as e:
             logger.error(f"[Tool] add_to_cart error: {e}", exc_info=True)
+            return {"error": str(e), "success": False}
+
+    @requires_authentication
+    async def add_multiple_to_cart(
+        self,
+        user_id: str,
+        products: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """여러 상품을 한번에 장바구니에 추가 Tool"""
+        try:
+            logger.info(f"[Tool] add_multiple_to_cart: user_id={user_id}, count={len(products)}")
+
+            success_count = 0
+            failed_count = 0
+            added_products = []
+
+            for product_data in products:
+                product_id = product_data.get("product_id")
+                quantity = product_data.get("quantity", 1)
+
+                if not product_id:
+                    failed_count += 1
+                    continue
+
+                # add_to_cart 재사용
+                result = await self.add_to_cart(
+                    user_id=user_id,
+                    product_id=product_id,
+                    quantity=quantity
+                )
+
+                if result.get("success"):
+                    success_count += 1
+                    added_products.append(result.get("product_name", "상품"))
+                else:
+                    failed_count += 1
+
+            logger.info(f"[Tool] add_multiple_to_cart: success={success_count}, failed={failed_count}")
+
+            if success_count == 0:
+                return {
+                    "success": False,
+                    "error": "장바구니에 추가할 수 있는 상품이 없습니다.",
+                    "success_count": 0,
+                    "failed_count": failed_count
+                }
+
+            # 성공 메시지 생성
+            if failed_count == 0:
+                message = f"{success_count}개 상품을 장바구니에 담았습니다."
+            else:
+                message = f"{success_count}개 상품을 장바구니에 담았습니다. ({failed_count}개 실패)"
+
+            return {
+                "success": True,
+                "message": message,
+                "success_count": success_count,
+                "failed_count": failed_count,
+                "added_products": added_products[:5]  # 최대 5개만 표시
+            }
+
+        except Exception as e:
+            logger.error(f"[Tool] add_multiple_to_cart error: {e}", exc_info=True)
+            return {"error": str(e), "success": False, "success_count": 0, "failed_count": len(products)}
+
+    @requires_authentication
+    async def add_recommended_to_cart(self, user_id: str) -> Dict[str, Any]:
+        """최근 multi_search로 찾은 추천 상품들을 장바구니에 담기 Tool"""
+        try:
+            logger.info(f"[Tool] add_recommended_to_cart: user_id={user_id}")
+
+            # Redis에서 추천 상품 조회
+            if not self.redis_client or not self.conversation_id:
+                return {
+                    "success": False,
+                    "error": "추천 상품 정보를 찾을 수 없습니다. 먼저 상품 검색을 해주세요."
+                }
+
+            recommended_products = await self.redis_client.get_recommended_products(
+                user_id,
+                self.conversation_id
+            )
+
+            if not recommended_products:
+                return {
+                    "success": False,
+                    "error": "저장된 추천 상품이 없습니다. 먼저 '김치찌개 재료 찾아줘' 같은 검색을 해주세요."
+                }
+
+            logger.info(f"[Tool] add_recommended_to_cart: Found {len(recommended_products)} recommended products")
+
+            # add_multiple_to_cart 재사용
+            products_to_add = [
+                {"product_id": p["product_id"], "quantity": 1}
+                for p in recommended_products
+            ]
+
+            result = await self.add_multiple_to_cart(user_id=user_id, products=products_to_add)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[Tool] add_recommended_to_cart error: {e}", exc_info=True)
             return {"error": str(e), "success": False}
 
     @requires_authentication
@@ -1099,6 +1279,8 @@ class ToolHandlers:
             "get_wishlist": self.get_wishlist,
             "search_orders_by_product": self.search_orders_by_product,
             "add_to_cart": self.add_to_cart,
+            "add_multiple_to_cart": self.add_multiple_to_cart,
+            "add_recommended_to_cart": self.add_recommended_to_cart,
             "get_order_detail": self.get_order_detail,
             "get_recently_viewed": self.get_recently_viewed,
             "semantic_search": self.semantic_search
