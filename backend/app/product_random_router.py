@@ -6,6 +6,7 @@ import json
 import logging
 import time
 import asyncio
+import os
 
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -20,12 +21,16 @@ router = APIRouter(prefix="/products", tags=["products-random"])
 
 logger = logging.getLogger(__name__)
 
+# 상품 풀 설정
+PRODUCT_POOL_SIZE = int(os.getenv("PRODUCT_POOL_SIZE", "5000"))  # 풀 크기
+PRODUCT_POOL_TTL = int(os.getenv("PRODUCT_POOL_TTL", "3600"))    # 1시간 (초 단위)
+PRODUCT_POOL_REDIS_KEY = "product_pool:ids"                      # Redis 키 이름
+
 # 메모리 기반 폴백 캐시 (Redis 실패 시 사용)
 _memory_pool_cache = {
     "ids": [],
     "expires_at": 0
 }
-_MEMORY_CACHE_TTL = 3600  # 1시간
 
 # 풀 생성 동시성 제어
 _pool_creation_lock = asyncio.Lock()
@@ -46,11 +51,11 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
 
         # 1. 추천 가능한 상품 ID만 가져오기 (빠른 쿼리)
         pipeline = [
-            {"$sample": {"size": 5000}},  # 전체에서 랜덤 5000개
+            {"$sample": {"size": PRODUCT_POOL_SIZE}},  # 전체에서 랜덤 5000개
             {"$project": {"_id": 1}}
         ]
 
-        docs = await collection.aggregate(pipeline).to_list(length=5000)
+        docs = await collection.aggregate(pipeline).to_list(length=PRODUCT_POOL_SIZE)
         product_ids = [str(doc["_id"]) for doc in docs]
 
         logger.info(f"[Product Pool] 상품 풀 생성: {len(product_ids)}개 상품")
@@ -59,21 +64,21 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
         if redis_client.redis:
             try:
                 await redis_client.redis.setex(
-                    "product_pool:ids",
-                    3600,   # 1시간 TTL
+                    PRODUCT_POOL_REDIS_KEY,
+                    PRODUCT_POOL_TTL,   # 1시간 TTL
                     json.dumps(product_ids)
                 )
-                logger.info(f"[Product Pool] Redis 저장 완료, TTL: 1시간")
+                logger.info(f"[Product Pool] Redis 저장 완료, TTL: {PRODUCT_POOL_TTL}초")
             except Exception as e:
                 logger.warning(f"[Product Pool] Redis 저장 실패, 메모리 폴백 사용: {e}")
                 # Redis 저장 실패 시 메모리 캐시 사용
                 _memory_pool_cache["ids"] = product_ids
-                _memory_pool_cache["expires_at"] = time.time() + _MEMORY_CACHE_TTL
+                _memory_pool_cache["expires_at"] = time.time() + PRODUCT_POOL_TTL
         else:
             # Redis 연결 없음 - 메모리 캐시 사용
             logger.warning(f"[Product Pool] Redis 연결 없음, 메모리 폴백 사용")
             _memory_pool_cache["ids"] = product_ids
-            _memory_pool_cache["expires_at"] = time.time() + _MEMORY_CACHE_TTL
+            _memory_pool_cache["expires_at"] = time.time() + PRODUCT_POOL_TTL
 
         return product_ids
 
@@ -120,7 +125,7 @@ async def random_products(
 
     if redis_client.redis:
         try:
-            pool_data = await redis_client.redis.get("product_pool:ids")
+            pool_data = await redis_client.redis.get(PRODUCT_POOL_REDIS_KEY)
             if pool_data:
                 product_pool = json.loads(pool_data)
                 logger.info(f"[Random] 상품 풀 로드 (Redis): {len(product_pool)}개")
@@ -139,7 +144,7 @@ async def random_products(
                 # (다른 요청이 이미 생성했을 수 있음)
                 if redis_client.redis:
                     try:
-                        pool_data = await redis_client.redis.get("product_pool:ids")
+                        pool_data = await redis_client.redis.get(PRODUCT_POOL_REDIS_KEY)
                         if pool_data:
                             product_pool = json.loads(pool_data)
                             logger.info(f"[Random] 상품 풀 로드 (Redis, 재확인): {len(product_pool)}개")
