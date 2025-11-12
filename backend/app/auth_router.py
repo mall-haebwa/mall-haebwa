@@ -82,7 +82,7 @@ async def login(payload: LoginIn, response: Response, db: AsyncIOMotorDatabase =
     # 로그인 유지(remember)면 7일, 아니면 세션(브라우저 종료 시 삭제) → max_age=None 사용
     refresh = create_refresh_token(uid)  # 항상 7일 만료로 생성
 
-    set_cookie(response, COOKIE_ACCESS, access, max_age=15*60)    # 15분
+    set_cookie(response, COOKIE_ACCESS, access, max_age=60*60)    # 15분
     set_cookie(response, COOKIE_REFRESH, refresh, max_age=7*24*60*60)  # 항상 7일
 
     # 적립금 계산
