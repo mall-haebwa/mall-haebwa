@@ -1,68 +1,68 @@
 services:
-  # MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
-#  mongodb:
-#    image: mongo:7.0
-#    container_name: ecommerce-mongodb
-#    command: ["mongod", "--bind_ip_all", "--replSet", "rs0"]
-#    restart: unless-stopped
-#    ports:
-#      - "27017:27017"
-#    environment:
-#      MONGO_INITDB_DATABASE: ecommerce_ai
-#    volumes:
-#      - mongodb_data:/data/db
-#    networks:
-#      - ecommerce-network
-#
-#  search-sync:
-#    build:
-#      context: ./backend
-#      dockerfile: Dockerfile
-#    command: ["python", "-m", "app.sync"]
-#    restart: unless-stopped
-#    env_file:
-#      - .env.docker
-#    depends_on:
-#      - elasticsearch
-#    networks:
-#      - ecommerce-network
-#
-#  # Elasticsearch (검색 엔진)
-#  elasticsearch:
-#    build:
-#      context: ./elasticsearch
-#      dockerfile: Dockerfile
-#    container_name: ecommerce-elasticsearch
-#    restart: unless-stopped
-#    environment:
-#      - discovery.type=single-node
-#      - xpack.security.enabled=false # 비밀번호 없이 사용
-#      - ES_JAVA_OPTS=-Xms1g -Xmx1g # 메모리 설정 (RAM 부족하면 512m로 변경 가능)
-#    ulimits:
-#      memlock:
-#        soft: -1
-#        hard: -1
-#    ports:
-#      - "9200:9200"
-#      - "9300:9300"
-#    volumes:
-#      - elastic_data:/usr/share/elasticsearch/data
-#    networks:
-#      - ecommerce-network
-#
-#  # Kibana (검색 UI / 인덱스 디버깅)
-#  kibana:
-#    image: docker.elastic.co/kibana/kibana:8.12.0
-#    container_name: ecommerce-kibana
-#    restart: unless-stopped
-#    ports:
-#      - "5601:5601"
-#    environment:
-#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-#    depends_on:
-#      - elasticsearch
-#    networks:
-#      - ecommerce-network
+   #MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
+  mongodb:
+    image: mongo:7.0
+    container_name: ecommerce-mongodb
+    command: ["mongod", "--bind_ip_all", "--replSet", "rs0"]
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ecommerce_ai
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - ecommerce-network
+
+  search-sync:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.sync"]
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    depends_on:
+      - elasticsearch
+    networks:
+      - ecommerce-network
+
+  # Elasticsearch (검색 엔진)
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+      dockerfile: Dockerfile
+    container_name: ecommerce-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # 비밀번호 없이 사용
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g # 메모리 설정 (RAM 부족하면 512m로 변경 가능)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    networks:
+      - ecommerce-network
+
+  # Kibana (검색 UI / 인덱스 디버깅)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: ecommerce-kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - ecommerce-network
 
   # Redis 캐시 서버 (NEW!)
   redis:
