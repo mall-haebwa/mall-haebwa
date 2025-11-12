@@ -350,10 +350,9 @@ export function CartPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold text-gray-900">
-                            ₩
                             {(
                               getItemPrice(item) * item.quantity
-                            ).toLocaleString()}
+                            ).toLocaleString()}원
                           </p>
                           <button
                             type="button"
@@ -404,20 +403,20 @@ export function CartPage() {
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex justify-between">
                   <span>상품 금액</span>
-                  <span>₩{totals.subtotal.toLocaleString()}</span>
+                  <span>{totals.subtotal.toLocaleString()}원</span>
                 </div>
                 <div className="flex justify-between">
                   <span>배송비</span>
                   <span>
                     {totals.deliveryFee === 0
                       ? "무료"
-                      : `₩${totals.deliveryFee.toLocaleString()}`}
+                      : `${totals.deliveryFee.toLocaleString()}원`}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-semibold text-gray-900">
                   <span>총 결제금액</span>
-                  <span>₩{totals.total.toLocaleString()}</span>
+                  <span>{totals.total.toLocaleString()}원</span>
                 </div>
               </div>
               <Button

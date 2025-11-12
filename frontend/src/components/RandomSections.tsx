@@ -134,9 +134,8 @@ export function RandomSections() {
                     </p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-semibold text-gray-900">
-                        {(p.price ?? 0).toLocaleString()}
+                        {(p.price ?? 0).toLocaleString()}원
                       </span>
-                      <span className="text-xs text-gray-500">KRW</span>
                     </div>
                   </div>
                 </button>

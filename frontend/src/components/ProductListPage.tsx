@@ -405,8 +405,8 @@ export function ProductListPage() {
                   className="mb-3"
                 />
                 <div className="flex justify-between text-xs text-gray-600">
-                  <span>{priceRange[0].toLocaleString()} 원</span>
-                  <span>{priceRange[1].toLocaleString()} 원</span>
+                  <span>{priceRange[0].toLocaleString()}원</span>
+                  <span>{priceRange[1].toLocaleString()}원</span>
                 </div>
               </div>
             </div>
@@ -483,14 +483,13 @@ export function ProductListPage() {
                         </p>
                         <div className="flex items-baseline gap-1">
                           <span className="text-lg font-semibold text-gray-900">
-                            {(product.price ?? 0).toLocaleString()}
+                            {(product.price ?? 0).toLocaleString()}원
                           </span>
-                          <span className="text-xs text-gray-500">원</span>
                         </div>
                         {product.originalPrice &&
                           product.originalPrice > (product.price ?? 0) && (
                             <p className="text-xs text-gray-400 line-through">
-                              {product.originalPrice.toLocaleString()} 원
+                              {product.originalPrice.toLocaleString()}원
                             </p>
                           )}
                         {(product.rating ?? 0) > 0 && (
