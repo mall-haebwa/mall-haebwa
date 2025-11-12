@@ -713,13 +713,16 @@ class ToolHandlers:
 
                 # 첫 번째 상품을 추천 상품으로 저장
                 if products:
-                    recommended_products.append({
-                        "product_id": products[0].get("id"),
-                        "name": products[0].get("name"),
-                        "price": products[0].get("price"),
-                        "image": products[0].get("image"),
+                    first_product = products[0]
+                    product_info = {
+                        "product_id": first_product.get("id"),
+                        "name": first_product.get("name"),
+                        "price": first_product.get("price"),
+                        "image": first_product.get("image"),
                         "category": query
-                    })
+                    }
+                    recommended_products.append(product_info)
+                    logger.info(f"[Tool] multi_search_products: Saved product '{product_info['name']}' with price {product_info['price']}")
 
                 logger.info(f"[Tool] multi_search_products: {query} → {len(products)} products")
 
@@ -967,16 +970,24 @@ class ToolHandlers:
             for product_data in products:
                 product_id = product_data.get("product_id")
                 quantity = product_data.get("quantity", 1)
+                price = product_data.get("price")
+                product_name = product_data.get("product_name") or product_data.get("name")
+                image_url = product_data.get("image_url") or product_data.get("image")
+
+                logger.info(f"[Tool] add_multiple_to_cart: Processing product {product_name} (ID: {product_id}, Price: {price})")
 
                 if not product_id:
                     failed_count += 1
                     continue
 
-                # add_to_cart 재사용
+                # add_to_cart 재사용 (가격, 이름, 이미지 정보 전달)
                 result = await self.add_to_cart(
                     user_id=user_id,
                     product_id=product_id,
-                    quantity=quantity
+                    quantity=quantity,
+                    price=price,
+                    product_name=product_name,
+                    image_url=image_url
                 )
 
                 if result.get("success"):
@@ -1038,10 +1049,18 @@ class ToolHandlers:
                 }
 
             logger.info(f"[Tool] add_recommended_to_cart: Found {len(recommended_products)} recommended products")
+            for p in recommended_products:
+                logger.info(f"[Tool] add_recommended_to_cart: Product {p.get('name')} - Price: {p.get('price')}")
 
-            # add_multiple_to_cart 재사용
+            # add_multiple_to_cart 재사용 (가격, 이름, 이미지 정보 포함)
             products_to_add = [
-                {"product_id": p["product_id"], "quantity": 1}
+                {
+                    "product_id": p["product_id"],
+                    "quantity": 1,
+                    "price": p.get("price"),
+                    "name": p.get("name"),
+                    "image": p.get("image")
+                }
                 for p in recommended_products
             ]
 
