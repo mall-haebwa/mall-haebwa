@@ -20,7 +20,7 @@ MONGO_URL = os.getenv('MONGODB_URL', 'mongodb://54.116.25.146:27017/?replicaSet=
 DB_NAME = os.getenv('MONGODB_DB_NAME', 'ecommerce_ai')
 
 # Elasticsearch 연결
-ES_HOST = os.getenv('ELASTICSEARCH_HOST', 'http://elasticsearch:9200')
+ES_HOST = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
 VECTOR_INDEX = 'products_v2_vector'
 EMBEDDING_DIMENSION = 1024
 
