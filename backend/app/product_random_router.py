@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 PRODUCT_POOL_SIZE = int(os.getenv("PRODUCT_POOL_SIZE", "5000"))  # 풀 크기
 PRODUCT_POOL_TTL = int(os.getenv("PRODUCT_POOL_TTL", "3600"))    # 1시간 (초 단위)
 PRODUCT_POOL_REDIS_KEY = "product_pool:ids"                      # Redis 키 이름
+MAX_EXCLUDE_ITEMS = 1000    # exclude 파라미터 최대 개수 (DoS 방지)
 
 # 메모리 기반 폴백 캐시 (Redis 실패 시 사용)
 _memory_pool_cache = {
@@ -90,7 +91,7 @@ async def update_product_pool(db: AsyncIOMotorDatabase) -> list[str]:
 @router.get("/random")
 async def random_products(
     limit: int = Query(20, ge=1, le=60),
-    exclude: list[str] = Query(default=[]),
+    exclude: list[str] = Query(default=[], max_items=MAX_EXCLUDE_ITEMS),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     """
