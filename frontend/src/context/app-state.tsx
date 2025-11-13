@@ -24,6 +24,10 @@ interface AppStateValue {
   removeFromCart: (index: number) => void;
   removeItemsById: (ids: string[]) => Promise<void>;
   refreshCart: () => Promise<void>;
+  wishlist: Product[];
+  refreshWishlist: () => Promise<void>;
+  addToWishlist: (productId: string) => Promise<void>;
+  removeFromWishlist: (productId: string) => Promise<void>;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
   searchQuery: string;
@@ -180,6 +184,7 @@ const mapServerCart = (
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -249,6 +254,63 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUser]);
 
+  const fetchWishlistFromServer = useCallback(async () => {
+    if (!currentUser) {
+      return;
+    }
+    try {
+      const response = await axios.get<{ items: Array<{ product: Product }> }>(
+        withBase("/api/wishlist/list"),
+        { withCredentials: true },
+      );
+      const products = response.data.items.map((item) => item.product);
+      setWishlist(products);
+    } catch (error) {
+      console.error("Failed to fetch wishlist:", error);
+    }
+  }, [currentUser]);
+
+  const addToWishlist = useCallback(
+    async (productId: string) => {
+      if (!currentUser) {
+        return;
+      }
+      try {
+        await axios.post(
+          withBase("/api/wishlist/add"),
+          { product_id: productId },
+          { withCredentials: true },
+        );
+        // 찜 목록 새로고침
+        await fetchWishlistFromServer();
+      } catch (error) {
+        console.error("Failed to add to wishlist:", error);
+        throw error;
+      }
+    },
+    [currentUser, fetchWishlistFromServer],
+  );
+
+  const removeFromWishlist = useCallback(
+    async (productId: string) => {
+      if (!currentUser) {
+        return;
+      }
+      try {
+        await axios.delete(
+          withBase(`/api/wishlist/remove/${productId}`),
+          { withCredentials: true },
+        );
+        // 찜 목록 새로고침
+        await fetchWishlistFromServer();
+      } catch (error) {
+        console.error("Failed to remove from wishlist:", error);
+        throw error;
+      }
+    },
+    [currentUser, fetchWishlistFromServer],
+  );
+
   useEffect(() => {
     if (!currentUser) {
       return;
@@ -310,6 +372,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      setWishlist([]);
+      return;
+    }
+    fetchWishlistFromServer();
+  }, [currentUser, fetchWishlistFromServer]);
 
   const addToCart = useCallback(
     (rawItem: CartItem) => {
@@ -532,6 +601,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeFromCart,
       removeItemsById,
       refreshCart: fetchCartFromServer,
+      wishlist,
+      refreshWishlist: fetchWishlistFromServer,
+      addToWishlist,
+      removeFromWishlist,
       selectedCategory,
       setSelectedCategory,
       searchQuery,
@@ -547,6 +620,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeFromCart,
       removeItemsById,
       fetchCartFromServer,
+      wishlist,
+      fetchWishlistFromServer,
+      addToWishlist,
+      removeFromWishlist,
       selectedCategory,
       searchQuery,
     ]

@@ -142,7 +142,7 @@ export function HomePage() {
 
       <RandomSections />
 
-      <div className="border-t border-gray-100 bg-main py-12">
+      <div className="border-t border-gray-100 py-12">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-6 md:grid-cols-3 md:px-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900/10">
