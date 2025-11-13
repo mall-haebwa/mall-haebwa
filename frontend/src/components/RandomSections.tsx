@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -9,7 +8,7 @@ import "swiper/css/pagination";
 import { useAppState } from "../context/app-state";
 import type { Product } from "../types";
 import { ProductPreviewCard } from "./ProductPreviewCard";
-
+import { ChevronLeft, ChevronRight } from "lucide-react";
 async function fetchRandom(
   limit: number,
   excludeIds: string[]
@@ -94,31 +93,48 @@ export function RandomSections() {
             </h2>
             <ChevronRight className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition" />
           </button>
-          <Swiper
-            modules={[Navigation, Pagination]}
-            spaceBetween={16}
-            slidesPerView={1}
-            breakpoints={{
-              640: { slidesPerView: 2, spaceBetween: 16 },
-              768: { slidesPerView: 3, spaceBetween: 16 },
-              1024: { slidesPerView: 4, spaceBetween: 16 },
-            }}
-            navigation
-            pagination={{ clickable: true }}
-            className="!pb-12">
-            {section.items.map((p) => (
-              <SwiperSlide key={p.id} className="!h-auto">
-                <ProductPreviewCard
-                  product={p}
-                  onOpen={(productId) => navigate(`/product/${productId}`)}
-                  rating={p.rating}
-                  reviewCount={p.reviewCount}
-                  originalPrice={p.originalPrice}
-                  className="h-full"
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {/* 🔥 Swiper + 버튼을 하나로 묶음 */}
+          <div className="relative">
+            {/* 왼쪽 화살표 */}
+            <button className="custom-prev hover:shadow-lg transition-shadow">
+              <ChevronLeft className="h-10 w-10 stroke-1 text-gray-700 hover:text-[rgb(242,100,29)]" />
+            </button>
+
+            <Swiper
+              modules={[Pagination, Navigation]}
+              navigation={{
+                nextEl: ".custom-next",
+                prevEl: ".custom-prev",
+              }}
+              spaceBetween={16}
+              slidesPerView={1}
+              slidesPerGroup={4}
+              breakpoints={{
+                640: { slidesPerView: 2.3, spaceBetween: 16 },
+                768: { slidesPerView: 3.3, spaceBetween: 16 },
+                1024: { slidesPerView: 4.3, spaceBetween: 16 },
+              }}
+              pagination={{ clickable: true }}
+              className="!pb-12">
+              {section.items.map((p) => (
+                <SwiperSlide key={p.id} className="!h-auto">
+                  <ProductPreviewCard
+                    product={p}
+                    onOpen={(productId) => navigate(`/product/${productId}`)}
+                    rating={p.rating}
+                    reviewCount={p.reviewCount}
+                    originalPrice={p.originalPrice}
+                    className="h-full"
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+
+            {/* 오른쪽 화살표 */}
+            <button className="custom-next absolute top-1/2 -right-4 z-20 -translate-y-1/2 hover:shadow-lg transition-shadow">
+              <ChevronRight className="h-10 w-10 stroke-1 text-gray-700 hover:text-[rgb(242,100,29)]" />
+            </button>
+          </div>
         </div>
       ))}
     </>

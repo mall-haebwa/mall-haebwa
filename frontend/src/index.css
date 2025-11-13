@@ -79,7 +79,6 @@
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New", monospace;
-    --color-main: #f5f6fa;
     --color-red-50: oklch(0.971 0.013 17.38);
     --color-red-100: oklch(0.936 0.032 17.717);
     --color-red-500: oklch(0.637 0.237 25.331);
@@ -3516,4 +3515,33 @@ html {
 @font-face {
   font-family: "Tenada";
   src: url("../public/Fonts/Pretendard-ExtraBold.ttf") format("truetype");
+}
+
+/* Swiper Navigation Button Styling */
+.custom-prev,
+.custom-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 왼쪽 끝 */
+.custom-prev {
+  left: -30px;
+}
+
+/* 오른쪽 끝 */
+.custom-next {
+  right: -30px;
 }

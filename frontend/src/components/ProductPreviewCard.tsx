@@ -31,7 +31,8 @@ export function ProductPreviewCard({
   reviewCount,
   originalPrice,
 }: ProductPreviewCardProps) {
-  const { addToCart, currentUser } = useAppState();
+  const { addToCart, currentUser, addToWishlist, removeFromWishlist } =
+    useAppState();
   const [wishlist, setWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -107,24 +108,11 @@ export function ProductPreviewCard({
     setWishlistLoading(true);
     try {
       if (wishlist) {
-        const res = await fetch(`/api/wishlist/remove/${product.id}`, {
-          method: "DELETE",
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("찜 해제 실패");
+        await removeFromWishlist(product.id);
         setWishlist(false);
         toast.success("찜 목록에서 제거되었습니다.");
       } else {
-        const res = await fetch(`/api/wishlist/add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ product_id: product.id }),
-        });
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.detail || "찜 추가 실패");
-        }
+        await addToWishlist(product.id);
         setWishlist(true);
         toast.success("찜 목록에 추가되었습니다.");
       }
@@ -142,10 +130,9 @@ export function ProductPreviewCard({
         "flex flex-col h-full cursor-pointer overflow-hidden rounded text-left transition hover:shadow-lg group",
         className
       )}>
-      <button
-        type="button"
+      <div
         onClick={handleOpen}
-        className="relative aspect-square overflow-hidden bg-gray-50 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-gray-900/40">
+        className="relative aspect-square overflow-hidden bg-gray-50 flex-shrink-0 cursor-pointer focus:outline-none">
         <div className="w-full h-full">
           <ImageWithFallback
             src={imageSrc}
@@ -164,17 +151,17 @@ export function ProductPreviewCard({
           <button
             type="button"
             disabled={addingToCart}
-            className="flex-1 bg-white text-gray-900 text-xs font-semibold py-2 px-2 rounded hover:bg-gray-100 transition disabled:opacity-50"
+            className="flex-1 bg-white text-gray-900 text-xs font-semibold py-2 px-2 rounded hover:bg-white/30 transition disabled:opacity-50"
             onClick={handleAddToCart}>
             {addingToCart ? "추가 중..." : "담기"}
           </button>
           <button
             type="button"
             disabled={wishlistLoading}
-            className={`flex-1 text-xs font-semibold py-2 px-2 rounded transition disabled:opacity-50 ${
+            className={`flex-1 text-xs font-semibold py-2 px-2 rounded transition disabled:opacity-50 flex items-center justify-center ${
               wishlist
                 ? "bg-red-500 text-white hover:bg-red-600"
-                : "bg-white/20 text-white hover:bg-white/30"
+                : "bg-white text-black hover:bg-white/50"
             }`}
             onClick={handleToggleWishlist}>
             {wishlistLoading ? (
@@ -188,7 +175,7 @@ export function ProductPreviewCard({
             )}
           </button>
         </div>
-      </button>
+      </div>
 
       <div className="p-4 flex-1 flex flex-col justify-between min-h-[120px]">
         <div className="space-y-1">

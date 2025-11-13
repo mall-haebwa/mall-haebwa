@@ -16,8 +16,14 @@ import mallLogo from "../assets/mall6.svg";
 
 export function Header() {
   const navigate = useNavigate();
-  const { currentUser, cart, logout, setSearchQuery, setSelectedCategory } =
-    useAppState();
+  const {
+    currentUser,
+    cart,
+    wishlist,
+    logout,
+    setSearchQuery,
+    setSelectedCategory,
+  } = useAppState();
   const [searchQuery, setSearchQueryInput] = useState("");
   const [aiSearchQuery, setAiSearchQuery] = useState(""); // 추가
   const [selectedSearchTab, setSelectedSearchTabState] = useState<
@@ -183,11 +189,12 @@ export function Header() {
                         setSearchQueryInput(event.target.value)
                       }
                       className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
-                      style={{ borderColor: "#f2641d" }}
+                      style={{ borderColor: "#111827" }}
                     />
                     <Button
                       type="submit"
-                      className="absolute right-2 h-8 w-8 rounded-full bg-gray-900 p-0 text-white hover:bg-black transition-all flex items-center justify-center">
+                      className="absolute right-2 h-8 w-8 rounded-full p-0 text-white transition-all flex items-center justify-center"
+                      style={{ backgroundColor: "#f2641d" }}>
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
@@ -214,11 +221,12 @@ export function Header() {
                     value={aiSearchQuery}
                     onChange={(event) => setAiSearchQuery(event.target.value)}
                     className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
-                    style={{ borderColor: "#f2641d" }}
+                    style={{ borderColor: "#111827" }}
                   />
                   <Button
                     type="submit"
-                    className="absolute right-2 h-8 w-8 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition-all p-0 flex items-center justify-center shadow-md shadow-purple-500/30">
+                    className="absolute right-2 h-8 w-8 rounded-full p-0 text-white transition-all flex items-center justify-center"
+                    style={{ backgroundColor: "#f2641d" }}>
                     <Sparkles className="h-4 w-4" />
                   </Button>
                 </form>
@@ -229,20 +237,23 @@ export function Header() {
           <div className="ml-auto flex items-center gap-3">
             <Button
               variant="ghost"
-              size="sm"
               onClick={() => goTo("/wishlist")}
-              className="relative h-10 w-10 rounded-full hover:bg-gray-100 transition-all flex items-center justify-center">
-              <Heart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+              className="relative h-8 w-8 rounded-full text-3xl hover:bg-gray-100 transition-all flex items-center justify-center">
+              <Heart className="!h-6 !w-6 text-gray-900" />
+              {wishlist.length > 0 && (
+                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-sm text-white font-normal shadow-lg">
+                  {wishlist.length}
+                </Badge>
+              )}
             </Button>
 
             <Button
               variant="ghost"
-              size="sm"
               onClick={() => goTo("/cart")}
-              className="relative h-10 w-10 rounded-full hover:bg-gray-100 transition-all flex items-center justify-center">
-              <ShoppingCart className="h-5 w-5 text-gray-600" />
+              className="relative h-8 w-8 rounded-full hover:bg-gray-100 transition-all flex items-center justify-center">
+              <ShoppingCart className="!h-6 !w-6 text-gray-900" />
               {cart.length > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 p-0 text-xs text-white font-bold shadow-lg">
+                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-sm text-white font-normal shadow-lg">
                   {cart.length}
                 </Badge>
               )}
@@ -251,20 +262,18 @@ export function Header() {
             {currentUser ? (
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => goTo("/mypage")}
-                className="hidden h-10 px-4 text-sm md:flex items-center gap-2 rounded-full hover:bg-gray-100 transition-all">
-                <User className="h-4 w-4 text-gray-600" />
-                <span className="font-medium text-gray-700">
+                className="hidden h-8 px-8 text-base md:flex items-center gap-2 rounded-full hover:bg-gray-100 transition-all">
+                <User className="!h-6 !w-6 text-gray-600" />
+                <span className="font-bold text-gray-700">
                   {currentUser.name}
                 </span>
               </Button>
             ) : (
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => goTo("/login")}
-                className="hidden h-10 px-4 text-sm md:flex rounded-full hover:bg-gray-100 transition-all font-medium text-gray-700">
+                className="hidden h-10 px-3 text-base md:flex rounded-full hover:bg-gray-100 transition-all font-bold text-gray-700">
                 로그인
               </Button>
             )}
