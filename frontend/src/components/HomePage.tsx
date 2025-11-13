@@ -11,34 +11,38 @@ import { RandomSections } from "./RandomSections";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../context/app-state";
 import { useState, useEffect } from "react";
-
+import banner1 from "../assets/banner1.svg";
+import banner2 from "../assets/banner2.svg";
+import banner3 from "../assets/banner3.svg";
+import banner4 from "../assets/banner4.svg";
+import banner5 from "../assets/banner5.svg";
+import banner6 from "../assets/banner6.svg";
 // Reverted: directly render RandomSections without in-view lazy mount
 
 const promoBanners = [
   {
     id: 1,
-    imageUrl:
-      "https://cdn.011st.com/11dims/thumbnail/11src/browsing/exhibition/2025/10/27/20251027220104751_imageTemplate.png/dims/format/avif%3Bfallback=webp/optimize",
+    imageUrl: banner6,
   },
   {
     id: 2,
-    imageUrl:
-      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/browsing/space/banner/2025/11/11/2511111713556401608_3001.jpg",
+    imageUrl: banner2,
   },
   {
     id: 3,
-    imageUrl:
-      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/browsing/space/banner/2025/11/7/2511071147363801324_2722.png",
+    imageUrl: banner3,
   },
   {
     id: 4,
-    imageUrl:
-      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/http://cdn.011st.com/ds/2025/11/06/1677/8bfb9c20107b05a6c4f9ba85db2a6d58.jpg",
+    imageUrl: banner4,
   },
   {
     id: 5,
-    imageUrl:
-      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/http://cdn.011st.com/ds/2025/11/10/1677/440b61513303589da886465cb6ddd5ea.png",
+    imageUrl: banner5,
+  },
+  {
+    id: 6,
+    imageUrl: banner1,
   },
 ];
 
@@ -138,7 +142,7 @@ export function HomePage() {
 
       <RandomSections />
 
-      <div className="border-t border-gray-100 bg-gray-50 py-12">
+      <div className="border-t border-gray-100 bg-main py-12">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-6 md:grid-cols-3 md:px-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900/10">

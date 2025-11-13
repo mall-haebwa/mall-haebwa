@@ -82,7 +82,7 @@ const cartsEqual = (a: CartItem[], b: CartItem[]) =>
   serializeCartForComparison(a) === serializeCartForComparison(b);
 
 const cloneProduct = (product?: Product) =>
-  product ? { ...product, images: [...product.images] } : undefined;
+  product ? { ...product, images: Array.isArray(product.images) ? [...product.images] : [] } : undefined;
 
 const cloneCart = (items: CartItem[]) =>
   items.map((item) => ({

@@ -12,7 +12,7 @@ import { useAppState } from "../context/app-state";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import mallLogo from "../assets/mall5.svg";
+import mallLogo from "../assets/mall6.svg";
 
 export function Header() {
   const navigate = useNavigate();
@@ -144,18 +144,28 @@ export function Header() {
                   onClick={() => setSelectedSearchTab("rollup")}
                   className={`px-2 py-2 text-sm font-bold transition-all border-b-2 ${
                     selectedSearchTab === "rollup"
-                      ? "border-blue-500 text-gray-900"
+                      ? "text-gray-900"
                       : "border-transparent text-gray-600 hover:text-gray-900"
-                  }`}>
+                  }`}
+                  style={
+                    selectedSearchTab === "rollup"
+                      ? { borderBottomColor: "#f2641d" }
+                      : {}
+                  }>
                   일반검색
                 </button>
                 <button
                   onClick={() => setSelectedSearchTab("ai")}
                   className={`px-2 py-2 text-sm font-bold transition-all flex items-center gap-1.5 border-b-2 ${
                     selectedSearchTab === "ai"
-                      ? "border-purple-600 text-gray-900"
+                      ? "text-gray-900"
                       : "border-transparent text-gray-600 hover:text-gray-900"
-                  }`}>
+                  }`}
+                  style={
+                    selectedSearchTab === "ai"
+                      ? { borderBottomColor: "#f2641d" }
+                      : {}
+                  }>
                   <Sparkles className="h-3.5 w-3.5" />
                   AI검색
                 </button>
@@ -172,7 +182,8 @@ export function Header() {
                       onChange={(event) =>
                         setSearchQueryInput(event.target.value)
                       }
-                      className="h-11 w-full rounded-full border border-blue-500 pl-5 pr-14 bg-white focus-visible:border-cyan-500 focus-visible:ring-0 transition-all"
+                      className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
+                      style={{ borderColor: "#f2641d" }}
                     />
                     <Button
                       type="submit"
@@ -202,7 +213,8 @@ export function Header() {
                     placeholder="예: 겨울에 따뜻한 코트"
                     value={aiSearchQuery}
                     onChange={(event) => setAiSearchQuery(event.target.value)}
-                    className="h-11 w-full rounded-full border border-purple-300 pl-5 pr-14 bg-white focus-visible:border-purple-500 focus-visible:ring-0 transition-all"
+                    className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
+                    style={{ borderColor: "#f2641d" }}
                   />
                   <Button
                     type="submit"
@@ -277,7 +289,16 @@ export function Header() {
               <button
                 key={category}
                 onClick={() => handleCategoryClick(category)}
-                className="px-5 py-2.5 font-semibold text-sm text-gray-700 transition-all hover:text-gray-900 border-b border-transparent hover:border-purple-600 whitespace-nowrap flex-shrink-0">
+                className="px-5 py-2.5 font-semibold text-sm text-gray-700 transition-all hover:text-gray-900 border-b border-transparent whitespace-nowrap flex-shrink-0"
+                style={
+                  { "--hover-border-color": "#f2641d" } as React.CSSProperties
+                }
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.borderBottomColor = "#f2641d")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.borderBottomColor = "transparent")
+                }>
                 {category}
               </button>
             ))}
