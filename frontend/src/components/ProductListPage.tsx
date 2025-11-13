@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Filter, Loader2, RefreshCw, Sparkles, Star } from "lucide-react";
+import { Filter, Loader2, RefreshCw, Sparkles } from "lucide-react";
 
 import { useAppState } from "../context/app-state";
 import type { Product } from "../types";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Badge } from "./ui/badge";
+import { ProductPreviewCard } from "./ProductPreviewCard";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
@@ -253,15 +252,15 @@ export function ProductListPage() {
                   <span className="font-semibold text-gray-900">
                     "{searchQuery}"
                   </span>{" "}
-                  search results
+                  검색 결과
                 </>
               ) : (
-                "Check out our recommended products."
+                "추천 상품을 확인해보세요."
               )}
             </p>
             {selectedCategory !== "all" && selectedCategory && (
               <p className="text-xs text-gray-400">
-                Active category: {selectedCategory}
+                현재 카테고리: {selectedCategory}
               </p>
             )}
           </div>
@@ -274,7 +273,7 @@ export function ProductListPage() {
               className="h-9 w-[120px] md:hidden"
             >
               <Filter className="mr-2 h-4 w-4" />
-              Filters
+              필터
             </Button>
             <Select
               value={sortBy}
@@ -283,7 +282,7 @@ export function ProductListPage() {
               }}
             >
               <SelectTrigger className="h-9 w-[150px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder="정렬" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="popular" disabled>
@@ -311,9 +310,9 @@ export function ProductListPage() {
             )}
           >
             <div className="flex items-center justify-between border-b px-5 py-4">
-              <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
+              <h3 className="text-sm font-semibold text-gray-900">필터</h3>
               <Button variant="ghost" size="sm" onClick={handleResetFilters}>
-                Reset
+                초기화
               </Button>
             </div>
 
@@ -321,7 +320,7 @@ export function ProductListPage() {
               <div>
                 <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-900">
                   <Sparkles className="h-4 w-4" />
-                  Category
+                  카테고리
                 </h4>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -334,7 +333,7 @@ export function ProductListPage() {
                       htmlFor="all-category"
                       className="cursor-pointer text-sm"
                     >
-                      All
+                      전체
                     </label>
                   </div>
                   {categories.length > 0 ? (
@@ -355,7 +354,7 @@ export function ProductListPage() {
                     ))
                   ) : (
                     <p className="text-xs text-gray-400">
-                      No categories available.
+                      사용 가능한 카테고리가 없습니다.
                     </p>
                   )}
                 </div>
@@ -363,7 +362,7 @@ export function ProductListPage() {
 
               <div>
                 <h4 className="mb-3 text-sm font-medium text-gray-900">
-                  Brand
+                  브랜드
                 </h4>
                 <div className="space-y-2">
                   {brands.length > 0 ? (
@@ -384,7 +383,7 @@ export function ProductListPage() {
                     ))
                   ) : (
                     <p className="text-xs text-gray-400">
-                      No brands available.
+                      사용 가능한 브랜드가 없습니다.
                     </p>
                   )}
                 </div>
@@ -392,7 +391,7 @@ export function ProductListPage() {
 
               <div>
                 <h4 className="mb-3 text-sm font-medium text-gray-900">
-                  Price
+                  가격
                 </h4>
                 <Slider
                   value={priceRange}
@@ -416,11 +415,11 @@ export function ProductListPage() {
             {status === "loading" ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-gray-500">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                Loading products...
+                상품을 불러오는 중입니다...
               </div>
             ) : status === "error" ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-gray-500">
-                <p>Failed to fetch products.</p>
+                <p>상품을 불러올 수 없습니다.</p>
                 {errorMessage && (
                   <p className="text-xs text-red-400">{errorMessage}</p>
                 )}
@@ -429,82 +428,32 @@ export function ProductListPage() {
                   onClick={() => loadProducts(1, { reset: true })}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Retry
+                  다시 시도
                 </Button>
               </div>
             ) : sortedProducts.length === 0 ? (
               <div className="py-20 text-center">
-                <p className="text-gray-400">No products found.</p>
+                <p className="text-gray-400">상품을 찾을 수 없습니다.</p>
                 <Button
                   variant="outline"
                   className="mt-4"
                   onClick={() => navigate("/")}
                 >
-                  Go to home
+                  홈으로 가기
                 </Button>
               </div>
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {sortedProducts.map((product) => (
-                    <button
+                    <ProductPreviewCard
                       key={product.id}
-                      type="button"
-                      className="group cursor-pointer overflow-hidden rounded border border-gray-200 text-left transition hover:shadow-lg"
-                      onClick={() => handleProductClick(product.id)}
-                    >
-                      <div className="relative aspect-square overflow-hidden bg-gray-50">
-                        <ImageWithFallback
-                          src={product.image ?? ""}
-                          alt={product.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        {product.originalPrice &&
-                          product.originalPrice > (product.price ?? 0) && (
-                            <Badge className="absolute left-2 top-2 border-0 bg-red-500 text-xs text-white">
-                              {Math.round(
-                                (1 -
-                                  (product.price ?? 0) /
-                                    product.originalPrice) *
-                                  100
-                              )}
-                              %
-                            </Badge>
-                          )}
-                      </div>
-                      <div className="space-y-2 p-4">
-                        {product.brand && (
-                          <p className="text-xs text-gray-500">
-                            {product.brand}
-                          </p>
-                        )}
-                        <p className="line-clamp-2 h-10 text-sm text-gray-900">
-                          {product.name}
-                        </p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-lg font-semibold text-gray-900">
-                            {(product.price ?? 0).toLocaleString()}원
-                          </span>
-                        </div>
-                        {product.originalPrice &&
-                          product.originalPrice > (product.price ?? 0) && (
-                            <p className="text-xs text-gray-400 line-through">
-                              {product.originalPrice.toLocaleString()}원
-                            </p>
-                          )}
-                        {(product.rating ?? 0) > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Star className="h-3 w-3 fill-gray-900 text-gray-900" />
-                            <span>{(product.rating ?? 0).toFixed(1)}</span>
-                            {product.reviewCount !== undefined && (
-                              <span className="text-gray-400">
-                                ({product.reviewCount.toLocaleString()})
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </button>
+                      product={product}
+                      onOpen={handleProductClick}
+                      rating={product.rating}
+                      reviewCount={product.reviewCount}
+                      originalPrice={product.originalPrice}
+                    />
                   ))}
                 </div>
 
@@ -515,7 +464,7 @@ export function ProductListPage() {
                 {isLoading && hasMore && (
                   <div className="flex items-center justify-center gap-2 py-6 text-gray-500">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Loading more products...
+                    더 많은 상품을 불러오는 중입니다...
                   </div>
                 )}
 
