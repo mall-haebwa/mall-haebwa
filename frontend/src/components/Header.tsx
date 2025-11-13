@@ -130,7 +130,7 @@ export function Header() {
       </div>
 
       <div className="border-b border-gray-100">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-8 px-6 py-3.5 md:px-8">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-8 px-6 md:px-8">
           {/* 동그라미 없는 버전 */}
           <button
             onClick={() => goTo("/")}
@@ -240,11 +240,11 @@ export function Header() {
               onClick={() => goTo("/wishlist")}
               className="relative h-8 w-8 rounded-full text-3xl hover:bg-gray-100 transition-all flex items-center justify-center">
               <Heart className="!h-6 !w-6 text-gray-900" />
-              {wishlist.length > 0 && (
+              {/* {wishlist.length > 0 && (
                 <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-sm text-white font-normal shadow-lg">
                   {wishlist.length}
                 </Badge>
-              )}
+              )} */}
             </Button>
 
             <Button
@@ -265,7 +265,7 @@ export function Header() {
                 onClick={() => goTo("/mypage")}
                 className="hidden h-8 px-8 text-base md:flex items-center gap-2 rounded-full hover:bg-gray-100 transition-all">
                 <User className="!h-6 !w-6 text-gray-600" />
-                <span className="font-bold text-gray-700">
+                <span className="font-semibold text-gray-900">
                   {currentUser.name}
                 </span>
               </Button>
@@ -273,7 +273,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 onClick={() => goTo("/login")}
-                className="hidden h-10 px-3 text-base md:flex rounded-full hover:bg-gray-100 transition-all font-bold text-gray-700">
+                className="hidden h-10 px-3 text-base md:flex rounded-full hover:bg-gray-100 transition-all font-semibold text-gray-900">
                 로그인
               </Button>
             )}
@@ -292,7 +292,7 @@ export function Header() {
       <div
         className="hidden border-b border-gray-100 md:block"
         style={{ backgroundColor: "#f5f6fa" }}>
-        <div className="mx-auto flex max-w-[1280px] items-center gap-2 px-6 py-3 md:px-8">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-2 px-6 py-1 md:px-8">
           <div className="flex items-center gap-2 overflow-x-auto">
             {categories.map((category) => (
               <button

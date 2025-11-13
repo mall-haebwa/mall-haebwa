@@ -7,6 +7,11 @@ export default {
         hanalei_regular: ["Hanalei"],
         nanum: ["Nanum Pen Script"],
       },
+      colors: {
+        brand: {
+          orange: "#f2641d",
+        },
+      },
     },
   },
   plugins: [],

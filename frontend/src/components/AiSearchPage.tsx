@@ -548,6 +548,8 @@ export function AISearchPage() {
     setMessages((prev) => [...prev, userMessage]);
     setSearchInput("");
     setIsLoading(true);
+    setIsLoadingData(true);
+    setContentType("idle");
 
     try {
       // 이미지 데이터 준비
@@ -769,26 +771,35 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="flex h-[calc(100vh-183px)] bg-gray-50">
+    <div className="flex h-[calc(100vh-138px)] bg-gray-50">
       {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
         className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white">
         {contentType === "idle" && (
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
-            <header className="text-center">
-              <h1 className="mb-4 text-3xl font-semibold text-gray-900 md:text-4xl">
-                AI 쇼핑 도우미
-              </h1>
-              <p className="mb-10 text-base text-gray-600 md:text-lg">
-                찾고 싶은 제품이나 고민을 자유롭게 이야기하면 AI가 맞춤 추천을
-                도와드릴게요.
-              </p>
-            </header>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center">
+                <Loader2 className="mb-4 h-12 w-12 animate-spin text-brand-orange" />
+                <span className="text-gray-600">
+                  AI가 답변을 준비 중입니다...
+                </span>
+              </div>
+            ) : (
+              <>
+                {/* <header className="text-center">
+                  <h1 className="mb-4 text-3xl font-semibold text-gray-900 md:text-4xl">
+                    AI 쇼핑 도우미
+                  </h1>
+                  <p className="mb-10 text-base text-gray-600 md:text-lg">
+                    찾고 싶은 제품이나 고민을 자유롭게 이야기하면 AI가 맞춤
+                    추천을 도와드릴게요.
+                  </p>
+                </header>
 
-            <section className="mx-auto mb-10 w-full max-w-3xl">
-              {/* 검색 입력창 */}
-              <form
+                <section className="mx-auto mb-10 w-full max-w-3xl">
+                  검색 입력창
+                  <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSearch(searchInput);
@@ -813,67 +824,69 @@ export function AISearchPage() {
                   )}
                   검색
                 </Button>
-              </form>
+              </form> */}
 
-              {/* 예시 검색어 */}
-              <div>
-                <div className="mb-4 flex items-center justify-center gap-2 text-sm text-gray-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>요즘 이런 질문이 많아요</span>
-                </div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {EXAMPLE_SEARCHES.map((example) => (
-                    <button
-                      key={example}
-                      onClick={() => handleExampleClick(example)}
-                      className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 transition-colors hover:border-purple-300 hover:bg-purple-50 md:text-sm">
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
+                {/* 예시 검색어
+                  <div>
+                    <div className="mb-4 flex items-center justify-center gap-2 text-sm text-gray-600">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>요즘 이런 질문이 많아요</span>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {EXAMPLE_SEARCHES.map((example) => (
+                        <button
+                          key={example}
+                          onClick={() => handleExampleClick(example)}
+                          className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 transition-colors hover:border-purple-300 hover:bg-purple-50 md:text-sm">
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section> */}
 
-            <section className="grid w-full max-w-3xl gap-6 text-sm text-gray-600 md:grid-cols-3">
-              <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-                  <Sparkles className="h-6 w-6 text-purple-500" />
-                </div>
-                <h3 className="mb-2 text-base font-semibold text-gray-900">
-                  맥락 이해 검색
-                </h3>
-                <p>
-                  상황과 취향을 함께 알려주면 AI가 의도를 이해하고 맞춤형 제품을
-                  찾아드려요.
-                </p>
-              </div>
+                {/* <section className="grid w-full max-w-3xl gap-6 text-sm text-gray-600 md:grid-cols-3">
+                  <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                      <Sparkles className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <h3 className="mb-2 text-base font-semibold text-gray-900">
+                      맥락 이해 검색
+                    </h3>
+                    <p>
+                      상황과 취향을 함께 알려주면 AI가 의도를 이해하고 맞춤형
+                      제품을 찾아드려요.
+                    </p>
+                  </div>
 
-              <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-pink-100">
-                  <Search className="h-6 w-6 text-pink-500" />
-                </div>
-                <h3 className="mb-2 text-base font-semibold text-gray-900">
-                  섬세한 추천
-                </h3>
-                <p>
-                  가격대, 취향, 선호 브랜드 등 원하는 조건을 조합해 세밀한
-                  추천을 받아보세요.
-                </p>
-              </div>
+                  <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-pink-100">
+                      <Search className="h-6 w-6 text-pink-500" />
+                    </div>
+                    <h3 className="mb-2 text-base font-semibold text-gray-900">
+                      섬세한 추천
+                    </h3>
+                    <p>
+                      가격대, 취향, 선호 브랜드 등 원하는 조건을 조합해 세밀한
+                      추천을 받아보세요.
+                    </p>
+                  </div>
 
-              <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-                  <TrendingUp className="h-6 w-6 text-purple-500" />
-                </div>
-                <h3 className="mb-2 text-base font-semibold text-gray-900">
-                  트렌드 분석
-                </h3>
-                <p>
-                  지금 인기 있는 제품, 리뷰 키워드, 관련 질문 등 최신 데이터를
-                  기반으로 인사이트를 제공합니다.
-                </p>
-              </div>
-            </section>
+                  <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                      <TrendingUp className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <h3 className="mb-2 text-base font-semibold text-gray-900">
+                      트렌드 분석
+                    </h3>
+                    <p>
+                      지금 인기 있는 제품, 리뷰 키워드, 관련 질문 등 최신
+                      데이터를 기반으로 인사이트를 제공합니다.
+                    </p>
+                  </div>
+                </section> */}
+              </>
+            )}
           </div>
         )}
 
@@ -892,7 +905,7 @@ export function AISearchPage() {
 
             {isLoadingData ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
                 <span className="ml-3 text-gray-600">
                   상품을 검색하고 있습니다...
                 </span>
@@ -908,7 +921,7 @@ export function AISearchPage() {
                 <p className="text-gray-600">검색 결과가 없습니다.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                 {products.map((product) => (
                   <ProductPreviewCard
                     key={product.id}
@@ -938,7 +951,7 @@ export function AISearchPage() {
 
             {isLoadingData ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
                 <span className="ml-3 text-gray-600">
                   과거 주문을 검색하고 있습니다...
                 </span>
@@ -978,7 +991,7 @@ export function AISearchPage() {
 
             {isLoadingData ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
                 <span className="ml-3 text-gray-600">
                   주문 내역을 불러오고 있습니다...
                 </span>
@@ -1095,7 +1108,7 @@ export function AISearchPage() {
           <div className="p-6">
             {isLoadingData ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
                 <span className="ml-3 text-gray-600">
                   상품을 검색하고 있습니다...
                 </span>
@@ -1112,7 +1125,7 @@ export function AISearchPage() {
                   <h3 className="mb-4 text-lg font-semibold text-gray-900">
                     추천 상품
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-8">
                     {multiSearchQueries.map((query) => {
                       const products = multiSearchResults[query] || [];
                       const representativeProduct = products[0];
@@ -1143,7 +1156,7 @@ export function AISearchPage() {
                         onClick={() => setSelectedMultiCategory(query)}
                         className={`rounded-full px-5 py-1 font-medium transition-all ${
                           selectedMultiCategory === query
-                            ? "bg-purple-600 text-white shadow-md"
+                            ? "bg-brand-orange text-white shadow-md"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}>
                         {query} ({count})
@@ -1160,7 +1173,7 @@ export function AISearchPage() {
                       {multiSearchResults[selectedMultiCategory]?.length || 0}
                       개)
                     </h3>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                       {(multiSearchResults[selectedMultiCategory] || []).map(
                         (product) => (
                           <ProductPreviewCard
@@ -1209,12 +1222,22 @@ export function AISearchPage() {
                 <div
                   className={`max-w-[85%] rounded-lg p-3 ${
                     msg.role === "user"
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      ? "text-gray-900"
                       : "bg-gray-100 text-gray-900"
-                  }`}>
+                  }`}
+                  style={
+                    msg.role === "user"
+                      ? { backgroundColor: "#f2641d", color: "#fff" }
+                      : {}
+                  }>
                   {msg.role === "assistant" && (
                     <div className="mb-2 flex items-center gap-2">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                      <div
+                        className="flex h-5 w-5 items-center justify-center rounded-full"
+                        style={{
+                          background:
+                            "linear-gradient(to right, #f2641d, #fff)",
+                        }}>
                         <Sparkles className="h-3 w-3 text-white" />
                       </div>
                       <span className="text-xs text-gray-500">
@@ -1243,7 +1266,11 @@ export function AISearchPage() {
               <div className="flex justify-start">
                 <div className="rounded-lg bg-gray-100 p-3">
                   <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                    <div
+                      className="flex h-5 w-5 items-center justify-center rounded-full"
+                      style={{
+                        background: "linear-gradient(to right, #f2641d, #fff)",
+                      }}>
                       <Sparkles className="h-3 w-3 text-white" />
                     </div>
                     <span className="text-xs text-gray-500">AI 어시스턴트</span>
@@ -1277,7 +1304,8 @@ export function AISearchPage() {
               {uploadedImages.map((img, index) => (
                 <div
                   key={index}
-                  className="relative h-16 w-16 rounded-lg border-2 border-purple-300 overflow-hidden">
+                  className="relative h-16 w-16 rounded-lg overflow-hidden"
+                  style={{ border: "2px solid #f2641d" }}>
                   <img
                     src={img.preview}
                     alt={`Upload ${index + 1}`}
@@ -1345,7 +1373,7 @@ export function AISearchPage() {
                 (!searchInput.trim() && uploadedImages.length === 0) ||
                 isLoading
               }
-              className="h-10 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600">
+              className="h-10 w-full text-gray-900 bg-brand-orange">
               <Send className="mr-2 h-4 w-4" />
               전송
             </Button>
