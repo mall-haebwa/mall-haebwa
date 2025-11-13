@@ -1,14 +1,71 @@
-import { Sparkles, Star, TrendingUp } from "lucide-react";
-import { Badge } from "./ui/badge";
+import {
+  Sparkles,
+  Star,
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+} from "lucide-react";
 import { RandomSections } from "./RandomSections";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../context/app-state";
+import { useState, useEffect } from "react";
 
 // Reverted: directly render RandomSections without in-view lazy mount
+
+const promoBanners = [
+  {
+    id: 1,
+    imageUrl:
+      "https://cdn.011st.com/11dims/thumbnail/11src/browsing/exhibition/2025/10/27/20251027220104751_imageTemplate.png/dims/format/avif%3Bfallback=webp/optimize",
+  },
+  {
+    id: 2,
+    imageUrl:
+      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/browsing/space/banner/2025/11/11/2511111713556401608_3001.jpg",
+  },
+  {
+    id: 3,
+    imageUrl:
+      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/browsing/space/banner/2025/11/7/2511071147363801324_2722.png",
+  },
+  {
+    id: 4,
+    imageUrl:
+      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/http://cdn.011st.com/ds/2025/11/06/1677/8bfb9c20107b05a6c4f9ba85db2a6d58.jpg",
+  },
+  {
+    id: 5,
+    imageUrl:
+      "https://cdn.011st.com/11dims/resize/1240x400/quality/100/11src/http://cdn.011st.com/ds/2025/11/10/1677/440b61513303589da886465cb6ddd5ea.png",
+  },
+];
 
 export function HomePage() {
   const navigate = useNavigate();
   const { setSelectedCategory, setSearchQuery } = useAppState();
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
+
+  useEffect(() => {
+    if (!isAutoPlay) return;
+
+    const interval = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % promoBanners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isAutoPlay]);
+
+  const goToPrevBanner = () => {
+    setCurrentBanner(
+      (prev) => (prev - 1 + promoBanners.length) % promoBanners.length
+    );
+  };
+
+  const goToNextBanner = () => {
+    setCurrentBanner((prev) => (prev + 1) % promoBanners.length);
+  };
 
   const goToAllProducts = () => {
     setSelectedCategory("all");
@@ -21,123 +78,65 @@ export function HomePage() {
   };
 
   return (
-    <div className="bg-white">
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-        <div className="mx-auto flex max-w-[1280px] justify-between px-6 py-8 md:px-8 md:py-10">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Sparkles className="h-6 w-6" />
-              <h1 className="text-xl md:text-2xl">AI 자연어 검색</h1>
-            </div>
-            <p className="mb-3 text-sm opacity-90 md:text-base">
-              &quot;화이트 톤의 인테리어에 어울리는 가구&quot;, &quot;여름 출근
-              때 입을 바지&quot; 같은 자연어로 검색하세요.
-            </p>
-            <div className="flex gap-2 text-xs">
-              <Badge className="border-0 bg-white/15 text-white backdrop-blur-sm">
-                실시간 AI 분석
-              </Badge>
-              <Badge className="border-0 bg-white/15 text-white backdrop-blur-sm">
-                맞춤 추천
-              </Badge>
-            </div>
-          </div>
+    <div>
+      {/* 프로모션 배너 캐러셀 */}
+      <div className="relative overflow-hidden bg-white w-full">
+        {/* 슬라이드 */}
+        <div className="relative h-[500px] w-full">
+          {promoBanners.map((banner, index) => {
+            const isActive = index === currentBanner;
+            return (
+              <div
+                key={banner.id}
+                className={`absolute inset-0 transition-opacity duration-500 ease-in-out w-full ${
+                  isActive ? "opacity-100 visible" : "opacity-0 invisible"
+                }`}>
+                <img
+                  src={banner.imageUrl}
+                  alt={`프로모션 배너 ${banner.id}`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            );
+          })}
         </div>
-      </div>
 
-      <div className="border-b border-gray-100">
-        <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-gray-900" />
-            <h2 className="text-lg">AI 검색 활용 예시</h2>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded border border-purple-100 bg-purple-50 p-4">
-              <p className="mb-1 text-sm text-gray-600">예시:</p>
-              <p className="mb-1">&quot;30대 여성 데일리룩&quot;</p>
-              <p className="text-xs text-gray-500">
-                계절과 연령을 고려한 상품 추천
-              </p>
+        {/* 컨트롤 바 */}
+        <div className="flex justify-center items-center gap-8 px-6 py-5 md:px-8 bg-white w-full">
+          {/* 좌측 - 이전 버튼 */}
+          <button
+            onClick={goToPrevBanner}
+            className="p-2 hover:bg-gray-100 rounded-full transition-all">
+            <ChevronLeft className="h-5 w-5 text-gray-700" />
+          </button>
+
+          {/* 중앙 - Play/Pause + 슬라이드 번호 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsAutoPlay(!isAutoPlay)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-all">
+              {isAutoPlay ? (
+                <Pause className="h-5 w-5 text-gray-700" />
+              ) : (
+                <Play className="h-5 w-5 text-gray-700" />
+              )}
+            </button>
+            <div className="text-sm font-medium text-gray-700 min-w-[50px] text-center">
+              {String(currentBanner + 1).padStart(2, "0")} /{" "}
+              {String(promoBanners.length).padStart(2, "0")}
             </div>
-            <div className="rounded border border-pink-100 bg-pink-50 p-4">
-              <p className="mb-1 text-sm text-gray-600">예시:</p>
-              <p className="mb-1">&quot;민감성 피부에 좋은 화장품&quot;</p>
-              <p className="text-xs text-gray-500">
-                피부 타입에 맞는 제품 추천
-              </p>
-            </div>
           </div>
+
+          {/* 우측 - 다음 버튼 */}
+          <button
+            onClick={goToNextBanner}
+            className="p-2 hover:bg-gray-100 rounded-full transition-all">
+            <ChevronRight className="h-5 w-5 text-gray-700" />
+          </button>
         </div>
       </div>
 
       <RandomSections />
-
-      {/* <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl">베스트 상품</h2>
-          </div>
-          <Button
-            variant="ghost"
-            onClick={goToAllProducts}
-            className="text-sm text-gray-600 hover:text-gray-900">
-            전체보기
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {mockProducts.map((product) => (
-            <button
-              key={product.id}
-              type="button"
-              className="group cursor-pointer text-left"
-              onClick={() => goToProduct(product.id)}>
-              <div className="relative mb-2 aspect-square overflow-hidden bg-gray-50">
-                <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80"
-                  alt={product.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                {product.originalPrice && (
-                  <Badge className="absolute left-2 top-2 border-0 bg-red-500 text-xs text-white">
-                    {Math.round(
-                      (1 - product.price / product.originalPrice) * 100
-                    )}
-                    %
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <p className="mb-1 line-clamp-2 h-10 text-sm">{product.name}</p>
-                <div className="mb-1 flex items-center gap-1">
-                  <span className="text-lg">
-                    {product.price.toLocaleString()}
-                  </span>
-                  <span className="text-sm">원</span>
-                </div>
-                {product.originalPrice && (
-                  <p className="mb-1 text-xs text-gray-400 line-through">
-                    {product.originalPrice.toLocaleString()}원
-                  </p>
-                )}
-                <div className="mb-1 flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-gray-900 text-gray-900" />
-                  <span className="text-xs text-gray-600">
-                    {product.rating}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    ({product.reviewCount.toLocaleString()})
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600">
-                  <Truck className="h-3 w-3" />
-                  <span>{product.delivery}</span>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div> */}
 
       <div className="border-t border-gray-100 bg-gray-50 py-12">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-6 md:grid-cols-3 md:px-8">

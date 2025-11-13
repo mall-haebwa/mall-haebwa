@@ -1,9 +1,14 @@
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 import { useAppState } from "../context/app-state";
 import type { Product } from "../types";
-import { Button } from "./ui/button";
+import { ProductPreviewCard } from "./ProductPreviewCard";
 
 async function fetchRandom(
   limit: number,
@@ -51,97 +56,69 @@ export function RandomSections() {
   };
 
   const sections: { title: string; items: Product[] }[] = [
-    { title: "랜덤 추천 상품", items: randoms },
-    { title: "오늘의 행사 상품", items: deals },
+    { title: "랜덤 추천 상품들", items: randoms },
+    { title: "오늘의 행사 상품들", items: deals },
     { title: "주목할 만한 상품들", items: notables },
-    { title: "어제 급상승 쇼핑", items: risings },
+    { title: "어제 급상승 상품들", items: risings },
   ];
 
   return (
     <>
       {sections.map((section, idx) => (
         <div key={idx} className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-gray-900" />
-              <h2 className="text-3xl font-semibold">
-                {section.title.includes("랜덤") && (
-                  <>
-                    <span className="text-blue-600 font-nanum text-4xl">
-                      랜덤 추천
-                    </span>{" "}
-                    상품
-                  </>
-                )}
-                {section.title.includes("오늘") && (
-                  <>
-                    <span className="text-rose-600 font-nanum text-4xl">
-                      오늘의 행사
-                    </span>{" "}
-                    상품
-                  </>
-                )}
-                {section.title.includes("주목") && (
-                  <>
-                    <span className="text-emerald-600 font-nanum text-4xl">
-                      주목할 만한
-                    </span>{" "}
-                    상품들
-                  </>
-                )}
-                {section.title.includes("급상승") && (
-                  <>
-                    <span className="text-amber-600 font-nanum text-4xl">
-                      인기 급상승
-                    </span>{" "}
-                    쇼핑
-                  </>
-                )}
-              </h2>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={goAll}
-              className="text-sm text-gray-600 hover:text-gray-900">
-              전체보기
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            {section.items.map((p) => {
-              const imageSrc =
-                p.image ||
-                (Array.isArray(p.images) && p.images[0]) ||
-                "https://via.placeholder.com/400x400?text=No+Image";
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="group cursor-pointer overflow-hidden rounded border border-gray-200 text-left transition hover:shadow-lg"
-                  onClick={() => navigate(`/product/${p.id}`)}>
-                  <div className="relative aspect-square overflow-hidden bg-gray-50">
-                    <img
-                      src={imageSrc}
-                      alt={p.name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="space-y-2 p-4">
-                    <p className="text-xs text-gray-500">{p.brand || ""}</p>
-                    <p className="line-clamp-2 h-10 text-sm text-gray-900">
-                      {p.name}
-                    </p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-semibold text-gray-900">
-                        {(p.price ?? 0).toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={goAll}
+            className="mb-6 w-full flex items-center justify-center group text-xl font-semibold text-gray-800 hover:text-gray-900">
+            <h2 className="text-xl font-bold">
+              {section.title.includes("랜덤") && (
+                <>
+                  <span className=" text-xl font-bold">추천</span> 상품
+                </>
+              )}
+              {section.title.includes("오늘") && (
+                <>
+                  <span className=" text-xl font-bold">오늘의 행사</span> 상품
+                </>
+              )}
+              {section.title.includes("주목") && (
+                <>
+                  <span className=" text-xl font-bold">주목할 만한</span> 상품
+                </>
+              )}
+              {section.title.includes("급상승") && (
+                <>
+                  <span className=" text-xl font-bold">인기 급상승</span> 상품
+                </>
+              )}
+            </h2>
+            <ChevronRight className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition" />
+          </button>
+          <Swiper
+            modules={[Navigation, Pagination]}
+            spaceBetween={16}
+            slidesPerView={1}
+            breakpoints={{
+              640: { slidesPerView: 2, spaceBetween: 16 },
+              768: { slidesPerView: 3, spaceBetween: 16 },
+              1024: { slidesPerView: 4, spaceBetween: 16 },
+            }}
+            navigation
+            pagination={{ clickable: true }}
+            className="!pb-12">
+            {section.items.map((p) => (
+              <SwiperSlide key={p.id} className="!h-auto">
+                <ProductPreviewCard
+                  product={p}
+                  onOpen={(productId) => navigate(`/product/${productId}`)}
+                  rating={p.rating}
+                  reviewCount={p.reviewCount}
+                  originalPrice={p.originalPrice}
+                  className="h-full"
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
       ))}
     </>

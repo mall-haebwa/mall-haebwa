@@ -21,9 +21,9 @@ import PaymentFail from "./components/PaymentFail"; // 결제 실패 컴포넌�
 import { RepeatPurchasePage } from "./components/RepeatPurchasePage";
 import { RecentlyViewedPage } from "./components/RecentlyViewedPage";
 import { BecomeSellerPage } from "./components/BecomeSellerPage";
-import axios, {AxiosError, AxiosRequestConfig} from "axios";
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { useAppState } from "./context/app-state";
-
+import { PromoPage } from "./components/PromoPage";
 function ScrollToTop() {
   const location = useLocation();
 
@@ -34,17 +34,21 @@ function ScrollToTop() {
   return null;
 }
 
-type RetriableConfig = AxiosRequestConfig & {_retry?: boolean; skipAuthRefresh?: boolean};
+type RetriableConfig = AxiosRequestConfig & {
+  _retry?: boolean;
+  skipAuthRefresh?: boolean;
+};
 
 // API URL 설정 (app-state.tsx와 동일)
-const API_URL = ((import.meta as any).env?.VITE_API_URL as string | undefined) || "";
+const API_URL =
+  ((import.meta as any).env?.VITE_API_URL as string | undefined) || "";
 const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
 
-function useJwtRefreshInterceptor(){
+function useJwtRefreshInterceptor() {
   const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const { logout } = useAppState();
 
-  useEffect(()=>{
+  useEffect(() => {
     // axios 전역 설정: 모든 요청에 쿠키 포함
     axios.defaults.withCredentials = true;
 
@@ -56,13 +60,19 @@ function useJwtRefreshInterceptor(){
         const config = error.config as RetriableConfig | undefined;
 
         // 로그인/회원가입 등 인증 관련 요청은 인터셉터 건너뛰기
-        if(!response || response.status !== 401 || !config || config._retry || config.skipAuthRefresh){
+        if (
+          !response ||
+          response.status !== 401 ||
+          !config ||
+          config._retry ||
+          config.skipAuthRefresh
+        ) {
           return Promise.reject(error);
         }
 
         config._retry = true;
 
-        if(!refreshPromiseRef.current) {
+        if (!refreshPromiseRef.current) {
           refreshPromiseRef.current = client.post(
             withBase("/api/auth/refresh"),
             {},
@@ -76,7 +86,7 @@ function useJwtRefreshInterceptor(){
 
           config.withCredentials = true;
           return client(config); //access 갱신 후 원요청 재시도
-        } catch (refreshErr){
+        } catch (refreshErr) {
           refreshPromiseRef.current = null;
 
           // refresh 실패 시 로그아웃 처리
@@ -86,8 +96,8 @@ function useJwtRefreshInterceptor(){
           logout();
 
           // 현재 페이지가 로그인 페이지가 아닐 때만 리다이렉트
-          if (window.location.pathname !== '/login'){
-            window.location.href = '/login';
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
           }
 
           return Promise.reject(refreshErr);
@@ -102,14 +112,15 @@ function useJwtRefreshInterceptor(){
 }
 
 function AppRoutes() {
-    useJwtRefreshInterceptor();
+  useJwtRefreshInterceptor();
 
   return (
     <>
       <ScrollToTop />
       <Header />
-      <main>
+      <main style={{ backgroundColor: "#f5f6fa" }}>
         <Routes>
+          <Route path="/virus" element={<PromoPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductListPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
@@ -149,7 +160,6 @@ function AppRoutes() {
 }
 
 export default function App() {
-
   return (
     <AppStateProvider>
       <AppRoutes />
