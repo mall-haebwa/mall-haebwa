@@ -769,7 +769,7 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="flex h-[calc(100vh-154px)] bg-gray-50">
+    <div className="flex h-[calc(100vh-183px)] bg-gray-50">
       {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
@@ -914,6 +914,9 @@ export function AISearchPage() {
                     key={product.id}
                     product={product}
                     onOpen={handleProductClick}
+                    rating={product.rating}
+                    reviewCount={product.reviewCount}
+                    originalPrice={product.originalPrice}
                   />
                 ))}
               </div>
@@ -957,6 +960,9 @@ export function AISearchPage() {
                     key={product.id}
                     product={product}
                     onOpen={handleProductClick}
+                    rating={product.rating}
+                    reviewCount={product.reviewCount}
+                    originalPrice={product.originalPrice}
                   />
                 ))}
               </div>
@@ -1118,6 +1124,9 @@ export function AISearchPage() {
                           product={representativeProduct}
                           onOpen={handleProductClick}
                           meta={query}
+                          rating={representativeProduct.rating}
+                          reviewCount={representativeProduct.reviewCount}
+                          originalPrice={representativeProduct.originalPrice}
                         />
                       );
                     })}
@@ -1158,6 +1167,9 @@ export function AISearchPage() {
                             key={product.id}
                             product={product}
                             onOpen={handleProductClick}
+                            rating={product.rating}
+                            reviewCount={product.reviewCount}
+                            originalPrice={product.originalPrice}
                           />
                         )
                       )}
