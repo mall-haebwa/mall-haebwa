@@ -57,7 +57,9 @@ export function PromotionTab() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [editingCouponId, setEditingCouponId] = useState<string | null>(null);
-  const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>([]);
+  const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>(
+    []
+  );
   const [isLoadingSellerProducts, setIsLoadingSellerProducts] = useState(false);
 
   // 쿠폰 목록 로드
@@ -128,7 +130,9 @@ export function PromotionTab() {
         discountType: couponForm.discountType,
         discountValue: parseInt(couponForm.discountValue),
         minOrderAmount: parseInt(couponForm.minOrderAmount) || 0,
-        maxDiscount: couponForm.maxDiscount ? parseInt(couponForm.maxDiscount) : null,
+        maxDiscount: couponForm.maxDiscount
+          ? parseInt(couponForm.maxDiscount)
+          : null,
         totalQuantity: parseInt(couponForm.totalQuantity),
         startDate: startDateIso,
         endDate: endDateIso,
@@ -196,7 +200,9 @@ export function PromotionTab() {
         discountType: couponForm.discountType,
         discountValue: parseInt(couponForm.discountValue),
         minOrderAmount: parseInt(couponForm.minOrderAmount) || 0,
-        maxDiscount: couponForm.maxDiscount ? parseInt(couponForm.maxDiscount) : null,
+        maxDiscount: couponForm.maxDiscount
+          ? parseInt(couponForm.maxDiscount)
+          : null,
         totalQuantity: parseInt(couponForm.totalQuantity),
         startDate: startDateIso,
         endDate: endDateIso,
@@ -294,7 +300,9 @@ export function PromotionTab() {
               <Input
                 placeholder="예) 신규회원 환영 쿠폰"
                 value={couponForm.name}
-                onChange={(e) => setCouponForm({ ...couponForm, name: e.target.value })}
+                onChange={(e) =>
+                  setCouponForm({ ...couponForm, name: e.target.value })
+                }
               />
             </div>
 
@@ -305,7 +313,9 @@ export function PromotionTab() {
               <Input
                 placeholder="예) WELCOME2024"
                 value={couponForm.code}
-                onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value })}
+                onChange={(e) =>
+                  setCouponForm({ ...couponForm, code: e.target.value })
+                }
                 disabled={!!editingCouponId}
               />
             </div>
@@ -318,8 +328,12 @@ export function PromotionTab() {
                 <select
                   className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
                   value={couponForm.discountType}
-                  onChange={(e) => setCouponForm({ ...couponForm, discountType: e.target.value as CouponDiscountType })}
-                >
+                  onChange={(e) =>
+                    setCouponForm({
+                      ...couponForm,
+                      discountType: e.target.value as CouponDiscountType,
+                    })
+                  }>
                   <option value="percentage">정률 할인 (%)</option>
                   <option value="fixed">정액 할인 (원)</option>
                 </select>
@@ -327,13 +341,23 @@ export function PromotionTab() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  할인 {couponForm.discountType === "percentage" ? "비율 (%)" : "금액 (원)"}
+                  할인{" "}
+                  {couponForm.discountType === "percentage"
+                    ? "비율 (%)"
+                    : "금액 (원)"}
                 </label>
                 <Input
                   type="number"
-                  placeholder={couponForm.discountType === "percentage" ? "10" : "10000"}
+                  placeholder={
+                    couponForm.discountType === "percentage" ? "10" : "10000"
+                  }
                   value={couponForm.discountValue}
-                  onChange={(e) => setCouponForm({ ...couponForm, discountValue: e.target.value })}
+                  onChange={(e) =>
+                    setCouponForm({
+                      ...couponForm,
+                      discountValue: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -347,7 +371,12 @@ export function PromotionTab() {
                   type="number"
                   placeholder="50000"
                   value={couponForm.minOrderAmount}
-                  onChange={(e) => setCouponForm({ ...couponForm, minOrderAmount: e.target.value })}
+                  onChange={(e) =>
+                    setCouponForm({
+                      ...couponForm,
+                      minOrderAmount: e.target.value,
+                    })
+                  }
                 />
               </div>
 
@@ -359,7 +388,12 @@ export function PromotionTab() {
                   type="number"
                   placeholder="정률 할인 시 최대 금액"
                   value={couponForm.maxDiscount}
-                  onChange={(e) => setCouponForm({ ...couponForm, maxDiscount: e.target.value })}
+                  onChange={(e) =>
+                    setCouponForm({
+                      ...couponForm,
+                      maxDiscount: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -372,7 +406,12 @@ export function PromotionTab() {
                 type="number"
                 placeholder="100"
                 value={couponForm.totalQuantity}
-                onChange={(e) => setCouponForm({ ...couponForm, totalQuantity: e.target.value })}
+                onChange={(e) =>
+                  setCouponForm({
+                    ...couponForm,
+                    totalQuantity: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -384,7 +423,9 @@ export function PromotionTab() {
                 <Input
                   type="date"
                   value={couponForm.startDate}
-                  onChange={(e) => setCouponForm({ ...couponForm, startDate: e.target.value })}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, startDate: e.target.value })
+                  }
                 />
               </div>
 
@@ -395,7 +436,9 @@ export function PromotionTab() {
                 <Input
                   type="date"
                   value={couponForm.endDate}
-                  onChange={(e) => setCouponForm({ ...couponForm, endDate: e.target.value })}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, endDate: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -426,8 +469,7 @@ export function PromotionTab() {
                       return (
                         <label
                           key={product.id}
-                          className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
-                        >
+                          className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300"
@@ -456,14 +498,18 @@ export function PromotionTab() {
             <div className="flex justify-end gap-3 pt-4">
               <Button
                 variant="outline"
-                onClick={editingCouponId ? handleCancelEdit : () => setCouponForm(createEmptyCouponForm())}
-              >
+                onClick={
+                  editingCouponId
+                    ? handleCancelEdit
+                    : () => setCouponForm(createEmptyCouponForm())
+                }>
                 {editingCouponId ? "수정 취소" : "초기화"}
               </Button>
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={editingCouponId ? handleUpdateCoupon : handleCreateCoupon}
-              >
+                className="bg-brand-orange hover:bg-orange-400 "
+                onClick={
+                  editingCouponId ? handleUpdateCoupon : handleCreateCoupon
+                }>
                 {editingCouponId ? "쿠폰 수정" : "쿠폰 생성"}
               </Button>
             </div>
@@ -472,7 +518,7 @@ export function PromotionTab() {
 
         {/* AI 프로모션 추천 - 1열 */}
         <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
 
@@ -485,49 +531,46 @@ export function PromotionTab() {
           </p>
 
           <div className="space-y-3">
-            <div className="rounded-lg border border-purple-200 bg-white p-4">
+            <div className="rounded-lg border border-purple-200 bg-brand-main p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Tag className="h-4 w-4 text-purple-600" />
-                <h4 className="font-semibold text-gray-900">
-                  주말 특가 세일
-                </h4>
+                <Tag className="h-4 w-4 text-brand-orange" />
+                <h4 className="font-semibold text-gray-900">주말 특가 세일</h4>
               </div>
               <p className="mb-2 text-xs text-gray-600">
                 주말 오후 2-4시에 주문이 집중됩니다. 이 시간대에 15% 할인
-                프로모션을 진행하면 매출 증대 효과가 있을 것으로
-                예상됩니다.
+                프로모션을 진행하면 매출 증대 효과가 있을 것으로 예상됩니다.
               </p>
-              <p className="text-xs font-medium text-purple-600">
+              <p className="text-xs font-medium text-brand-orange">
                 예상 매출 증가: +22%
               </p>
             </div>
 
-            <div className="rounded-lg border border-purple-200 bg-white p-4">
+            <div className="rounded-lg border border-purple-200 bg-brand-main p-4">
               <div className="mb-2 flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-purple-600" />
+                <CreditCard className="h-4 w-4 text-brand-orange" />
                 <h4 className="font-semibold text-gray-900">
                   재구매 고객 쿠폰
                 </h4>
               </div>
               <p className="mb-2 text-xs text-gray-600">
-                30일 이내 재구매 고객에게 10,000원 쿠폰을 제공하면 고객
-                충성도를 높일 수 있습니다.
+                30일 이내 재구매 고객에게 10,000원 쿠폰을 제공하면 고객 충성도를
+                높일 수 있습니다.
               </p>
-              <p className="text-xs font-medium text-purple-600">
+              <p className="text-xs font-medium text-brand-orange">
                 예상 재구매율 증가: +18%
               </p>
             </div>
 
-            <div className="rounded-lg border border-purple-200 bg-white p-4">
+            <div className="rounded-lg border border-purple-200 bg-brand-main p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Package className="h-4 w-4 text-purple-600" />
+                <Package className="h-4 w-4 text-brand-orange" />
                 <h4 className="font-semibold text-gray-900">묶음 할인</h4>
               </div>
               <p className="mb-2 text-xs text-gray-600">
-                '무선 블루투스 이어폰'과 '스마트워치 밴드'를 함께 구매 시
-                20% 할인을 제공하면 객단가를 높일 수 있습니다.
+                '무선 블루투스 이어폰'과 '스마트워치 밴드'를 함께 구매 시 20%
+                할인을 제공하면 객단가를 높일 수 있습니다.
               </p>
-              <p className="text-xs font-medium text-purple-600">
+              <p className="text-xs font-medium text-brand-orange">
                 예상 객단가 증가: +35%
               </p>
             </div>
@@ -538,9 +581,7 @@ export function PromotionTab() {
       {/* 활성 쿠폰 목록 */}
       <Card className="mt-6 overflow-hidden">
         <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            쿠폰 목록
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">쿠폰 목록</h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -583,8 +624,12 @@ export function PromotionTab() {
                       ? `${coupon.discountValue}%`
                       : `${coupon.discountValue.toLocaleString()}원`;
 
-                  const startDate = new Date(coupon.startDate).toLocaleDateString("ko-KR");
-                  const endDate = new Date(coupon.endDate).toLocaleDateString("ko-KR");
+                  const startDate = new Date(
+                    coupon.startDate
+                  ).toLocaleDateString("ko-KR");
+                  const endDate = new Date(coupon.endDate).toLocaleDateString(
+                    "ko-KR"
+                  );
 
                   const statusText =
                     coupon.status === "active"
@@ -604,7 +649,8 @@ export function PromotionTab() {
                         </div>
                         <div className="text-xs text-gray-500">
                           적용 대상:&nbsp;
-                          {coupon.applicableProducts && coupon.applicableProducts.length > 0
+                          {coupon.applicableProducts &&
+                          coupon.applicableProducts.length > 0
                             ? `${coupon.applicableProducts.length}개 상품`
                             : "전체 상품"}
                         </div>
@@ -637,8 +683,7 @@ export function PromotionTab() {
                               : coupon.status === "inactive"
                               ? "bg-gray-100 text-gray-700"
                               : "bg-red-100 text-red-700"
-                          }`}
-                        >
+                          }`}>
                           {statusText}
                         </span>
                       </td>
@@ -647,15 +692,13 @@ export function PromotionTab() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEditCoupon(coupon)}
-                          >
+                            onClick={() => handleEditCoupon(coupon)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteCoupon(coupon.id)}
-                          >
+                            onClick={() => handleDeleteCoupon(coupon.id)}>
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>

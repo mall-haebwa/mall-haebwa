@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
@@ -30,11 +30,8 @@ export function RandomSections() {
   const [randoms, setRandoms] = useState<Product[]>([]);
   const [notables, setNotables] = useState<Product[]>([]);
   const [risings, setRisings] = useState<Product[]>([]);
-<<<<<<< Updated upstream
-=======
   const seenRef = useRef<Set<string>>(new Set());
   const swiperRefs = useRef<any[]>([]);
->>>>>>> Stashed changes
 
   useEffect(() => {
     (async () => {
@@ -43,7 +40,7 @@ export function RandomSections() {
         fetchRandom(24, []),
         fetchRandom(24, []),
         fetchRandom(24, []),
-        fetchRandom(24, [])
+        fetchRandom(24, []),
       ]);
 
       setDeals(s1);
@@ -117,7 +114,9 @@ export function RandomSections() {
 
             <Swiper
               modules={[Pagination]}
-              onSwiper={(swiper) => { swiperRefs.current[idx] = swiper; }}
+              onSwiper={(swiper) => {
+                swiperRefs.current[idx] = swiper;
+              }}
               spaceBetween={16}
               slidesPerView={1}
               slidesPerGroup={4}

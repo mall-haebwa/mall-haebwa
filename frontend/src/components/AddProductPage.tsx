@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { ArrowLeft, Upload, X, Sparkles, Loader2, Wand2, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  Upload,
+  X,
+  Sparkles,
+  Loader2,
+  Wand2,
+  Check,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -258,14 +266,13 @@ ${
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto max-w-[1000px] px-6 py-6 md:px-8">
         <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/admin")}
-            className="mb-4 -ml-2 flex items-center gap-2 text-sm text-gray-600 hover:bg-gray-100"
-          >
+            className="mb-4 -ml-2 flex items-center gap-2 text-sm text-gray-600 hover:bg-gray-100">
             <ArrowLeft className="h-4 w-4" />
             돌아가기
           </Button>
@@ -279,8 +286,8 @@ ${
               </p>
             </div>
             {/* AI 모드 토글 */}
-            <div className="flex items-center gap-3 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3">
-              <Sparkles className="h-5 w-5 text-purple-600" />
+            <div className="flex items-center gap-3 rounded-lg  bg-orange-200 px-4 py-3">
+              <Sparkles className="h-5 w-5 text-brand-orange" />
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-gray-900">
                   AI 자동 완성 모드
@@ -309,8 +316,7 @@ ${
                     size="sm"
                     onClick={generateProductName}
                     disabled={generatingField === "productName"}
-                    className="h-8 gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                  >
+                    className="h-8 gap-2 text-brand-orange hover:bg-orange-200">
                     {generatingField === "productName" ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,8 +383,7 @@ ${
                       size="sm"
                       onClick={recommendPrice}
                       disabled={!category || generatingField === "price"}
-                      className="h-8 gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                    >
+                      className="h-8 gap-2 text-brand-orange hover:bg-orange-200">
                       {generatingField === "price" ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -448,8 +453,7 @@ ${
                     size="sm"
                     onClick={generateDescription}
                     disabled={generatingField === "description"}
-                    className="h-8 gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                  >
+                    className="h-8 gap-2 text-brand-orange hover:bg-orange-200">
                     {generatingField === "description" ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -518,8 +522,7 @@ ${
                   disabled={
                     images.length === 0 || generatingField === "imageAnalysis"
                   }
-                  className="gap-2 border-purple-200 text-purple-600 hover:bg-purple-50"
-                >
+                  className="gap-2 text-brand-orange hover:bg-orange-200">
                   {generatingField === "imageAnalysis" ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -535,8 +538,7 @@ ${
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleAddImage}
-                >
+                  onClick={handleAddImage}>
                   <Upload className="mr-2 h-4 w-4" />
                   이미지 추가
                 </Button>
@@ -545,9 +547,9 @@ ${
 
             {/* AI 분석 안내 */}
             {images.length === 0 && (
-              <div className="rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-4">
+              <div className="rounded-lg bg-orange-100 p-4">
                 <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 shrink-0 text-purple-600" />
+                  <Sparkles className="h-5 w-5 shrink-0 text-brand-orange" />
                   <div>
                     <p className="mb-1 text-sm font-semibold text-gray-900">
                       AI 이미지 분석 기능
@@ -571,8 +573,7 @@ ${
                 {images.map((image, index) => (
                   <div
                     key={image}
-                    className="relative overflow-hidden rounded border border-gray-200"
-                  >
+                    className="relative overflow-hidden rounded border border-gray-200">
                     <img
                       src={image}
                       alt={`상품 이미지 ${index + 1}`}
@@ -583,8 +584,7 @@ ${
                       variant="ghost"
                       size="icon"
                       className="absolute right-2 top-2 h-7 w-7 bg-white/80"
-                      onClick={() => handleRemoveImage(index)}
-                    >
+                      onClick={() => handleRemoveImage(index)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -613,8 +613,7 @@ ${
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAiSuggestions(false)}
-                  className="ml-auto"
-                >
+                  className="ml-auto">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -656,14 +655,12 @@ ${
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/admin")}
-            >
+              onClick={() => navigate("/admin")}>
               취소
             </Button>
             <Button
               type="submit"
-              className="bg-gray-900 text-white hover:bg-black"
-            >
+              className="bg-gray-900 text-white hover:bg-black">
               등록하기
             </Button>
           </div>

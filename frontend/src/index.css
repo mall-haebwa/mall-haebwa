@@ -3058,7 +3058,7 @@
   --font-size: 16px;
   --background: #fff;
   --foreground: oklch(0.145 0 0);
-  --card: #fff;
+  --card: #f5f6fa;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -3561,9 +3561,9 @@ html {
 }
 
 .bg-gradient-white-orange {
-  background: linear-gradient(135deg, #ffffff 0%, #f2641d 100%);
+  background: linear-gradient(135deg, #ffffff -100%, #f7bea2 100%);
 }
 
 .bg-gradient-orange-light-white {
-  background: linear-gradient(135deg, #f2641d 0%, #fef3e2 50%, #ffffff 100%);
+  background: linear-gradient(265deg, #f2641d 0%, #fef3e2 50%, #ffffff 100%);
 }
