@@ -20,60 +20,91 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
 
   const [settlementAccountForm, setSettlementAccountForm] = useState({
     bankName: finalUser?.sellerInfo?.settlementAccount?.bankName || "",
-    accountNumber: finalUser?.sellerInfo?.settlementAccount?.accountNumber || "",
-    accountHolder: finalUser?.sellerInfo?.settlementAccount?.accountHolder || "",
+    accountNumber:
+      finalUser?.sellerInfo?.settlementAccount?.accountNumber || "",
+    accountHolder:
+      finalUser?.sellerInfo?.settlementAccount?.accountHolder || "",
   });
 
   const [deliverySettingsForm, setDeliverySettingsForm] = useState({
-    baseDeliveryFee: finalUser?.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
-    freeDeliveryMinAmount: finalUser?.sellerInfo?.deliverySettings?.freeDeliveryMinAmount || 50000,
-    returnExchangeDeliveryFee: finalUser?.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee || 6000,
+    baseDeliveryFee:
+      finalUser?.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
+    freeDeliveryMinAmount:
+      finalUser?.sellerInfo?.deliverySettings?.freeDeliveryMinAmount || 50000,
+    returnExchangeDeliveryFee:
+      finalUser?.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee ||
+      6000,
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
-    newOrderAlert: finalUser?.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
-    lowStockAlert: finalUser?.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
-    settlementAlert: finalUser?.sellerInfo?.notificationSettings?.settlementAlert ?? true,
+    newOrderAlert:
+      finalUser?.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
+    lowStockAlert:
+      finalUser?.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
+    settlementAlert:
+      finalUser?.sellerInfo?.notificationSettings?.settlementAlert ?? true,
   });
 
   const [aiAutomationSettings, setAiAutomationSettings] = useState({
-    priceOptimization: finalUser?.sellerInfo?.aiAutomationSettings?.priceOptimization ?? false,
+    priceOptimization:
+      finalUser?.sellerInfo?.aiAutomationSettings?.priceOptimization ?? false,
     stockAlert: finalUser?.sellerInfo?.aiAutomationSettings?.stockAlert ?? true,
-    promotionRecommendation: finalUser?.sellerInfo?.aiAutomationSettings?.promotionRecommendation ?? true,
-    fraudDetection: finalUser?.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
+    promotionRecommendation:
+      finalUser?.sellerInfo?.aiAutomationSettings?.promotionRecommendation ??
+      true,
+    fraudDetection:
+      finalUser?.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
   });
 
   // currentUser가 로드될 때 폼 상태 업데이트 (새로고침 대응)
   useEffect(() => {
     if (finalUser) {
       setSellerInfoForm({
-        contactEmail: finalUser.sellerInfo?.contactEmail || finalUser.email || "",
-        contactPhone: finalUser.sellerInfo?.contactPhone || finalUser.phone || "",
+        contactEmail:
+          finalUser.sellerInfo?.contactEmail || finalUser.email || "",
+        contactPhone:
+          finalUser.sellerInfo?.contactPhone || finalUser.phone || "",
       });
 
       setSettlementAccountForm({
         bankName: finalUser.sellerInfo?.settlementAccount?.bankName || "",
-        accountNumber: finalUser.sellerInfo?.settlementAccount?.accountNumber || "",
-        accountHolder: finalUser.sellerInfo?.settlementAccount?.accountHolder || "",
+        accountNumber:
+          finalUser.sellerInfo?.settlementAccount?.accountNumber || "",
+        accountHolder:
+          finalUser.sellerInfo?.settlementAccount?.accountHolder || "",
       });
 
       setDeliverySettingsForm({
-        baseDeliveryFee: finalUser.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
-        freeDeliveryMinAmount: finalUser.sellerInfo?.deliverySettings?.freeDeliveryMinAmount || 50000,
-        returnExchangeDeliveryFee: finalUser.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee || 6000,
+        baseDeliveryFee:
+          finalUser.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
+        freeDeliveryMinAmount:
+          finalUser.sellerInfo?.deliverySettings?.freeDeliveryMinAmount ||
+          50000,
+        returnExchangeDeliveryFee:
+          finalUser.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee ||
+          6000,
       });
 
       setNotificationSettings({
-        newOrderAlert: finalUser.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
-        lowStockAlert: finalUser.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
-        settlementAlert: finalUser.sellerInfo?.notificationSettings?.settlementAlert ?? true,
+        newOrderAlert:
+          finalUser.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
+        lowStockAlert:
+          finalUser.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
+        settlementAlert:
+          finalUser.sellerInfo?.notificationSettings?.settlementAlert ?? true,
       });
 
       setAiAutomationSettings({
-        priceOptimization: finalUser.sellerInfo?.aiAutomationSettings?.priceOptimization ?? false,
-        stockAlert: finalUser.sellerInfo?.aiAutomationSettings?.stockAlert ?? true,
-        promotionRecommendation: finalUser.sellerInfo?.aiAutomationSettings?.promotionRecommendation ?? true,
-        fraudDetection: finalUser.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
+        priceOptimization:
+          finalUser.sellerInfo?.aiAutomationSettings?.priceOptimization ??
+          false,
+        stockAlert:
+          finalUser.sellerInfo?.aiAutomationSettings?.stockAlert ?? true,
+        promotionRecommendation:
+          finalUser.sellerInfo?.aiAutomationSettings?.promotionRecommendation ??
+          true,
+        fraudDetection:
+          finalUser.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
       });
     }
   }, [finalUser]);
@@ -109,7 +140,11 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
   };
 
   const handleUpdateSettlementAccount = async () => {
-    if (!settlementAccountForm.bankName || !settlementAccountForm.accountNumber || !settlementAccountForm.accountHolder) {
+    if (
+      !settlementAccountForm.bankName ||
+      !settlementAccountForm.accountNumber ||
+      !settlementAccountForm.accountHolder
+    ) {
       alert("모든 필드를 입력해주세요.");
       return;
     }
@@ -132,8 +167,10 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
       // 폼 상태 업데이트
       setSettlementAccountForm({
         bankName: updatedUser.sellerInfo?.settlementAccount?.bankName || "",
-        accountNumber: updatedUser.sellerInfo?.settlementAccount?.accountNumber || "",
-        accountHolder: updatedUser.sellerInfo?.settlementAccount?.accountHolder || "",
+        accountNumber:
+          updatedUser.sellerInfo?.settlementAccount?.accountNumber || "",
+        accountHolder:
+          updatedUser.sellerInfo?.settlementAccount?.accountHolder || "",
       });
 
       alert("정산 계좌가 등록되었습니다.");
@@ -161,9 +198,14 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
 
       // 폼 상태 업데이트
       setDeliverySettingsForm({
-        baseDeliveryFee: updatedUser.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
-        freeDeliveryMinAmount: updatedUser.sellerInfo?.deliverySettings?.freeDeliveryMinAmount || 50000,
-        returnExchangeDeliveryFee: updatedUser.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee || 6000,
+        baseDeliveryFee:
+          updatedUser.sellerInfo?.deliverySettings?.baseDeliveryFee || 3000,
+        freeDeliveryMinAmount:
+          updatedUser.sellerInfo?.deliverySettings?.freeDeliveryMinAmount ||
+          50000,
+        returnExchangeDeliveryFee:
+          updatedUser.sellerInfo?.deliverySettings?.returnExchangeDeliveryFee ||
+          6000,
       });
 
       alert("배송 설정이 저장되었습니다.");
@@ -191,9 +233,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
 
       // 폼 상태 업데이트
       setNotificationSettings({
-        newOrderAlert: updatedUser.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
-        lowStockAlert: updatedUser.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
-        settlementAlert: updatedUser.sellerInfo?.notificationSettings?.settlementAlert ?? true,
+        newOrderAlert:
+          updatedUser.sellerInfo?.notificationSettings?.newOrderAlert ?? true,
+        lowStockAlert:
+          updatedUser.sellerInfo?.notificationSettings?.lowStockAlert ?? true,
+        settlementAlert:
+          updatedUser.sellerInfo?.notificationSettings?.settlementAlert ?? true,
       });
 
       alert("알림 설정이 저장되었습니다.");
@@ -221,10 +266,16 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
 
       // 폼 상태 업데이트
       setAiAutomationSettings({
-        priceOptimization: updatedUser.sellerInfo?.aiAutomationSettings?.priceOptimization ?? false,
-        stockAlert: updatedUser.sellerInfo?.aiAutomationSettings?.stockAlert ?? true,
-        promotionRecommendation: updatedUser.sellerInfo?.aiAutomationSettings?.promotionRecommendation ?? true,
-        fraudDetection: updatedUser.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
+        priceOptimization:
+          updatedUser.sellerInfo?.aiAutomationSettings?.priceOptimization ??
+          false,
+        stockAlert:
+          updatedUser.sellerInfo?.aiAutomationSettings?.stockAlert ?? true,
+        promotionRecommendation:
+          updatedUser.sellerInfo?.aiAutomationSettings
+            ?.promotionRecommendation ?? true,
+        fraudDetection:
+          updatedUser.sellerInfo?.aiAutomationSettings?.fraudDetection ?? true,
       });
 
       alert("AI 자동화 설정이 저장되었습니다.");
@@ -252,7 +303,7 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
                 <Input
                   value={finalUser.sellerInfo?.businessName || ""}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-brand-main"
                 />
               </div>
 
@@ -263,7 +314,7 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
                 <Input
                   value={finalUser.sellerInfo?.businessNumber || ""}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-brand-main"
                 />
               </div>
             </div>
@@ -275,7 +326,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <Input
                 type="email"
                 value={sellerInfoForm.contactEmail}
-                onChange={(e) => setSellerInfoForm({ ...sellerInfoForm, contactEmail: e.target.value })}
+                onChange={(e) =>
+                  setSellerInfoForm({
+                    ...sellerInfoForm,
+                    contactEmail: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -286,15 +342,19 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <Input
                 type="tel"
                 value={sellerInfoForm.contactPhone}
-                onChange={(e) => setSellerInfoForm({ ...sellerInfoForm, contactPhone: e.target.value })}
+                onChange={(e) =>
+                  setSellerInfoForm({
+                    ...sellerInfoForm,
+                    contactPhone: e.target.value,
+                  })
+                }
               />
             </div>
 
             <div className="flex justify-end">
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={handleUpdateSellerInfo}
-              >
+                className="bg-brand-orange text-white hover:bg-orange-400"
+                onClick={handleUpdateSellerInfo}>
                 정보 수정
               </Button>
             </div>
@@ -315,8 +375,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <select
                 className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
                 value={settlementAccountForm.bankName}
-                onChange={(e) => setSettlementAccountForm({ ...settlementAccountForm, bankName: e.target.value })}
-              >
+                onChange={(e) =>
+                  setSettlementAccountForm({
+                    ...settlementAccountForm,
+                    bankName: e.target.value,
+                  })
+                }>
                 <option value="">은행 선택</option>
                 <option value="국민은행">국민은행</option>
                 <option value="신한은행">신한은행</option>
@@ -334,7 +398,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <Input
                 placeholder="계좌번호를 입력하세요"
                 value={settlementAccountForm.accountNumber}
-                onChange={(e) => setSettlementAccountForm({ ...settlementAccountForm, accountNumber: e.target.value })}
+                onChange={(e) =>
+                  setSettlementAccountForm({
+                    ...settlementAccountForm,
+                    accountNumber: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -345,15 +414,19 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <Input
                 placeholder="예금주명을 입력하세요"
                 value={settlementAccountForm.accountHolder}
-                onChange={(e) => setSettlementAccountForm({ ...settlementAccountForm, accountHolder: e.target.value })}
+                onChange={(e) =>
+                  setSettlementAccountForm({
+                    ...settlementAccountForm,
+                    accountHolder: e.target.value,
+                  })
+                }
               />
             </div>
 
             <div className="flex justify-end">
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={handleUpdateSettlementAccount}
-              >
+                className="bg-brand-orange text-white hover:bg-orange-400"
+                onClick={handleUpdateSettlementAccount}>
                 계좌 등록
               </Button>
             </div>
@@ -375,7 +448,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
                 type="number"
                 placeholder="3000"
                 value={deliverySettingsForm.baseDeliveryFee}
-                onChange={(e) => setDeliverySettingsForm({ ...deliverySettingsForm, baseDeliveryFee: Number(e.target.value) })}
+                onChange={(e) =>
+                  setDeliverySettingsForm({
+                    ...deliverySettingsForm,
+                    baseDeliveryFee: Number(e.target.value),
+                  })
+                }
               />
             </div>
 
@@ -387,7 +465,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
                 type="number"
                 placeholder="50000"
                 value={deliverySettingsForm.freeDeliveryMinAmount}
-                onChange={(e) => setDeliverySettingsForm({ ...deliverySettingsForm, freeDeliveryMinAmount: Number(e.target.value) })}
+                onChange={(e) =>
+                  setDeliverySettingsForm({
+                    ...deliverySettingsForm,
+                    freeDeliveryMinAmount: Number(e.target.value),
+                  })
+                }
               />
             </div>
 
@@ -399,15 +482,19 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
                 type="number"
                 placeholder="6000"
                 value={deliverySettingsForm.returnExchangeDeliveryFee}
-                onChange={(e) => setDeliverySettingsForm({ ...deliverySettingsForm, returnExchangeDeliveryFee: Number(e.target.value) })}
+                onChange={(e) =>
+                  setDeliverySettingsForm({
+                    ...deliverySettingsForm,
+                    returnExchangeDeliveryFee: Number(e.target.value),
+                  })
+                }
               />
             </div>
 
             <div className="flex justify-end">
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={handleUpdateDeliverySettings}
-              >
+                className="bg-brand-orange text-white hover:bg-orange-400"
+                onClick={handleUpdateDeliverySettings}>
                 저장
               </Button>
             </div>
@@ -425,9 +512,7 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-gray-500" />
                 <div>
-                  <p className="font-medium text-gray-900">
-                    신규 주문 알림
-                  </p>
+                  <p className="font-medium text-gray-900">신규 주문 알림</p>
                   <p className="text-sm text-gray-600">
                     새로운 주문이 들어오면 알림을 받습니다
                   </p>
@@ -435,7 +520,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               </div>
               <Checkbox
                 checked={notificationSettings.newOrderAlert}
-                onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, newOrderAlert: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setNotificationSettings({
+                    ...notificationSettings,
+                    newOrderAlert: checked as boolean,
+                  })
+                }
               />
             </div>
 
@@ -443,9 +533,7 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 text-gray-500" />
                 <div>
-                  <p className="font-medium text-gray-900">
-                    재고 부족 알림
-                  </p>
+                  <p className="font-medium text-gray-900">재고 부족 알림</p>
                   <p className="text-sm text-gray-600">
                     상품 재고가 부족하면 알림을 받습니다
                   </p>
@@ -453,7 +541,12 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               </div>
               <Checkbox
                 checked={notificationSettings.lowStockAlert}
-                onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, lowStockAlert: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setNotificationSettings({
+                    ...notificationSettings,
+                    lowStockAlert: checked as boolean,
+                  })
+                }
               />
             </div>
 
@@ -469,15 +562,19 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               </div>
               <Checkbox
                 checked={notificationSettings.settlementAlert}
-                onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, settlementAlert: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setNotificationSettings({
+                    ...notificationSettings,
+                    settlementAlert: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex justify-end pt-4">
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={handleUpdateNotifications}
-              >
+                className="bg-brand-orange text-white hover:bg-orange-400"
+                onClick={handleUpdateNotifications}>
                 저장
               </Button>
             </div>
@@ -485,9 +582,9 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
         </Card>
 
         {/* AI 자동화 설정 */}
-        <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6">
+        <Card className="border-brand-orange bg-brand-main p-6">
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -496,37 +593,43 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-white p-4">
+            <div className="flex items-center justify-between rounded-lg border border-brand-orange bg-brand-main p-4">
               <div>
-                <p className="font-medium text-gray-900">
-                  AI 가격 자동 최적화
-                </p>
+                <p className="font-medium text-gray-900">AI 가격 자동 최적화</p>
                 <p className="text-sm text-gray-600">
                   시장 동향에 따라 자동으로 가격을 조정합니다
                 </p>
               </div>
               <Checkbox
                 checked={aiAutomationSettings.priceOptimization}
-                onCheckedChange={(checked) => setAiAutomationSettings({ ...aiAutomationSettings, priceOptimization: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setAiAutomationSettings({
+                    ...aiAutomationSettings,
+                    priceOptimization: checked as boolean,
+                  })
+                }
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-white p-4">
+            <div className="flex items-center justify-between rounded-lg border border-brand-orange bg-brand-main p-4">
               <div>
-                <p className="font-medium text-gray-900">
-                  AI 재고 자동 알림
-                </p>
+                <p className="font-medium text-gray-900">AI 재고 자동 알림</p>
                 <p className="text-sm text-gray-600">
                   판매 추이를 분석하여 발주 시점을 추천합니다
                 </p>
               </div>
               <Checkbox
                 checked={aiAutomationSettings.stockAlert}
-                onCheckedChange={(checked) => setAiAutomationSettings({ ...aiAutomationSettings, stockAlert: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setAiAutomationSettings({
+                    ...aiAutomationSettings,
+                    stockAlert: checked as boolean,
+                  })
+                }
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-white p-4">
+            <div className="flex items-center justify-between rounded-lg border border-brand-orange bg-brand-main p-4">
               <div>
                 <p className="font-medium text-gray-900">
                   AI 프로모션 자동 추천
@@ -537,11 +640,16 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               </div>
               <Checkbox
                 checked={aiAutomationSettings.promotionRecommendation}
-                onCheckedChange={(checked) => setAiAutomationSettings({ ...aiAutomationSettings, promotionRecommendation: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setAiAutomationSettings({
+                    ...aiAutomationSettings,
+                    promotionRecommendation: checked as boolean,
+                  })
+                }
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-white p-4">
+            <div className="flex items-center justify-between rounded-lg border border-brand-orange bg-brand-main p-4">
               <div>
                 <p className="font-medium text-gray-900">AI 사기 탐지</p>
                 <p className="text-sm text-gray-600">
@@ -550,15 +658,19 @@ export function SettingsTab({ finalUser, setCurrentUser }: SettingsTabProps) {
               </div>
               <Checkbox
                 checked={aiAutomationSettings.fraudDetection}
-                onCheckedChange={(checked) => setAiAutomationSettings({ ...aiAutomationSettings, fraudDetection: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setAiAutomationSettings({
+                    ...aiAutomationSettings,
+                    fraudDetection: checked as boolean,
+                  })
+                }
               />
             </div>
 
             <div className="flex justify-end pt-4">
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={handleUpdateAiAutomation}
-              >
+                className="bg-brand-orange text-white hover:bg-orange-400"
+                onClick={handleUpdateAiAutomation}>
                 저장
               </Button>
             </div>

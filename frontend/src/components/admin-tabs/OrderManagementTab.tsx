@@ -81,7 +81,9 @@ export function OrderManagementTab() {
   const [orderPage, setOrderPage] = useState(1);
   const [orderLimit] = useState(20);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const [orderDashboard, setOrderDashboard] = useState<OrderDashboard | null>(null);
+  const [orderDashboard, setOrderDashboard] = useState<OrderDashboard | null>(
+    null
+  );
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
 
@@ -193,14 +195,13 @@ export function OrderManagementTab() {
               key={tab.label}
               className={`px-4 py-2 text-sm font-medium ${
                 isActive
-                  ? "border-b-2 border-purple-600 text-purple-600"
+                  ? "border-b-2 border-brand-orange text-brand-orange"
                   : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => {
                 setOrderTab(tab.value);
                 setOrderPage(1);
-              }}
-            >
+              }}>
               {tab.label} ({count})
             </button>
           );
@@ -219,15 +220,14 @@ export function OrderManagementTab() {
                 AI 사기 탐지 알림
               </h3>
               <p className="mb-3 text-sm text-gray-700">
-                의심스러운 주문이 {orderDashboard.suspiciousOrders.length}
-                건 발견되었습니다.
+                의심스러운 주문이 {orderDashboard.suspiciousOrders.length}건
+                발견되었습니다.
               </p>
               <div className="space-y-2">
                 {orderDashboard.suspiciousOrders.map((order) => (
                   <div
                     key={order._id}
-                    className="rounded-lg border border-red-200 bg-white p-3"
-                  >
+                    className="rounded-lg border border-red-200 bg-brand-main p-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-gray-900">
@@ -257,14 +257,12 @@ export function OrderManagementTab() {
             주문 목록을 불러오는 중...
           </div>
         ) : orders.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            주문이 없습니다.
-          </div>
+          <div className="p-6 text-center text-gray-500">주문이 없습니다.</div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="border-b border-gray-200 bg-gray-50">
+                <thead className="border-b border-gray-200 bg-brand-main">
                   <tr>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                       주문번호
@@ -322,8 +320,7 @@ export function OrderManagementTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
+                          onClick={() => setSelectedOrder(order)}>
                           상세
                         </Button>
                       </td>
@@ -338,10 +335,7 @@ export function OrderManagementTab() {
                 variant="outline"
                 size="sm"
                 disabled={orderPage === 1}
-                onClick={() =>
-                  setOrderPage((prev) => Math.max(1, prev - 1))
-                }
-              >
+                onClick={() => setOrderPage((prev) => Math.max(1, prev - 1))}>
                 이전
               </Button>
               <span className="text-sm text-gray-600">
@@ -355,8 +349,7 @@ export function OrderManagementTab() {
                   setOrderPage((prev) =>
                     prev * orderLimit >= orderTotal ? prev : prev + 1
                   );
-                }}
-              >
+                }}>
                 다음
               </Button>
             </div>
@@ -378,8 +371,7 @@ export function OrderManagementTab() {
 
 const StatusBadge = ({ status }: { status: OrderStatus }) => (
   <span
-    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${ORDER_STATUS_CLASS[status]}`}
-  >
+    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${ORDER_STATUS_CLASS[status]}`}>
     {status === "pending" && <AlertTriangle className="h-3 w-3" />}
     {status === "shipping" && <Truck className="h-3 w-3" />}
     {status === "completed" && <Check className="h-3 w-3" />}
@@ -496,8 +488,7 @@ const OrderDetailModal = ({
             <select
               className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
               value={nextStatus}
-              onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
-            >
+              onChange={(e) => setNextStatus(e.target.value as OrderStatus)}>
               {ORDER_STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
                   {ORDER_STATUS_LABEL[status]}
@@ -514,8 +505,7 @@ const OrderDetailModal = ({
           <Button
             className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
             onClick={() => onChangeStatus(order._id, nextStatus)}
-            disabled={isUpdating || nextStatus === order.status}
-          >
+            disabled={isUpdating || nextStatus === order.status}>
             {isUpdating ? "저장 중..." : "상태 업데이트"}
           </Button>
         </div>

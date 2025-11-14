@@ -421,11 +421,11 @@ export function AdminPage() {
         <div className="mx-auto max-w-[1200px] px-6">
           {/* 상단 헤더 */}
           <div className="mb-8 text-center">
-            {/* <div className="mb-4 flex justify-center">
+            <div className="mb-4 flex justify-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-orange-white">
                 <Sparkles className="h-10 w-10 text-white" />
               </div>
-            </div> */}
+            </div>
             <h1 className="mb-2 text-3xl font-bold text-gray-900">
               AI 기반 스마트 판매 시스템
             </h1>
@@ -441,7 +441,7 @@ export function AdminPage() {
               </Button>
               <Button
                 size="lg"
-                className="bg-white text-gray-900 transition-all duration-200 hover:shadow-lg hover:scale-105"
+                className="bg-brand-main text-gray-900 transition-all duration-200 hover:shadow-lg hover:scale-105"
                 onClick={() => navigate("/become-seller")}>
                 <Package className="mr-2 h-5 w-5" />
                 판매자 등록하기
@@ -454,7 +454,7 @@ export function AdminPage() {
             {/* AI 자동 상품 등록 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full  bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full  bg-brand-main">
                   <Wand2 className="h-6 w-6  text-purple-600" />
                 </div>
                 <div>
@@ -471,7 +471,7 @@ export function AdminPage() {
             {/* AI 가격 최적화 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-main">
                   <TrendingUp className="h-6 w-6 text-pink-600" />
                 </div>
                 <div>
@@ -488,7 +488,7 @@ export function AdminPage() {
             {/* AI 판매 인사이트 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-main">
                   <BarChart3 className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -505,7 +505,7 @@ export function AdminPage() {
             {/* AI 프로모션 전략 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-main">
                   <Tag className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
@@ -522,7 +522,7 @@ export function AdminPage() {
             {/* AI 재고 예측 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-main">
                   <Package className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
@@ -539,7 +539,7 @@ export function AdminPage() {
             {/* AI 사기 탐지 */}
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-main">
                   <AlertTriangle className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
@@ -558,7 +558,7 @@ export function AdminPage() {
           <Card className="mt-6 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-main">
                   <Check className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
@@ -603,79 +603,55 @@ export function AdminPage() {
 
   // 판매자인 경우 대시보드 표시
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-brand-main">
       {/* 좌측 사이드바 */}
-      <aside className="w-64 border-r border-gray-200 bg-white">
+      <aside className="w-64 border-r border-gray-200 bg-brand-main">
         <div className="flex h-16 items-center border-b border-gray-200 px-6">
-          <Package className="mr-2 h-6 w-6 text-purple-600" />
+          <Package className="mr-2 h-6 w-6 text-brand-orange" />
           <span className="text-lg font-semibold text-gray-900">
             판매자 센터
           </span>
         </div>
 
-        <nav className="space-y-1 p-4">
+        <nav className="space-y-1 p-4 ">
           <button
             onClick={() => setActiveMenu("dashboard")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "dashboard"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <Home className="h-5 w-5" />
             대시보드
           </button>
 
           <button
             onClick={() => setActiveMenu("reports")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "reports"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <BarChart3 className="h-5 w-5" />
             리포트
           </button>
 
           <button
             onClick={() => setActiveMenu("products")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "products"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <Package className="h-5 w-5" />
             상품 관리
           </button>
 
           <button
             onClick={() => setActiveMenu("orders")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "orders"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <ShoppingCart className="h-5 w-5" />
             주문 관리
           </button>
 
           <button
             onClick={() => setActiveMenu("promotions")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "promotions"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <Tag className="h-5 w-5" />
             프로모션
           </button>
 
           <button
             onClick={() => setActiveMenu("settings")}
-            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
-              activeMenu === "settings"
-                ? "bg-purple-50 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}>
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-200`}>
             <Settings className="h-5 w-5" />
             설정
           </button>
@@ -683,9 +659,9 @@ export function AdminPage() {
       </aside>
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1">
+      <main className="flex-1 ">
         {/* 헤더 */}
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-brand-main px-8">
           <h1 className="text-xl font-semibold text-gray-900">
             {activeMenu === "dashboard" && "대시보드"}
             {activeMenu === "reports" && "리포트"}
@@ -696,7 +672,7 @@ export function AdminPage() {
           </h1>
 
           <Button
-            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+            className="bg-brand-orange text-white px-4 py-2 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
             onClick={() => navigate("/add-product")}>
             <Plus className="mr-2 h-4 w-4" />
             상품 등록
@@ -752,7 +728,7 @@ export function AdminPage() {
 
         {editingProduct && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <Card className="w-full max-w-2xl bg-white">
+            <Card className="w-full max-w-2xl">
               <div className="border-b p-4">
                 <h2 className="text-lg font-semibold">상품 수정</h2>
               </div>

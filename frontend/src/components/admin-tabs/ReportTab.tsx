@@ -204,14 +204,12 @@ export function ReportTab({
   };
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-brand-main">
       {/* 기간 선택 */}
       <div className="mb-6 flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">
-            기간 선택:
-          </span>
+          <span className="text-sm font-medium text-gray-700">기간 선택:</span>
         </div>
         <div className="flex gap-2">
           <Button
@@ -219,9 +217,10 @@ export function ReportTab({
             size="sm"
             onClick={() => setReportPeriod("today")}
             className={
-              reportPeriod === "today" ? "bg-purple-600 text-white" : ""
-            }
-          >
+              reportPeriod === "today"
+                ? "bg-brand-orange text-brand-main"
+                : "bg-brand-main"
+            }>
             오늘
           </Button>
           <Button
@@ -229,9 +228,10 @@ export function ReportTab({
             size="sm"
             onClick={() => setReportPeriod("7days")}
             className={
-              reportPeriod === "7days" ? "bg-purple-600 text-white" : ""
-            }
-          >
+              reportPeriod === "7days"
+                ? "bg-brand-orange text-brand-main"
+                : "bg-brand-main"
+            }>
             최근 7일
           </Button>
           <Button
@@ -239,9 +239,10 @@ export function ReportTab({
             size="sm"
             onClick={() => setReportPeriod("30days")}
             className={
-              reportPeriod === "30days" ? "bg-purple-600 text-white" : ""
-            }
-          >
+              reportPeriod === "30days"
+                ? "bg-brand-orange text-brand-main"
+                : "bg-brand-main"
+            }>
             최근 30일
           </Button>
           <Button variant="outline" size="sm" disabled>
@@ -251,9 +252,9 @@ export function ReportTab({
       </div>
 
       {/* AI 인사이트 카드 */}
-      <Card className="mb-6 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6">
+      <Card className="mb-6 p-6 bg-brand-main">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-orange">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
@@ -269,8 +270,7 @@ export function ReportTab({
               </div>
             ) : (
               <p className="text-sm text-gray-500">
-                분석할 데이터가 충분하지 않아 인사이트를 생성할 수
-                없습니다.
+                분석할 데이터가 충분하지 않아 인사이트를 생성할 수 없습니다.
               </p>
             )}
           </div>
@@ -287,15 +287,10 @@ export function ReportTab({
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={dashboardData?.dynamicSalesChart || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: "#6b7280", fontSize: 12 }}
-              />
+              <XAxis dataKey="label" tick={{ fill: "#6b7280", fontSize: 12 }} />
               <YAxis
                 tick={{ fill: "#6b7280", fontSize: 12 }}
-                tickFormatter={(value) =>
-                  `₩${(value / 1000000).toFixed(1)}M`
-                }
+                tickFormatter={(value) => `₩${(value / 1000000).toFixed(1)}M`}
               />
               <Tooltip
                 formatter={(value: number) => [
@@ -311,9 +306,9 @@ export function ReportTab({
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#9333ea"
+                stroke="#f2641d"
                 strokeWidth={2}
-                dot={{ fill: "#9333ea", r: 4 }}
+                dot={{ fill: "#f2641d", r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -332,20 +327,15 @@ export function ReportTab({
                 cy="50%"
                 outerRadius={80}
                 dataKey="value"
-                label
-              >
+                label>
                 {(dashboardData?.categorySalesChart || []).map(
                   (entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={
-                        [
-                          "#9333ea",
-                          "#ec4899",
-                          "#3b82f6",
-                          "#10b981",
-                          "#f59e0b",
-                        ][index % 5]
+                        ["#9333ea", "#ec4899", "#3b82f6", "#10b981", "#f59e0b"][
+                          index % 5
+                        ]
                       }
                     />
                   )
@@ -364,10 +354,7 @@ export function ReportTab({
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={dashboardData?.hourlyOrdersChart || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="time"
-                tick={{ fill: "#6b7280", fontSize: 12 }}
-              />
+              <XAxis dataKey="time" tick={{ fill: "#6b7280", fontSize: 12 }} />
               <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} />
               <Tooltip
                 contentStyle={{
@@ -376,11 +363,7 @@ export function ReportTab({
                   borderRadius: "8px",
                 }}
               />
-              <Bar
-                dataKey="orders"
-                fill="#ec4899"
-                radius={[8, 8, 0, 0]}
-              />
+              <Bar dataKey="orders" fill="#ec4899" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -391,7 +374,7 @@ export function ReportTab({
             고객 재구매율
           </h3>
           <div className="mb-4 text-center">
-            <div className="text-5xl font-bold text-purple-600">
+            <div className="text-5xl font-bold text-brand-orange">
               {dashboardData?.repurchaseRate.toFixed(0)}%
             </div>
             <p className="mt-2 text-sm text-gray-600">
@@ -403,10 +386,7 @@ export function ReportTab({
               <div className="mb-1 flex justify-between text-sm">
                 <span className="text-gray-600">1회 구매</span>
                 <span className="font-medium text-gray-900">
-                  {(100 - (dashboardData?.repurchaseRate || 0)).toFixed(
-                    0
-                  )}
-                  %
+                  {(100 - (dashboardData?.repurchaseRate || 0)).toFixed(0)}%
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-gray-200">
@@ -431,9 +411,9 @@ export function ReportTab({
                 <div
                   className="h-2 rounded-full bg-purple-600"
                   style={{
-                    width: `${(
-                      dashboardData?.repurchaseRate || 0
-                    ).toFixed(0)}%`,
+                    width: `${(dashboardData?.repurchaseRate || 0).toFixed(
+                      0
+                    )}%`,
                   }}
                 />
               </div>
