@@ -12,6 +12,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useHeaderVisibility } from "../context/header-visibility";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useAppState } from "../context/app-state";
@@ -98,6 +99,7 @@ export function AISearchPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, setSearchQuery, refreshCart } = useAppState();
+  const { toggleHeader } = useHeaderVisibility();
   const [searchInput, setSearchInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -803,43 +805,56 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="flex h-[calc(100vh-147px)] bg-gray-50">
-      {/* 좌측 결과 영역 */}
-      <div
-        ref={resultsContainerRef}
-        className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white">
-        {contentType === "idle" && (
-          <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center">
-                <div
-                  key={animationStep}
-                  style={{
-                    width: "300px",
-                    height: "300px",
-                    marginBottom: "24px",
-                    animation: "slideInRight 4.5s ease-in-out forwards",
-                  }}>
-                  <Lottie
-                    animationData={
-                      animationStep === 0
-                        ? main2Animation
-                        : animationStep === 1
-                        ? ai_main1Animation
-                        : lastAnimation
-                    }
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: "100%", height: "100%" }}
-                  />
+    <div className="flex flex-col h-screen bg-brand-main">
+      {/* 상단 헤더 토글 바 */}
+      <div className="flex items-center justify-center bg-brand-main border-b border-gray-200 py-3 px-4">
+        <button
+          onClick={toggleHeader}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-orange text-white hover:bg-orange-600 transition-colors"
+          title="헤더 표시/숨김 토글">
+          <ChevronUp className="h-4 w-4" />
+          <span className="text-sm font-medium">헤더 표시</span>
+        </button>
+      </div>
+
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* 좌측 결과 영역 */}
+        <div
+          ref={resultsContainerRef}
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white">
+          {contentType === "idle" && (
+            <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div
+                    key={animationStep}
+                    style={{
+                      width: "300px",
+                      height: "300px",
+                      marginBottom: "24px",
+                      animation: "slideInRight 4.5s ease-in-out forwards",
+                    }}>
+                    <Lottie
+                      animationData={
+                        animationStep === 0
+                          ? main2Animation
+                          : animationStep === 1
+                          ? ai_main1Animation
+                          : lastAnimation
+                      }
+                      loop={true}
+                      autoplay={true}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+                  <span className="text-gray-600">
+                    AI가 답변을 준비 중입니다...
+                  </span>
                 </div>
-                <span className="text-gray-600">
-                  AI가 답변을 준비 중입니다...
-                </span>
-              </div>
-            ) : (
-              <>
-                {/* <header className="text-center">
+              ) : (
+                <>
+                  {/* <header className="text-center">
                   <h1 className="mb-4 text-3xl font-semibold text-gray-900 md:text-4xl">
                     AI 쇼핑 도우미
                   </h1>
@@ -878,7 +893,7 @@ export function AISearchPage() {
                 </Button>
               </form> */}
 
-                {/* 예시 검색어
+                  {/* 예시 검색어
                   <div>
                     <div className="mb-4 flex items-center justify-center gap-2 text-sm text-gray-600">
                       <TrendingUp className="h-4 w-4" />
@@ -897,7 +912,7 @@ export function AISearchPage() {
                   </div>
                 </section> */}
 
-                {/* <section className="grid w-full max-w-3xl gap-6 text-sm text-gray-600 md:grid-cols-3">
+                  {/* <section className="grid w-full max-w-3xl gap-6 text-sm text-gray-600 md:grid-cols-3">
                   <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
                       <Sparkles className="h-6 w-6 text-purple-500" />
@@ -937,352 +952,389 @@ export function AISearchPage() {
                     </p>
                   </div>
                 </section> */}
-              </>
-            )}
-          </div>
-        )}
-
-        {contentType === "products" && (
-          <div className="p-6 bg-brand-main">
-            <div className="mb-6">
-              <h2 className="mb-2 text-2xl font-semibold text-gray-900">
-                검색 결과
-              </h2>
-              {currentSearchQuery && (
-                <p className="text-sm text-gray-600">
-                  &quot;{currentSearchQuery}&quot;에 대한 검색 결과
-                </p>
+                </>
               )}
             </div>
+          )}
 
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
-                <span className="ml-3 text-gray-600">
-                  상품을 검색하고 있습니다...
-                </span>
-              </div>
-            ) : dataError ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">검색 결과가 없습니다.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                {products.map((product) => (
-                  <ProductPreviewCard
-                    key={product.id}
-                    product={product}
-                    onOpen={handleProductClick}
-                    rating={product.rating}
-                    reviewCount={product.reviewCount}
-                    originalPrice={product.originalPrice}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 재주문 옵션 */}
-        {contentType === "reorder" && (
-          <div className="p-6">
-            <div className="mb-6">
-              <h2 className="mb-2 text-2xl font-semibold text-gray-900">
-                재주문 옵션
-              </h2>
-              {currentSearchQuery && (
-                <p className="text-sm text-gray-600">{currentSearchQuery}</p>
-              )}
-            </div>
-
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
-                <span className="ml-3 text-gray-600">
-                  과거 주문을 검색하고 있습니다...
-                </span>
-              </div>
-            ) : dataError ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">과거 주문 내역이 없습니다.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {products.map((product) => (
-                  <ProductPreviewCard
-                    key={product.id}
-                    product={product}
-                    onOpen={handleProductClick}
-                    rating={product.rating}
-                    reviewCount={product.reviewCount}
-                    originalPrice={product.originalPrice}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {contentType === "orders" && (
-          <div className="p-6">
-            <h2 className="mb-6 text-2xl font-semibold text-gray-900">
-              주문 내역
-            </h2>
-
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
-                <span className="ml-3 text-gray-600">
-                  주문 내역을 불러오고 있습니다...
-                </span>
-              </div>
-            ) : dataError ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
-                {!currentUser && (
-                  <Button
-                    className="mt-4 bg-gray-900 text-white hover:bg-black"
-                    onClick={() => navigate("/login")}>
-                    로그인하기
-                  </Button>
+          {contentType === "products" && (
+            <div className="p-6 bg-brand-main">
+              <div className="mb-6">
+                <h2 className="mb-2 text-2xl font-semibold text-gray-900">
+                  검색 결과
+                </h2>
+                {currentSearchQuery && (
+                  <p className="text-sm text-gray-600">
+                    &quot;{currentSearchQuery}&quot;에 대한 검색 결과
+                  </p>
                 )}
               </div>
-            ) : orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">주문 내역이 없습니다.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {orders.map((order) => (
-                  <Card key={order.order_id} className="p-6">
-                    <div className="mb-4 flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {order.order_name}
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          주문일:{" "}
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Badge
-                        className={`${
-                          order.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}>
-                        {order.status}
-                      </Badge>
-                    </div>
 
-                    {order.items && order.items.length > 0 && (
-                      <div className="space-y-3 border-t pt-4">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex gap-3">
-                            {item.image_url && (
-                              <ImageWithFallback
-                                src={item.image_url}
-                                alt={item.product_name}
-                                className="h-16 w-16 rounded object-cover"
-                              />
-                            )}
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
-                                {item.product_name}
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                {item.quantity}개 ·{" "}
-                                {item.price.toLocaleString()}원
-                              </p>
-                              {(item.selected_color || item.selected_size) && (
-                                <p className="mt-1 text-xs text-gray-500">
-                                  {item.selected_color &&
-                                    `색상: ${item.selected_color}`}
-                                  {item.selected_color &&
-                                    item.selected_size &&
-                                    " · "}
-                                  {item.selected_size &&
-                                    `사이즈: ${item.selected_size}`}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-4 flex items-center justify-between border-t pt-4">
-                      <span className="text-sm text-gray-600">총 결제금액</span>
-                      <span className="text-lg font-semibold text-gray-900">
-                        {order.amount.toLocaleString()}원
-                      </span>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {contentType === "comparison" && (
-          <div className="p-6">
-            <h2 className="mb-4 text-2xl font-semibold text-gray-900">
-              상품 비교
-            </h2>
-            <div className="flex flex-col items-center justify-center py-20">
-              <Package className="mb-4 h-16 w-16 text-gray-300" />
-              <p className="text-gray-600">상품 비교 기능은 준비 중입니다.</p>
+              {isLoadingData ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+                  <span className="ml-3 text-gray-600">
+                    상품을 검색하고 있습니다...
+                  </span>
+                </div>
+              ) : dataError ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">{dataError}</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">검색 결과가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                  {products.map((product) => (
+                    <ProductPreviewCard
+                      key={product.id}
+                      product={product}
+                      onOpen={handleProductClick}
+                      rating={product.rating}
+                      reviewCount={product.reviewCount}
+                      originalPrice={product.originalPrice}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 장바구니 */}
-        {contentType === "cart" && <CartPage />}
-
-        {/* 다중 검색 결과 */}
-        {contentType === "multisearch" && (
-          <div className="p-6 bg-brand-main">
-            {isLoadingData ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
-                <span className="ml-3 text-gray-600">
-                  상품을 검색하고 있습니다...
-                </span>
+          {/* 재주문 옵션 */}
+          {contentType === "reorder" && (
+            <div className="p-6">
+              <div className="mb-6">
+                <h2 className="mb-2 text-2xl font-semibold text-gray-900">
+                  재주문 옵션
+                </h2>
+                {currentSearchQuery && (
+                  <p className="text-sm text-gray-600">{currentSearchQuery}</p>
+                )}
               </div>
-            ) : dataError ? (
+
+              {isLoadingData ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+                  <span className="ml-3 text-gray-600">
+                    과거 주문을 검색하고 있습니다...
+                  </span>
+                </div>
+              ) : dataError ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">{dataError}</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">과거 주문 내역이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                  {products.map((product) => (
+                    <ProductPreviewCard
+                      key={product.id}
+                      product={product}
+                      onOpen={handleProductClick}
+                      rating={product.rating}
+                      reviewCount={product.reviewCount}
+                      originalPrice={product.originalPrice}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {contentType === "orders" && (
+            <div className="p-6">
+              <h2 className="mb-6 text-2xl font-semibold text-gray-900">
+                주문 내역
+              </h2>
+
+              {isLoadingData ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+                  <span className="ml-3 text-gray-600">
+                    주문 내역을 불러오고 있습니다...
+                  </span>
+                </div>
+              ) : dataError ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">{dataError}</p>
+                  {!currentUser && (
+                    <Button
+                      className="mt-4 bg-gray-900 text-white hover:bg-black"
+                      onClick={() => navigate("/login")}>
+                      로그인하기
+                    </Button>
+                  )}
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">주문 내역이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <Card key={order.order_id} className="p-6">
+                      <div className="mb-4 flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {order.order_name}
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            주문일:{" "}
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`${
+                            order.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}>
+                          {order.status}
+                        </Badge>
+                      </div>
+
+                      {order.items && order.items.length > 0 && (
+                        <div className="space-y-3 border-t pt-4">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="flex gap-3">
+                              {item.image_url && (
+                                <ImageWithFallback
+                                  src={item.image_url}
+                                  alt={item.product_name}
+                                  className="h-16 w-16 rounded object-cover"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {item.product_name}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {item.quantity}개 ·{" "}
+                                  {item.price.toLocaleString()}원
+                                </p>
+                                {(item.selected_color ||
+                                  item.selected_size) && (
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    {item.selected_color &&
+                                      `색상: ${item.selected_color}`}
+                                    {item.selected_color &&
+                                      item.selected_size &&
+                                      " · "}
+                                    {item.selected_size &&
+                                      `사이즈: ${item.selected_size}`}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex items-center justify-between border-t pt-4">
+                        <span className="text-sm text-gray-600">
+                          총 결제금액
+                        </span>
+                        <span className="text-lg font-semibold text-gray-900">
+                          {order.amount.toLocaleString()}원
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {contentType === "comparison" && (
+            <div className="p-6">
+              <h2 className="mb-4 text-2xl font-semibold text-gray-900">
+                상품 비교
+              </h2>
               <div className="flex flex-col items-center justify-center py-20">
                 <Package className="mb-4 h-16 w-16 text-gray-300" />
-                <p className="text-gray-600">{dataError}</p>
+                <p className="text-gray-600">상품 비교 기능은 준비 중입니다.</p>
               </div>
-            ) : (
-              <div className="space-y-6 bg-brand-main">
-                {/* 대표 상품 - 각 카테고리당 1개씩 */}
-                <div className="rounded-lg bg-brand-main p-4">
-                  <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                    추천 상품
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-8">
-                    {multiSearchQueries.map((query) => {
-                      const products = multiSearchResults[query] || [];
-                      const representativeProduct = products[0];
-                      if (!representativeProduct) return null;
+            </div>
+          )}
 
+          {/* 장바구니 */}
+          {contentType === "cart" && <CartPage />}
+
+          {/* 다중 검색 결과 */}
+          {contentType === "multisearch" && (
+            <div className="p-6 bg-brand-main">
+              {isLoadingData ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+                  <span className="ml-3 text-gray-600">
+                    상품을 검색하고 있습니다...
+                  </span>
+                </div>
+              ) : dataError ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Package className="mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-gray-600">{dataError}</p>
+                </div>
+              ) : (
+                <div className="space-y-6 bg-brand-main">
+                  {/* 대표 상품 - 각 카테고리당 1개씩 */}
+                  <div className="rounded-lg bg-brand-main p-4">
+                    <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                      추천 상품
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                      {multiSearchQueries.map((query) => {
+                        const products = multiSearchResults[query] || [];
+                        const representativeProduct = products[0];
+                        if (!representativeProduct) return null;
+
+                        return (
+                          <ProductPreviewCard
+                            key={query}
+                            product={representativeProduct}
+                            onOpen={handleProductClick}
+                            meta={query}
+                            rating={representativeProduct.rating}
+                            reviewCount={representativeProduct.reviewCount}
+                            originalPrice={representativeProduct.originalPrice}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 카테고리 버튼 */}
+                  <div className="flex flex-wrap gap-2">
+                    {multiSearchQueries.map((query) => {
+                      const count = multiSearchResults[query]?.length || 0;
                       return (
-                        <ProductPreviewCard
+                        <button
                           key={query}
-                          product={representativeProduct}
-                          onOpen={handleProductClick}
-                          meta={query}
-                          rating={representativeProduct.rating}
-                          reviewCount={representativeProduct.reviewCount}
-                          originalPrice={representativeProduct.originalPrice}
-                        />
+                          onClick={() => setSelectedMultiCategory(query)}
+                          className={`rounded-full px-5 py-1 font-medium transition-all ${
+                            selectedMultiCategory === query
+                              ? "bg-brand-orange text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}>
+                          {query} ({count})
+                        </button>
                       );
                     })}
                   </div>
-                </div>
 
-                {/* 카테고리 버튼 */}
-                <div className="flex flex-wrap gap-2">
-                  {multiSearchQueries.map((query) => {
-                    const count = multiSearchResults[query]?.length || 0;
-                    return (
-                      <button
-                        key={query}
-                        onClick={() => setSelectedMultiCategory(query)}
-                        className={`rounded-full px-5 py-1 font-medium transition-all ${
-                          selectedMultiCategory === query
-                            ? "bg-brand-orange text-white shadow-md"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}>
-                        {query} ({count})
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* 선택된 카테고리의 상품 목록 */}
-                {selectedMultiCategory && (
-                  <div>
-                    <h3 className="mb-4 text-xl font-semibold text-gray-900">
-                      {selectedMultiCategory} 상품 (
-                      {multiSearchResults[selectedMultiCategory]?.length || 0}
-                      개)
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                      {(multiSearchResults[selectedMultiCategory] || []).map(
-                        (product) => (
-                          <ProductPreviewCard
-                            key={product.id}
-                            product={product}
-                            onOpen={handleProductClick}
-                            rating={product.rating}
-                            reviewCount={product.reviewCount}
-                            originalPrice={product.originalPrice}
-                          />
-                        )
-                      )}
+                  {/* 선택된 카테고리의 상품 목록 */}
+                  {selectedMultiCategory && (
+                    <div>
+                      <h3 className="mb-4 text-xl font-semibold text-gray-900">
+                        {selectedMultiCategory} 상품 (
+                        {multiSearchResults[selectedMultiCategory]?.length || 0}
+                        개)
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                        {(multiSearchResults[selectedMultiCategory] || []).map(
+                          (product) => (
+                            <ProductPreviewCard
+                              key={product.id}
+                              product={product}
+                              onOpen={handleProductClick}
+                              rating={product.rating}
+                              reviewCount={product.reviewCount}
+                              originalPrice={product.originalPrice}
+                            />
+                          )
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 결과가 없을 때 */}
-                {multiSearchQueries.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <Package className="mb-4 h-16 w-16 text-gray-300" />
-                    <p className="text-gray-600">검색 결과가 없습니다.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  {/* 결과가 없을 때 */}
+                  {multiSearchQueries.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <Package className="mb-4 h-16 w-16 text-gray-300" />
+                      <p className="text-gray-600">검색 결과가 없습니다.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* 찜 목록 */}
-        {contentType === "wishlist" && <WishlistPage />}
-      </div>
+          {/* 찜 목록 */}
+          {contentType === "wishlist" && <WishlistPage />}
+        </div>
 
-      {/* 우측 채팅 영역 */}
-      <div className="flex w-[400px] flex-col border-l border-gray-200 bg-brand-main">
-        {/* 채팅 메시지 영역 */}
-        <div
-          className="flex-1 overflow-y-auto px-4 py-4"
-          ref={chatContainerRef}>
-          <div className="space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}>
+        {/* 우측 채팅 영역 */}
+        <div className="flex w-[400px] flex-col border-l border-gray-200 bg-brand-main">
+          {/* 채팅 메시지 영역 */}
+          <div
+            className="flex-1 overflow-y-auto px-4 py-4"
+            ref={chatContainerRef}>
+            <div className="space-y-4">
+              {messages.map((msg, idx) => (
                 <div
-                  className={`max-w-[85%] rounded-lg p-3 ${
-                    msg.role === "user"
-                      ? "text-gray-900"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                  style={
-                    msg.role === "user"
-                      ? { backgroundColor: "#f2641d", color: "#fff" }
-                      : {}
-                  }>
-                  {msg.role === "assistant" && (
+                  key={idx}
+                  className={`flex ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}>
+                  <div
+                    className={`max-w-[85%] rounded-lg p-3 ${
+                      msg.role === "user"
+                        ? "text-gray-900"
+                        : "bg-gray-100 text-gray-900"
+                    }`}
+                    style={
+                      msg.role === "user"
+                        ? { backgroundColor: "#f2641d", color: "#fff" }
+                        : {}
+                    }>
+                    {msg.role === "assistant" && (
+                      <div className="mb-2 flex items-center gap-2">
+                        <div
+                          className="flex h-5 w-5 items-center justify-center rounded-full"
+                          style={{
+                            background:
+                              "linear-gradient(to right, #f2641d, #fff)",
+                          }}>
+                          <Sparkles className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          AI 어시스턴트
+                        </span>
+                      </div>
+                    )}
+                    {msg.images && msg.images.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {msg.images.map((imgUrl, imgIdx) => (
+                          <img
+                            key={imgIdx}
+                            src={imgUrl}
+                            alt={`Message image ${imgIdx + 1}`}
+                            className="h-20 w-20 rounded object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="rounded-lg bg-gray-100 p-3">
                     <div className="mb-2 flex items-center gap-2">
                       <div
                         className="flex h-5 w-5 items-center justify-center rounded-full"
@@ -1296,151 +1348,121 @@ export function AISearchPage() {
                         AI 어시스턴트
                       </span>
                     </div>
-                  )}
-                  {msg.images && msg.images.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {msg.images.map((imgUrl, imgIdx) => (
-                        <img
-                          key={imgIdx}
-                          src={imgUrl}
-                          alt={`Message image ${imgIdx + 1}`}
-                          className="h-20 w-20 rounded object-cover"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-lg bg-gray-100 p-3">
-                  <div className="mb-2 flex items-center gap-2">
                     <div
-                      className="flex h-5 w-5 items-center justify-center rounded-full"
+                      key={animationStep}
+                      className="flex items-center justify-center"
                       style={{
-                        background: "linear-gradient(to right, #f2641d, #fff)",
+                        width: "200px",
+                        height: "120px",
+                        animation: "slideInRight 4.5s ease-in-out forwards",
                       }}>
-                      <Sparkles className="h-3 w-3 text-white" />
+                      <Lottie
+                        animationData={
+                          animationStep === 0
+                            ? main2Animation
+                            : animationStep === 1
+                            ? ai_main1Animation
+                            : lastAnimation
+                        }
+                        loop={true}
+                        autoplay={true}
+                        style={{ width: "100%", height: "100%" }}
+                      />
                     </div>
-                    <span className="text-xs text-gray-500">AI 어시스턴트</span>
-                  </div>
-                  <div
-                    key={animationStep}
-                    className="flex items-center justify-center"
-                    style={{
-                      width: "200px",
-                      height: "120px",
-                      animation: "slideInRight 4.5s ease-in-out forwards",
-                    }}>
-                    <Lottie
-                      animationData={
-                        animationStep === 0
-                          ? main2Animation
-                          : animationStep === 1
-                          ? ai_main1Animation
-                          : lastAnimation
-                      }
-                      loop={true}
-                      autoplay={true}
-                      style={{ width: "100%", height: "100%" }}
-                    />
                   </div>
                 </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* 입력창 영역 */}
+          <div className="border-t border-gray-200 bg-brand-main p-4">
+            {uploadedImages.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {uploadedImages.map((img, index) => (
+                  <div
+                    key={index}
+                    className="relative h-16 w-16 rounded-lg overflow-hidden"
+                    style={{ border: "2px solid #f2641d" }}>
+                    <img
+                      src={img.preview}
+                      alt={`Upload ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      onClick={() => handleImageRemove(index)}
+                      className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* 입력창 영역 */}
-        <div className="border-t border-gray-200 bg-brand-main p-4">
-          {uploadedImages.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {uploadedImages.map((img, index) => (
-                <div
-                  key={index}
-                  className="relative h-16 w-16 rounded-lg overflow-hidden"
-                  style={{ border: "2px solid #f2641d" }}>
-                  <img
-                    src={img.preview}
-                    alt={`Upload ${index + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    onClick={() => handleImageRemove(index)}
-                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (searchInput.trim() || uploadedImages.length > 0) {
-                handleSearch(searchInput.trim());
-              }
-            }}
-            className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    files.forEach((file) => handleImageAdd(file));
-                    e.target.value = "";
-                  }}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 w-10 p-0 bg-[#f2ad8d]"
-                  disabled={isLoading || isProcessingImages}
-                  asChild>
-                  <span>
-                    <ImagePlus className="h-4 w-4" />
-                  </span>
-                </Button>
-              </label>
-
-              <Input
-                type="text"
-                placeholder={
-                  uploadedImages.length > 0
-                    ? "이미지에 대해 설명해주세요..."
-                    : "메시지를 입력하세요..."
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchInput.trim() || uploadedImages.length > 0) {
+                  handleSearch(searchInput.trim());
                 }
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-10 flex-1"
-              />
-            </div>
+              }}
+              className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach((file) => handleImageAdd(file));
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-10 p-0 bg-[#f2ad8d]"
+                    disabled={isLoading || isProcessingImages}
+                    asChild>
+                    <span>
+                      <ImagePlus className="h-4 w-4" />
+                    </span>
+                  </Button>
+                </label>
 
-            <Button
-              type="submit"
-              disabled={
-                (!searchInput.trim() && uploadedImages.length === 0) ||
-                isLoading
-              }
-              className="h-10 w-full text-gray-900 bg-brand-orange">
-              <Send className="mr-2 h-4 w-4" />
-              전송
-            </Button>
-          </form>
+                <Input
+                  type="text"
+                  placeholder={
+                    uploadedImages.length > 0
+                      ? "이미지에 대해 설명해주세요..."
+                      : "메시지를 입력하세요..."
+                  }
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="h-10 flex-1"
+                />
+              </div>
 
-          <p className="mt-2 text-xs text-gray-500 text-center">
-            Ctrl+V로 이미지 붙여넣기
-          </p>
+              <Button
+                type="submit"
+                disabled={
+                  (!searchInput.trim() && uploadedImages.length === 0) ||
+                  isLoading
+                }
+                className="h-10 w-full text-gray-900 bg-brand-orange">
+                <Send className="mr-2 h-4 w-4" />
+                전송
+              </Button>
+            </form>
+
+            <p className="mt-2 text-xs text-gray-500 text-center">
+              Ctrl+V로 이미지 붙여넣기
+            </p>
+          </div>
         </div>
       </div>
     </div>

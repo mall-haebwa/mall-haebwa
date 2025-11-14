@@ -215,7 +215,7 @@ export function ProductPreviewCard({
         <Button
           variant="outline"
           size="sm"
-          className="mx-4 mb-4"
+          className="mx-4 mb-4 "
           onClick={() => onPrimaryAction(product)}>
           {primaryLabel}
         </Button>
