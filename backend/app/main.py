@@ -21,6 +21,7 @@ from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .redis_client import redis_client
 from .scheduler import start_scheduler, stop_scheduler
+from .chat_cache import ChatCache
 from .chat_models import ChatRequest, ChatResponse
 from .vector_search_router import router as vector_search_router
 
@@ -159,6 +160,23 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         logger.warning("[Chat] No authenticated user (guest mode)")
 
     logger.info(f"[Chat] User: {user_id or 'guest'}, Conv: {conv_id[:8]}, Message: {user_message[:50]}")
+
+    # 캐시 체크 시작
+    chat_cache = ChatCache(redis_client, ttl=1800)
+    cached_response = await chat_cache.get(user_message)
+
+    if cached_response:
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"[Chat] Cache hit! Response time: {processing_time_ms}ms")
+
+        return ChatResponse(
+            reply=cached_response.get('reply', ''),
+            action=cached_response.get('action', {"type": "CHAT", "params": {}}),
+            conversation_id=conv_id,
+            llm_used=False,
+            processing_time_ms=processing_time_ms
+        )
+    # 캐시 체크 끝
 
     # Bedrock 클라이언트 확인
     from .bedrock_client import bedrock_client
@@ -532,6 +550,12 @@ async def chat(http_request: Request, chat_request: ChatRequest):
                         "error": tool_result.get("error")
                     }
                 }
+
+        
+        # 응답 캐싱 추가
+        cache_data = {"reply": reply, "action": action}
+        await chat_cache.set(user_message, cache_data)
+        # 캐싱 끝
 
         # Redis에 대화 저장
         if user_id:
