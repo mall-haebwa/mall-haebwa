@@ -23,9 +23,10 @@ import { Badge } from "./ui/badge";
 import { CartPage } from "./CartPage";
 import { WishlistPage } from "./WishlistPage";
 import Lottie from "lottie-react";
-import startAnimation from "../assets/start.json";
-import middleAnimation from "../assets/middle.json";
+import main2Animation from "../assets/main2.json";
+import ai_main1Animation from "../assets/ai_main1.json";
 import lastAnimation from "../assets/last.json";
+import "./AiSearchPage.css";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -114,7 +115,7 @@ export function AISearchPage() {
   >([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isRestoringState, setIsRestoringState] = useState(false);
-  const [animationStep, setAnimationStep] = useState<0 | 1 | 2>(0); // 0: start, 1: middle, 2: last
+  const [animationStep, setAnimationStep] = useState<0 | 1 | 2>(0); // 0: main2, 1: ai_main1, 2: last
 
   // 데이터 관련 상태
   const [currentSearchQuery, setCurrentSearchQuery] = useState("");
@@ -749,32 +750,29 @@ export function AISearchPage() {
     return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
-  // 로딩 중 애니메이션 단계 관리 (3초마다 전환)
+  // 로딩 중 애니메이션 단계 관리 (5초마다 순회: ai_main1 -> last -> main2 -> last)
   useEffect(() => {
     if (!isLoading) {
       setAnimationStep(0); // 로딩 종료 시 초기화
       return;
     }
 
-    // 초기 상태는 0 (start animation)
-    const timers: NodeJS.Timeout[] = [];
+    // 순환 순서: ai_main1(1) -> last(2) -> main2(0) -> last(2) -> ...
+    const animationSequence: (0 | 1 | 2)[] = [1, 2, 0, 2];
+    let currentIndex = 0;
 
-    // 3초 후 middle animation으로 변경
-    timers.push(
-      setTimeout(() => {
-        setAnimationStep(1);
-      }, 3000)
-    );
+    // 초기 애니메이션 설정
+    setAnimationStep(animationSequence[0]);
+    currentIndex = 1;
 
-    // 6초 후 last animation으로 변경
-    timers.push(
-      setTimeout(() => {
-        setAnimationStep(2);
-      }, 6000)
-    );
+    // 5초마다 다음 애니메이션으로 변경
+    const interval = setInterval(() => {
+      setAnimationStep(animationSequence[currentIndex]);
+      currentIndex = (currentIndex + 1) % animationSequence.length;
+    }, 5000);
 
     return () => {
-      timers.forEach((timer) => clearTimeout(timer));
+      clearInterval(interval);
     };
   }, [isLoading]);
 
@@ -814,13 +812,20 @@ export function AISearchPage() {
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center">
-                <div style={{ width: "300px", height: "300px", marginBottom: "24px" }}>
+                <div
+                  key={animationStep}
+                  style={{
+                    width: "300px",
+                    height: "300px",
+                    marginBottom: "24px",
+                    animation: "slideInRight 4.5s ease-in-out forwards",
+                  }}>
                   <Lottie
                     animationData={
                       animationStep === 0
-                        ? startAnimation
+                        ? main2Animation
                         : animationStep === 1
-                        ? middleAnimation
+                        ? ai_main1Animation
                         : lastAnimation
                     }
                     loop={true}
@@ -938,7 +943,7 @@ export function AISearchPage() {
         )}
 
         {contentType === "products" && (
-          <div className="p-6">
+          <div className="p-6 bg-brand-main">
             <div className="mb-6">
               <h2 className="mb-2 text-2xl font-semibold text-gray-900">
                 검색 결과
@@ -1152,7 +1157,7 @@ export function AISearchPage() {
 
         {/* 다중 검색 결과 */}
         {contentType === "multisearch" && (
-          <div className="p-6">
+          <div className="p-6 bg-brand-main">
             {isLoadingData ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
@@ -1166,9 +1171,9 @@ export function AISearchPage() {
                 <p className="text-gray-600">{dataError}</p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 bg-brand-main">
                 {/* 대표 상품 - 각 카테고리당 1개씩 */}
-                <div className="rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 p-4">
+                <div className="rounded-lg bg-brand-main p-4">
                   <h3 className="mb-4 text-lg font-semibold text-gray-900">
                     추천 상품
                   </h3>
@@ -1254,7 +1259,7 @@ export function AISearchPage() {
       </div>
 
       {/* 우측 채팅 영역 */}
-      <div className="flex w-[400px] flex-col border-l border-gray-200 bg-white">
+      <div className="flex w-[400px] flex-col border-l border-gray-200 bg-brand-main">
         {/* 채팅 메시지 영역 */}
         <div
           className="flex-1 overflow-y-auto px-4 py-4"
@@ -1322,13 +1327,20 @@ export function AISearchPage() {
                     </div>
                     <span className="text-xs text-gray-500">AI 어시스턴트</span>
                   </div>
-                  <div className="flex items-center justify-center" style={{ width: "200px", height: "120px" }}>
+                  <div
+                    key={animationStep}
+                    className="flex items-center justify-center"
+                    style={{
+                      width: "200px",
+                      height: "120px",
+                      animation: "slideInRight 4.5s ease-in-out forwards",
+                    }}>
                     <Lottie
                       animationData={
                         animationStep === 0
-                          ? startAnimation
+                          ? main2Animation
                           : animationStep === 1
-                          ? middleAnimation
+                          ? ai_main1Animation
                           : lastAnimation
                       }
                       loop={true}
@@ -1345,7 +1357,7 @@ export function AISearchPage() {
         </div>
 
         {/* 입력창 영역 */}
-        <div className="border-t border-gray-200 bg-white p-4">
+        <div className="border-t border-gray-200 bg-brand-main p-4">
           {uploadedImages.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
               {uploadedImages.map((img, index) => (
@@ -1392,7 +1404,7 @@ export function AISearchPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 w-10 p-0"
+                  className="h-10 w-10 p-0 bg-[#f2ad8d]"
                   disabled={isLoading || isProcessingImages}
                   asChild>
                   <span>
