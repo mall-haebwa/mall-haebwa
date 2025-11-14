@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
@@ -30,20 +30,20 @@ export function RandomSections() {
   const [randoms, setRandoms] = useState<Product[]>([]);
   const [notables, setNotables] = useState<Product[]>([]);
   const [risings, setRisings] = useState<Product[]>([]);
-  const seenRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
-      const s1 = await fetchRandom(24, []);
+      // 병렬 실행으로 변경 (순차 대기 제거)
+      const [s1, s2, s3, s4] = await Promise.all([
+        fetchRandom(24, []),
+        fetchRandom(24, []),
+        fetchRandom(24, []),
+        fetchRandom(24, [])
+      ]);
+
       setDeals(s1);
-      s1.forEach((p) => seenRef.current.add(p.id));
-      const s2 = await fetchRandom(24, Array.from(seenRef.current));
       setRandoms(s2);
-      s2.forEach((p) => seenRef.current.add(p.id));
-      const s3 = await fetchRandom(24, Array.from(seenRef.current));
       setNotables(s3);
-      s3.forEach((p) => seenRef.current.add(p.id));
-      const s4 = await fetchRandom(24, Array.from(seenRef.current));
       setRisings(s4);
     })();
   }, []);
