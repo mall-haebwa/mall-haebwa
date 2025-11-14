@@ -417,15 +417,15 @@ export function AdminPage() {
   // 판매자가 아닌 경우 판매자 등록 UI 표시
   if (!finalUser?.isSeller) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="h-[calc(100vh-154px)] bg-brand-main py-8 flex items-center justify-center">
         <div className="mx-auto max-w-[1200px] px-6">
           {/* 상단 헤더 */}
           <div className="mb-8 text-center">
-            <div className="mb-4 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+            {/* <div className="mb-4 flex justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-orange-white">
                 <Sparkles className="h-10 w-10 text-white" />
               </div>
-            </div>
+            </div> */}
             <h1 className="mb-2 text-3xl font-bold text-gray-900">
               AI 기반 스마트 판매 시스템
             </h1>
@@ -433,14 +433,16 @@ export function AdminPage() {
               인공지능이 당신의 판매를 도와 매출을 극대화합니다
             </p>
             <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={() => navigate("/")}>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="transition-all duration-200 hover:shadow-lg hover:scale-105">
                 홈으로 돌아가기
               </Button>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={() => navigate("/become-seller")}
-              >
+                className="bg-white text-gray-900 transition-all duration-200 hover:shadow-lg hover:scale-105"
+                onClick={() => navigate("/become-seller")}>
                 <Package className="mr-2 h-5 w-5" />
                 판매자 등록하기
               </Button>
@@ -450,13 +452,13 @@ export function AdminPage() {
           {/* AI 기능 그리드 */}
           <div className="grid gap-4 md:grid-cols-3">
             {/* AI 자동 상품 등록 */}
-            <Card className="border-purple-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-purple-100">
-                  <Wand2 className="h-6 w-6 text-purple-600" />
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full  bg-white">
+                  <Wand2 className="h-6 w-6  text-purple-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 자동 상품 등록
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -467,13 +469,13 @@ export function AdminPage() {
             </Card>
 
             {/* AI 가격 최적화 */}
-            <Card className="border-pink-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pink-100">
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
                   <TrendingUp className="h-6 w-6 text-pink-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 가격 최적화
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -484,13 +486,13 @@ export function AdminPage() {
             </Card>
 
             {/* AI 판매 인사이트 */}
-            <Card className="border-blue-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100">
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
                   <BarChart3 className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 판매 인사이트
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -501,13 +503,13 @@ export function AdminPage() {
             </Card>
 
             {/* AI 프로모션 전략 */}
-            <Card className="border-emerald-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
                   <Tag className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 프로모션 전략
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -518,13 +520,13 @@ export function AdminPage() {
             </Card>
 
             {/* AI 재고 예측 */}
-            <Card className="border-orange-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-100">
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
                   <Package className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 재고 예측
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -535,13 +537,13 @@ export function AdminPage() {
             </Card>
 
             {/* AI 사기 탐지 */}
-            <Card className="border-red-200 p-5 transition-shadow hover:shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+            <Card className="p-5 transition-shadow hover:shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
                   <AlertTriangle className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
-                  <h4 className="mb-2 font-semibold text-gray-900">
+                  <h4 className="mt-3 font-semibold text-gray-900">
                     AI 사기 탐지
                   </h4>
                   <p className="text-sm text-gray-600">
@@ -553,7 +555,7 @@ export function AdminPage() {
           </div>
 
           {/* 하단 추가 정보 */}
-          <Card className="mt-6 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6">
+          <Card className="mt-6 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
@@ -570,9 +572,8 @@ export function AdminPage() {
                 </div>
               </div>
               <Button
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                onClick={() => navigate("/become-seller")}
-              >
+                className="bg-orange-primary text-white"
+                onClick={() => navigate("/become-seller")}>
                 <Sparkles className="mr-2 h-4 w-4" />
                 시작하기
               </Button>
@@ -619,8 +620,7 @@ export function AdminPage() {
               activeMenu === "dashboard"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <Home className="h-5 w-5" />
             대시보드
           </button>
@@ -631,8 +631,7 @@ export function AdminPage() {
               activeMenu === "reports"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <BarChart3 className="h-5 w-5" />
             리포트
           </button>
@@ -643,8 +642,7 @@ export function AdminPage() {
               activeMenu === "products"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <Package className="h-5 w-5" />
             상품 관리
           </button>
@@ -655,8 +653,7 @@ export function AdminPage() {
               activeMenu === "orders"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <ShoppingCart className="h-5 w-5" />
             주문 관리
           </button>
@@ -667,8 +664,7 @@ export function AdminPage() {
               activeMenu === "promotions"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <Tag className="h-5 w-5" />
             프로모션
           </button>
@@ -679,8 +675,7 @@ export function AdminPage() {
               activeMenu === "settings"
                 ? "bg-purple-50 text-purple-700"
                 : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
+            }`}>
             <Settings className="h-5 w-5" />
             설정
           </button>
@@ -702,8 +697,7 @@ export function AdminPage() {
 
           <Button
             className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-            onClick={() => navigate("/add-product")}
-          >
+            onClick={() => navigate("/add-product")}>
             <Plus className="mr-2 h-4 w-4" />
             상품 등록
           </Button>
@@ -803,8 +797,7 @@ export function AdminPage() {
                         ...editingProduct,
                         category1: value,
                       })
-                    }
-                  >
+                    }>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="카테고리 선택" />
                     </SelectTrigger>
@@ -912,8 +905,7 @@ export function AdminPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleEditModalImageUpload}
-                    >
+                      onClick={handleEditModalImageUpload}>
                       <Upload className="mr-2 h-4 w-4" />
                       이미지 추가
                     </Button>
@@ -928,8 +920,7 @@ export function AdminPage() {
                       {editingProduct.images.map((image, index) => (
                         <div
                           key={index}
-                          className="relative overflow-hidden rounded border border-gray-200"
-                        >
+                          className="relative overflow-hidden rounded border border-gray-200">
                           <img
                             src={image}
                             alt={`상품 이미지 ${index + 1}`}
@@ -940,8 +931,7 @@ export function AdminPage() {
                             variant="ghost"
                             size="icon"
                             className="absolute right-1 top-1 h-6 w-6 bg-white/90 hover:bg-white"
-                            onClick={() => handleEditModalImageRemove(index)}
-                          >
+                            onClick={() => handleEditModalImageRemove(index)}>
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
@@ -991,14 +981,12 @@ export function AdminPage() {
               <div className="flex justify-end gap-3 border-t p-4">
                 <Button
                   variant="outline"
-                  onClick={() => setEditingProduct(null)}
-                >
+                  onClick={() => setEditingProduct(null)}>
                   취소
                 </Button>
                 <Button
                   onClick={() => handleUpdateProduct()}
-                  disabled={isSaving}
-                >
+                  disabled={isSaving}>
                   {isSaving ? "저장 중..." : "저장"}
                 </Button>
               </div>

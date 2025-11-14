@@ -277,6 +277,33 @@ async def register_as_seller(
     return updated_user
 
 
+@router.delete("/recently-viewed", response_model=BasicResp)
+async def clear_recently_viewed(
+    current_user=Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    최근 본 상품 전체 기록 삭제
+    """
+    user_id = current_user["_id"]
+
+    # 1단계: DB에서 recentlyViewed 필드 초기화
+    await db[USERS_COL].update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"recentlyViewed": []}},
+    )
+
+    # 2단계: Redis 캐시 삭제
+    try:
+        await redis_client.delete_recently_viewed(user_id)
+        print(f"[Clear Recently Viewed] Redis 캐시 삭제 완료: user {user_id}")
+    except Exception as e:
+        print(f"[Clear Recently Viewed] Redis 삭제 실패: {e}")
+        # Redis 실패해도 DB는 초기화되었으므로 계속 진행
+
+    return {"message": "최근 본 상품 기록이 모두 삭제되었습니다."}
+
+
 @router.get("/me", response_model=UserOut)
 async def get_current_user_info(
     current_user=Depends(get_current_user),

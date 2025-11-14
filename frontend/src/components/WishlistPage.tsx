@@ -163,19 +163,21 @@ export function WishlistPage() {
         <h1 className="mb-6 text-2xl font-semibold text-gray-900">찜 목록</h1>
 
         <Card className="border-gray-200 p-4">
-          <div className="mb-4 flex items-center gap-2 text-sm text-gray-700">
-            <Checkbox
-              checked={selectedItems.length === items.length}
-              onCheckedChange={toggleAll}
-            />
-            <span>
-              전체 선택 ({selectedItems.length}/{items.length})
-            </span>
+          <div className="mb-4 flex items-center justify-between text-sm text-gray-700">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedItems.length === items.length}
+                onCheckedChange={toggleAll}
+              />
+              <span>
+                전체 선택 ({selectedItems.length}/{items.length})
+              </span>
+            </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="ml-auto h-7 text-xs"
+              className="h-7 text-xs"
               disabled={selectedItems.length === 0}
               onClick={handleRemoveSelected}>
               선택한 항목 삭제
