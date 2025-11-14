@@ -101,10 +101,12 @@ class BedrockClient:
         # Tool Use 루프
         tool_calls_history = []
         iteration = 0
+        loop_start_time = time.time()
 
         while iteration < max_iterations:
             iteration += 1
-            logger.info(f"[Bedrock] Iteration {iteration}/{max_iterations}")
+            iteration_start = time.time()
+            logger.info(f"[Bedrock] ⏱️  Iteration {iteration}/{max_iterations} START")
 
             try:
                 # Rate limiting: API 호출 간격 제한
@@ -139,10 +141,15 @@ class BedrockClient:
                 max_retries = 3
                 retry_delay = 2.0
 
+                llm_call_start = time.time()
+                logger.info(f"[Bedrock] ⏱️  🤖 LLM API 호출 시작...")
+
                 for retry in range(max_retries):
                     try:
                         response = self.client.converse(**request_params)
                         self.last_api_call_time = time.time()
+                        llm_call_duration = time.time() - llm_call_start
+                        logger.info(f"[Bedrock] ⏱️  ✅ LLM API 응답 완료 ({llm_call_duration:.2f}초)")
                         break
                     except ClientError as e:
                         error_code = e.response.get('Error', {}).get('Code', '')
@@ -172,7 +179,8 @@ class BedrockClient:
 
                 # Tool Use 확인
                 if stop_reason == "tool_use":
-                    logger.info(f"[Bedrock] 🔧 Tool use detected - executing tools...")
+                    tool_execution_start = time.time()
+                    logger.info(f"[Bedrock] ⏱️  🔧 Tool 실행 시작...")
                     # Tool 실행
                     tool_results = []
 
@@ -189,8 +197,10 @@ class BedrockClient:
                             # Tool 실행
                             if tool_name in tool_handlers:
                                 try:
+                                    single_tool_start = time.time()
                                     handler = tool_handlers[tool_name]
                                     tool_result = await handler(**tool_input)
+                                    single_tool_duration = time.time() - single_tool_start
 
                                     tool_calls_history.append({
                                         "name": tool_name,
@@ -205,7 +215,7 @@ class BedrockClient:
                                         }
                                     })
 
-                                    logger.info(f"[Bedrock] ✅ Tool executed: {tool_name}")
+                                    logger.info(f"[Bedrock] ⏱️  ✅ Tool '{tool_name}' 실행 완료 ({single_tool_duration:.3f}초)")
                                     logger.info(f"[Bedrock] Tool result preview: {str(tool_result)[:200]}")
 
                                 except Exception as e:
@@ -233,6 +243,10 @@ class BedrockClient:
                         "content": tool_results
                     })
 
+                    tool_execution_duration = time.time() - tool_execution_start
+                    iteration_duration = time.time() - iteration_start
+                    logger.info(f"[Bedrock] ⏱️  ✅ 전체 Tool 실행 완료 ({tool_execution_duration:.3f}초)")
+                    logger.info(f"[Bedrock] ⏱️  Iteration {iteration} 완료 ({iteration_duration:.2f}초)")
                     logger.info(f"[Bedrock] 🔄 Tool results sent to LLM - continuing conversation...")
                     # 다음 반복 계속
                     continue
@@ -243,6 +257,10 @@ class BedrockClient:
                     if "text" in block:
                         final_text += block["text"]
 
+                iteration_duration = time.time() - iteration_start
+                total_duration = time.time() - loop_start_time
+                logger.info(f"[Bedrock] ⏱️  Iteration {iteration} 완료 ({iteration_duration:.2f}초)")
+                logger.info(f"[Bedrock] ⏱️  🎉 전체 Tool Use 루프 완료 ({total_duration:.2f}초, {len(tool_calls_history)}개 Tool 호출)")
                 logger.info(f"[Bedrock] 💬 Final response generated: {final_text[:100]}")
                 return {
                     "response": final_text.strip(),

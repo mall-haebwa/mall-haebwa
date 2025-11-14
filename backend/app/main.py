@@ -20,7 +20,6 @@ from .category_router import router as category_router
 from .wishlist_router import router as wishlist_router
 from .user_router import router as user_router
 from .redis_client import redis_client
-from .scheduler import start_scheduler, stop_scheduler
 from .chat_models import ChatRequest, ChatResponse
 from .vector_search_router import router as vector_search_router
 
@@ -64,32 +63,10 @@ async def startup():
     await ensure_indexes(db)
     # Redis 연결
     await redis_client.connect()
-
-    # 상품 풀 초기화
-    try:
-        from .product_random_router import update_product_pool
-        await update_product_pool(db)
-        logger.info("[Startup] 상품 풀 초기화 완료")
-    except Exception as e:
-        logger.error(f"[Startup] 상품 풀 초기화 실패: {e}")
-
-    # 스케쥴러 시작 (1시간마다 자동 갱신)
-    try:
-        start_scheduler()
-        logger.info("[Startup] 스케쥴러 시작 완료")
-    except Exception as e:
-        logger.error(f"[Startup] 스케쥴러 시작 실패: {e}")
-
     logger.info("서버 시작 완료 (MongoDB, Redis 연결)")
 
 @app.on_event("shutdown")
 async def shutdown():
-    # 스케쥴러 중지
-    try:
-        stop_scheduler()
-    except Exception as e:
-        logger.error(f"[Shutdown] 스케쥴러 중지 실패: {e}")
-
     # Redis 연결 해제
     await redis_client.disconnect()
     logger.info("서버 종료 (Redis 연결 해제)")
@@ -142,7 +119,10 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     user_message = chat_request.message[:MAX_USER_MESSAGE_LENGTH]
     conv_id = chat_request.conversation_id or str(uuid.uuid4())
 
+    logger.info(f"[Chat] ⏱️  📨 요청 수신 (message: {user_message[:50]}...)")
+
     # JWT 쿠키에서 user_id 추출 (다른 엔드포인트와 동일한 인증 방식)
+    auth_start = time.time()
     user_id = None
     token = http_request.cookies.get(COOKIE_ACCESS)
 
@@ -158,6 +138,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     if not user_id:
         logger.warning("[Chat] No authenticated user (guest mode)")
 
+    auth_duration = time.time() - auth_start
+    logger.info(f"[Chat] ⏱️  ✅ 인증 완료 ({auth_duration:.3f}초)")
     logger.info(f"[Chat] User: {user_id or 'guest'}, Conv: {conv_id[:8]}, Message: {user_message[:50]}")
 
     # Bedrock 클라이언트 확인
@@ -173,19 +155,32 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         )
 
     # Redis에서 대화 히스토리 로드
+    redis_load_start = time.time()
+    logger.info(f"[Chat] ⏱️  📚 Redis 히스토리 로드 시작...")
     history = []
     if user_id:
         try:
             history = await redis_client.get_conversation(user_id, conv_id)
-            logger.info(f"[Redis] 히스토리 로드 완료: {len(history)}개 메시지")
+            redis_load_duration = time.time() - redis_load_start
+            logger.info(f"[Chat] ⏱️  ✅ Redis 히스토리 로드 완료 ({redis_load_duration:.3f}초, {len(history)}개 메시지)")
         except Exception as e:
-            logger.error(f"[Redis] 히스토리 로드 실패: {e}")
+            redis_load_duration = time.time() - redis_load_start
+            logger.error(f"[Chat] ⏱️  ❌ Redis 히스토리 로드 실패 ({redis_load_duration:.3f}초): {e}")
+    else:
+        redis_load_duration = time.time() - redis_load_start
+        logger.info(f"[Chat] ⏱️  ✅ Redis 히스토리 로드 완료 ({redis_load_duration:.3f}초, 게스트 사용자)")
 
     # Tool Handlers 준비
-    from .tools import SHOPPING_TOOLS, TOOL_AUTH_REQUIRED, ToolHandlers
+    tool_prep_start = time.time()
+    logger.info(f"[Chat] ⏱️  🔧 Tool Handlers 준비 시작...")
+    from .tools import ToolHandlers, SHOPPING_TOOLS, TOOL_AUTH_REQUIRED
+    # from .tool_registry import ToolRegistry  # 현재 사용 안 함
+
+    # SHOPPING_TOOLS = ToolRegistry.get_tools()  # 이전 방식 (데코레이터 미사용)
+    # TOOL_AUTH_REQUIRED = ToolRegistry.get_auth_required()
     db = get_db()
     es = get_search_client()
-    tool_handlers_instance = ToolHandlers(db, es, redis_client=redis_client, user_id=user_id, conversation_id=conv_id)
+    tool_handlers_instance = ToolHandlers(db, es)
 
     # 게스트 사용자는 인증 필요 Tool 필터링
     if not user_id:
@@ -205,8 +200,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         # user_id가 필요한 Tool에만 주입
         user_required_tools = [
             "get_cart", "get_orders", "get_wishlist",
-            "search_orders_by_product", "add_to_cart", "add_multiple_to_cart",
-            "add_recommended_to_cart", "get_order_detail", "get_recently_viewed"
+            "search_orders_by_product", "add_to_cart", "get_order_detail",
+            "get_recently_viewed"
         ]
         if tool_name in user_required_tools:
             # functools.partial을 사용하여 user_id를 바인딩 (closure 버그 방지)
@@ -214,54 +209,133 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         else:
             tool_handlers[tool_name] = handler
 
+    tool_prep_duration = time.time() - tool_prep_start
+    logger.info(f"[Chat] ⏱️  ✅ Tool Handlers 준비 완료 ({tool_prep_duration:.3f}초, {len(filtered_tools)}개 Tool)")
+
     # System Prompt
     from datetime import datetime
     current_date = datetime.now()
     current_year = current_date.year
 
-    system_prompt = f"""당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
-사용자의 쇼핑을 도와주세요. 상품 검색, 장바구니 확인, 주문 내역 조회, 재주문 등을 지원합니다.
+    system_prompt = f"""# Mall-haebwa 쇼핑 어시스턴트
 
-**인증 상태**: {"✓ 로그인됨" if user_id else "✗ 게스트 (비로그인)"}
+당신은 Mall-haebwa의 AI 쇼핑 어시스턴트입니다.
+사용자의 자연어 쇼핑 의도를 이해하고 적절한 Tool을 사용하여 도움을 제공합니다.
 
-**게스트 사용자 제한** (로그인하지 않은 경우):
-- 장바구니, 주문 내역, 찜 목록, 최근 본 상품, 재주문 기능은 로그인 필요
-- 게스트가 이런 요청을 하면: "이 기능을 사용하시려면 로그인이 필요합니다. 우측 상단에서 로그인해주세요."
-- 상품 검색은 누구나 가능
+## 🎯 핵심 원칙
+1. **의도 파악 우선**: 사용자가 정확한 상품명을 모르더라도 의도를 파악하여 도움
+2. **Tool 체이닝**: 복잡한 요청은 여러 Tool을 순차적으로 사용
+3. **데이터 기반 응답**: 추측하지 말고 Tool 결과를 바탕으로 정확히 답변
+4. **멀티턴 대화 지원**: 이전 대화 맥락을 고려한 Tool 선택
 
-**현재 날짜 정보**:
+## 🔐 인증 상태
+- 현재: {"✓ 로그인됨" if user_id else "✗ 게스트 (비로그인)"}
+- user_id: {user_id or 'None'}
+
+## 📅 시간 정보
 - 오늘: {current_date.strftime('%Y년 %m월 %d일')}
 - 올해: {current_year}년
 - 작년: {current_year - 1}년
 
-**중요**: 사용자가 "작년", "올해", "지난달" 등 상대적 시간 표현을 사용하면 위 정보를 기준으로 정확한 year 또는 days_ago를 계산하세요.
+## 🛠️ Tool 사용 패턴
 
-**CRITICAL: Tool 사용 규칙**:
-1. **반드시 Tool을 먼저 실행하고, Tool 결과를 확인한 후에 응답하세요**
-2. Tool 결과에 포함된 **실제 데이터를 기반으로** 구체적으로 답변하세요
-3. 추측하거나 일반적인 답변을 하지 마세요
-4. **복잡한 요청은 여러 Tool을 순차적으로 사용하세요**
-5. **절대로 임의의 데이터를 만들어내지 마세요** (예: "123456", "https://example.com", "[상품명]" 같은 가짜 값 금지)
-6. Tool 결과의 정확한 필드명을 사용하세요 (orders[0].matched_item.product_id, orders[0].matched_item.image_url 등)
-7. **"비슷한 제품", "유사 상품", "추천" 요청 시 반드시 semantic_search 또는 search_products Tool을 사용하세요**
-   - "노트북 추천해줘" → search_products(query="노트북") 또는 semantic_search(query="노트북")
-   - "이전 대화의 제품과 비슷한 것" → semantic_search(이전 상품명)
-   - **Tool 없이 추천만 하는 것은 절대 금지 - 반드시 실제 검색 결과를 기반으로 답변하세요**
+### 패턴 1: 추상적 요청 → 구체화
+사용자: "김치찌개 먹고 싶다"
+→ multi_search_products(queries=["김치찌개 밀키트", "김치", "돼지고기", "두부"], main_query="김치찌개")
 
-**Tool 선택 가이드**:
-- 장바구니 확인 → get_cart Tool 사용
-- 주문 내역 확인 → get_orders Tool 사용
-- 찜 목록 확인 → get_wishlist Tool 사용
-- 단일 상품 검색 (명확한 키워드) → search_products Tool 사용
-- **여러 상품 동시 검색 (CRITICAL)** → multi_search_products Tool 사용
-  * **요리/음식 만들기 요청 시 필수 사용**: "김치찌개 해먹고싶어", "파스타 만들려고", "카레 끓이고싶어"
-    → 필요한 재료 목록을 추출하고 multi_search_products(queries=["김치", "돼지고기", "두부", "대파"], main_query="김치찌개 재료")
-  * "파티 준비물", "캠핑 갈건데", "등산 준비" 같은 복합 쇼핑 요청도 multi_search_products 사용
-  * **절대로 "김치찌개"를 단일 상품으로 검색하지 마세요** - 재료 리스트를 분석해서 multi_search_products 사용
-- **의미 기반 검색 (비슷한 제품, 유사 상품, 추천)** → semantic_search Tool 사용
-  * "비슷한 제품 추천해줘" → 이전 대화에서 언급된 상품명으로 semantic_search 실행
-  * "더치커피와 유사한 제품" → semantic_search(query="더치커피 콜드브루 원액")
-  * "편안한 집에서 입는 옷" → semantic_search(query="편안한 집에서 입는 옷")
+### 패턴 2: 재주문 플로우
+사용자: "지난달 산 커피 다시 주문"
+→ search_orders_by_product(product_keyword="커피", days_ago=30)
+→ 결과 1개면: add_to_cart(...)
+→ 결과 여러개면: "다음 중 어떤 상품을 재주문하시겠어요?"
+
+### 패턴 3: 비교 쇼핑
+사용자: "운동화 추천해줘"
+→ get_trending_products(category="운동화", sort_by="sales") 또는
+→ recommend_products(based_on="purchase_history")
+
+### 패턴 4: 스마트 검색
+사용자: "편안한 집에서 입는 옷"
+→ semantic_search(query="편안한 집에서 입는 옷") 또는
+→ find_similar_products(description="편안한 홈웨어 라운지웨어")
+
+### 패턴 5: 장바구니 관리
+사용자: "장바구니에서 신발 빼고 커피는 3개로 변경"
+→ get_cart() # 먼저 현재 상태 확인
+→ remove_from_cart(product_id="신발ID")
+→ update_cart_item(product_id="커피ID", quantity=3)
+
+### 패턴 6: 리뷰 확인
+사용자: "이 상품 리뷰 어때?"
+→ get_product_reviews(product_id="...", sort_by="helpful")
+
+## ⚡ Tool 선택 결정 트리
+
+사용자 입력 분석:
+├─ 상품 검색 관련
+│   ├─ 명확한 키워드 → search_products (정렬 옵션 활용)
+│   ├─ 추상적 표현 → semantic_search / find_similar_products
+│   ├─ 복합 조건 → search_by_filters
+│   └─ 여러 상품 → multi_search_products
+├─ 구매 이력 관련
+│   ├─ 주문 내역 → get_orders / search_orders_by_product
+│   ├─ 재주문 → search_orders_by_product → add_to_cart
+│   ├─ 자주 산 상품 → get_frequently_ordered_products
+│   └─ 재구매 추천 → suggest_reorder_products
+├─ 장바구니/찜 관련
+│   ├─ 확인 → get_cart / get_wishlist
+│   ├─ 추가 → add_to_cart / add_to_wishlist
+│   ├─ 수량 변경 → update_cart_item
+│   ├─ 제거 → remove_from_cart / remove_from_wishlist
+│   └─ 비우기 → clear_cart
+└─ 비교/추천/리뷰
+    ├─ 브랜드 비교 → compare_brands
+    ├─ 인기 상품 → get_trending_products
+    ├─ 리뷰 확인 → get_product_reviews
+    └─ 개인 추천 → recommend_products
+
+## 🚨 중요 제약사항
+
+1. **절대 금지**
+   - 가짜 데이터 생성 (예: "상품ID_123", "https://example.com")
+   - Tool 호출 없이 추측 답변
+   - 실제 결제/주문 처리 (장바구니까지만 가능)
+
+2. **로그인 필요 기능**
+   - 게스트가 인증 필요 기능 요청 시: "로그인이 필요한 기능입니다. 우측 상단에서 로그인해주세요."
+
+3. **재주문 규칙**
+   - 검색 결과 1개: 자동으로 장바구니 추가
+   - 검색 결과 여러개: 사용자에게 선택 요청
+   - 검색 결과 없음: 대체 상품 제안
+
+4. **의도 불명확 시**
+   - 먼저 맥락에서 유추 시도
+   - 실패 시 명확화 요청: "상품 검색, 주문 확인, 재주문 중 무엇을 도와드릴까요?"
+
+5. **멀티턴 대화**
+   - 이전 대화에서 검색한 상품을 참조 가능
+   - 예: "그거 장바구니에 담아줘" → 이전에 검색한 상품 add_to_cart
+
+## 💾 Redis 캐싱
+- 자주 검색되는 상품은 Redis 캐시에서 빠르게 응답
+- 60-90% 비용 절감 효과
+
+## 📊 Tool 사용시 정렬 옵션 활용
+- search_products의 sort_by: relevance(관련성), price_low(낮은 가격), price_high(높은 가격), rating(평점), review_count(리뷰)
+- get_trending_products의 sort_by: sales(판매량), rating(평점), review_count(리뷰)
+- get_product_reviews의 sort_by: helpful(도움순), recent(최신순), rating_high(높은 평점), rating_low(낮은 평점)
+
+## 응답 작성 가이드
+✅ 좋은 응답:
+- 구체적인 상품명과 가격 제시
+- 평점과 리뷰 수 포함
+- 다음 액션 제안
+
+❌ 피해야 할 응답:
+- "상품이 있습니다" (구체적이지 않음)
+- "상품ID_123" (가짜 데이터)
+- "아마 50만원 정도" (추측)
 - **과거 주문 상품 찾기** → search_orders_by_product Tool 사용
   * "작년에 샀던 커피" → product_keyword="커피", year={current_year - 1}
   * "올해 구매한 상품" → product_keyword="", year={current_year} (키워드 없이 연도만 가능)
@@ -282,23 +356,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
   * 예: "3개의 아몬드 상품을 찾았습니다. 왼쪽 화면에서 원하시는 상품을 선택해주세요."
 
 **복잡한 요청 처리 예시**:
-1. "김치찌개 해먹고싶어" (요리 재료 검색)
-   → multi_search_products(
-        queries=["김치", "돼지고기", "두부", "대파", "고춧가루"],
-        main_query="김치찌개 재료"
-      )
-   → 응답: "김치찌개에 필요한 재료들을 찾았습니다. 김치, 돼지고기, 두부 등을 확인해보세요."
-
-2. "추천 상품들 담아줘" 또는 "전부 담아줘" (multi_search 직후)
-   → **add_recommended_to_cart** Tool 사용
-   → 이 Tool은 multi_search_products 실행 시 자동으로 저장된 추천 상품들(각 카테고리의 최상단 상품)을 장바구니에 담습니다.
-   → 응답 예시: "추천 상품 5개를 장바구니에 담았습니다."
-
-   **중요**:
-   - multi_search_products를 먼저 실행하지 않으면 add_recommended_to_cart는 실패합니다.
-   - 사용자가 "추천 상품", "전부", "다" 같은 표현을 쓰면 이 Tool을 사용하세요.
-
-3. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
+1. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
    → Step 1: search_orders_by_product(product_keyword="커피", year={current_year - 1})
    → Step 2: (결과가 1개이면) add_to_cart(
         product_id=orders[0].matched_item.product_id,
@@ -308,12 +366,12 @@ async def chat(http_request: Request, chat_request: ChatRequest):
       )
    → 응답: "작년에 구매하신 [상품명]을 장바구니에 담았습니다."
 
-4. "올해 구매한 아몬드 재주문해줘" (결과 3개)
+2. "올해 구매한 아몬드 재주문해줘" (결과 3개)
    → Step 1: search_orders_by_product(product_keyword="아몬드", year={current_year})
    → Step 2: (결과가 2개 이상이므로) add_to_cart 호출하지 않음
    → 응답: "올해 구매하신 아몬드 상품 3개를 찾았습니다. 왼쪽 화면에서 원하시는 상품을 선택해주세요."
 
-5. "2024년에 구매한 커피 보여줘"
+3. "2024년에 구매한 커피 보여줘"
    → Step 1: search_orders_by_product(product_keyword="커피", year=2024)
    → 응답: "2024년에 구매하신 커피 상품을 찾았습니다."
 
@@ -338,15 +396,20 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     messages.append({"role": "user", "content": user_message})
 
     # Bedrock Tool Use 실행
+    bedrock_call_start = time.time()
+    logger.info(f"[Chat] ⏱️  🤖 Bedrock 호출 시작...")
     try:
         result = await bedrock_client.chat_with_tools(
             messages=messages,
             tools=filtered_tools,  # 게스트 필터링 적용
             tool_handlers=tool_handlers,
             max_iterations=MAX_TOOL_ITERATIONS,  # 환경 변수로 제어 (기본값: 5)
-            temperature=0.7,
-            max_tokens=1000
+            temperature=0.1,  # Tool Use 최적화: 0.7→0.1 (정확한 Tool 선택)
+            max_tokens=1500  # 응답 여유 확보: 1000→1500
         )
+
+        bedrock_call_duration = time.time() - bedrock_call_start
+        logger.info(f"[Chat] ⏱️  ✅ Bedrock 호출 완료 ({bedrock_call_duration:.2f}초)")
 
         reply = result["response"]
         tool_calls = result.get("tool_calls", [])
@@ -355,13 +418,15 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         logger.info(f"[Chat] Reply: {reply[:50]}")
 
         # Action 생성 (Tool 호출 기반) - 프론트엔드와 일치하는 타입 사용
-        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart가 있으면 항상 장바구니 표시 (우선순위)
+        # add_to_cart가 있으면 항상 장바구니 표시 (우선순위)
+        action_gen_start = time.time()
+        logger.info(f"[Chat] ⏱️  📦 Action 생성 시작...")
         action = {"type": "CHAT", "params": {}}
 
-        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart 우선 확인
+        # add_to_cart 우선 확인
         add_to_cart_tool = None
         for tool in tool_calls:
-            if tool["name"] in ["add_to_cart", "add_multiple_to_cart", "add_recommended_to_cart"]:
+            if tool["name"] == "add_to_cart":
                 add_to_cart_tool = tool
                 break
 
@@ -533,17 +598,28 @@ async def chat(http_request: Request, chat_request: ChatRequest):
                     }
                 }
 
+        action_gen_duration = time.time() - action_gen_start
+        logger.info(f"[Chat] ⏱️  ✅ Action 생성 완료 ({action_gen_duration:.3f}초, type={action['type']})")
+
         # Redis에 대화 저장
+        redis_save_start = time.time()
+        logger.info(f"[Chat] ⏱️  💾 Redis 대화 저장 시작...")
         if user_id:
             try:
                 await redis_client.add_message(user_id, conv_id, "user", user_message)
                 await redis_client.add_message(user_id, conv_id, "assistant", reply)
-                logger.info(f"[Redis] 대화 저장 완료")
+                redis_save_duration = time.time() - redis_save_start
+                logger.info(f"[Chat] ⏱️  ✅ Redis 대화 저장 완료 ({redis_save_duration:.3f}초)")
             except Exception as e:
-                logger.error(f"[Redis] 대화 저장 실패: {e}")
+                redis_save_duration = time.time() - redis_save_start
+                logger.error(f"[Chat] ⏱️  ❌ Redis 대화 저장 실패 ({redis_save_duration:.3f}초): {e}")
+        else:
+            redis_save_duration = time.time() - redis_save_start
+            logger.info(f"[Chat] ⏱️  ✅ Redis 대화 저장 완료 ({redis_save_duration:.3f}초, 게스트 사용자 - 저장 안함)")
 
         processing_time = int((time.time() - start_time) * 1000)
-        logger.info(f"[Chat] 완료 - {processing_time}ms")
+        logger.info(f"[Chat] ⏱️  🎉 전체 요청 완료 ({processing_time}ms)")
+        logger.info(f"[Chat] ⏱️  📊 시간 분해: 인증={auth_duration:.3f}s, Redis로드={redis_load_duration:.3f}s, Tool준비={tool_prep_duration:.3f}s, Bedrock={bedrock_call_duration:.2f}s, Action={action_gen_duration:.3f}s, Redis저장={redis_save_duration:.3f}s")
 
         return ChatResponse(
             reply=reply,

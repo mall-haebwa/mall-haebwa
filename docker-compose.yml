@@ -1,5 +1,5 @@
 services:
-  # MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
+   #MongoDB 데이터베이스 (로컬 개발용 - EC2 MongoDB 사용 시 주석 처리)
   mongodb:
     image: mongo:7.0
     container_name: ecommerce-mongodb
@@ -98,8 +98,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      elasticsearch:
-        condition: service_started
+#      elasticsearch:
+#        condition: service_started
     networks:
       - ecommerce-network
 
