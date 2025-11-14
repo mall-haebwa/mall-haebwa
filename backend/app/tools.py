@@ -6,6 +6,7 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 import logging
 import functools
+import asyncio
 import boto3
 import json
 from fastapi.concurrency import run_in_threadpool
@@ -705,9 +706,14 @@ class ToolHandlers:
             results = {}
             recommended_products = []  # 각 카테고리의 첫 번째 상품
 
-            for query in queries[:5]:  # 최대 5개까지만
-                # 각 쿼리에 대해 search_products 호출
-                search_result = await self.search_products(query=query, limit=20)
+            # 병렬 검색 실행 (asyncio.gather 사용)
+            search_tasks = [
+                self.search_products(query=query, limit=20)
+                for query in queries[:5]    # 최대 5개까지만
+            ]
+            search_results = await asyncio.gather(*search_tasks)
+
+            for query, search_result in zip(queries[:5], search_results):
                 products = search_result.get("products", [])
                 results[query] = products
 
