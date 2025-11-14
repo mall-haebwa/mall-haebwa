@@ -158,11 +158,11 @@ export function WishlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto max-w-[1280px] px-6 py-6 md:px-8">
         <h1 className="mb-6 text-2xl font-semibold text-gray-900">찜 목록</h1>
 
-        <Card className="border-gray-200 p-4">
+        <Card className="border-gray-200 p-4 bg-brand-main">
           <div className="mb-4 flex items-center justify-between text-sm text-gray-700">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -225,12 +225,12 @@ export function WishlistPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 bg-brand-main">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 text-xs"
+                        className="h-8 gap-1 text-xs bg-brand-main"
                         onClick={() => handleAddToCart(item)}>
                         <ShoppingBag className="h-3 w-3" />
                         장바구니에 추가

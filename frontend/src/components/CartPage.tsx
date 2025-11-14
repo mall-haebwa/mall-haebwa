@@ -18,8 +18,14 @@ const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, updateCartItem, removeFromCart, removeItemsById, currentUser, refreshCart } =
-    useAppState();
+  const {
+    cart,
+    updateCartItem,
+    removeFromCart,
+    removeItemsById,
+    currentUser,
+    refreshCart,
+  } = useAppState();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [couponCode, setCouponCode] = useState("");
 
@@ -254,7 +260,7 @@ export function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto max-w-[1280px] px-6 py-6 md:px-8">
         <h1 className="mb-6 text-2xl font-semibold text-gray-900">장바구니</h1>
 

@@ -326,7 +326,7 @@ export function MyPage() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-8">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -348,7 +348,7 @@ export function MyPage() {
           </Button>
         </div>
 
-        <Card className="border-gray-200 p-6">
+        <Card className="border-gray-200 p-6 bg-brand-main">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border border-gray-200">
@@ -385,7 +385,7 @@ export function MyPage() {
           {menuItems.map(({ icon: Icon, title, description, path }) => (
             <Card
               key={title}
-              className="group cursor-pointer border-gray-200 p-5 transition hover:border-gray-300 hover:shadow-md"
+              className="group cursor-pointer bg-brand-main border-gray-200 p-5 transition hover:border-gray-300 hover:shadow-md"
               onClick={() => {
                 if (AVAILABLE_MENU_PATHS.has(path)) {
                   navigate(path);
@@ -434,22 +434,21 @@ export function MyPage() {
           <DialogHeader>
             <DialogTitle>최근 본 상품 기록 삭제</DialogTitle>
             <DialogDescription>
-              최근 본 상품 기록을 모두 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              최근 본 상품 기록을 모두 삭제하시겠습니까? 이 작업은 되돌릴 수
+              없습니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowClearDialog(false)}
-              disabled={isClearing}
-            >
+              disabled={isClearing}>
               취소
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmClear}
-              disabled={isClearing}
-            >
+              disabled={isClearing}>
               {isClearing ? "삭제 중..." : "삭제"}
             </Button>
           </DialogFooter>
@@ -555,10 +554,7 @@ function RecentlyViewedSection({
           <Button variant="outline" size="sm" onClick={onSeeAll}>
             전체보기
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearHistory}>
+          <Button variant="ghost" size="sm" onClick={onClearHistory}>
             기록 비우기
           </Button>
         </div>

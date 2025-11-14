@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination } from "swiper/modules";
+import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
@@ -30,6 +30,11 @@ export function RandomSections() {
   const [randoms, setRandoms] = useState<Product[]>([]);
   const [notables, setNotables] = useState<Product[]>([]);
   const [risings, setRisings] = useState<Product[]>([]);
+<<<<<<< Updated upstream
+=======
+  const seenRef = useRef<Set<string>>(new Set());
+  const swiperRefs = useRef<any[]>([]);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     (async () => {
@@ -52,6 +57,14 @@ export function RandomSections() {
     setSelectedCategory("all");
     setSearchQuery("");
     navigate("/products");
+  };
+
+  const handlePrev = (idx: number) => {
+    swiperRefs.current[idx]?.slidePrev();
+  };
+
+  const handleNext = (idx: number) => {
+    swiperRefs.current[idx]?.slideNext();
   };
 
   const sections: { title: string; items: Product[] }[] = [
@@ -96,16 +109,15 @@ export function RandomSections() {
           {/* 🔥 Swiper + 버튼을 하나로 묶음 */}
           <div className="relative">
             {/* 왼쪽 화살표 */}
-            <button className="custom-prev hover:shadow-lg transition-shadow">
-              <ChevronLeft className="h-10 w-10 stroke-1 text-gray-700 hover:text-[rgb(242,100,29)]" />
+            <button
+              onClick={() => handlePrev(idx)}
+              className="custom-prev hover:shadow-lg transition-shadow">
+              <ChevronLeft className="h-6 w-6 text-gray-700 hover:text-brand-orange" />
             </button>
 
             <Swiper
-              modules={[Pagination, Navigation]}
-              navigation={{
-                nextEl: ".custom-next",
-                prevEl: ".custom-prev",
-              }}
+              modules={[Pagination]}
+              onSwiper={(swiper) => { swiperRefs.current[idx] = swiper; }}
               spaceBetween={16}
               slidesPerView={1}
               slidesPerGroup={4}
@@ -131,8 +143,10 @@ export function RandomSections() {
             </Swiper>
 
             {/* 오른쪽 화살표 */}
-            <button className="custom-next absolute top-1/2 -right-4 z-20 -translate-y-1/2 hover:shadow-lg transition-shadow">
-              <ChevronRight className="h-10 w-10 stroke-1 text-gray-700 hover:text-[rgb(242,100,29)]" />
+            <button
+              onClick={() => handleNext(idx)}
+              className="custom-next hover:shadow-lg transition-shadow">
+              <ChevronRight className="h-6 w-6 text-gray-700 hover:text-brand-orange" />
             </button>
           </div>
         </div>

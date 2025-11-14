@@ -22,6 +22,10 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Badge } from "./ui/badge";
 import { CartPage } from "./CartPage";
 import { WishlistPage } from "./WishlistPage";
+import Lottie from "lottie-react";
+import startAnimation from "../assets/start.json";
+import middleAnimation from "../assets/middle.json";
+import lastAnimation from "../assets/last.json";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -110,6 +114,7 @@ export function AISearchPage() {
   >([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isRestoringState, setIsRestoringState] = useState(false);
+  const [animationStep, setAnimationStep] = useState<0 | 1 | 2>(0); // 0: start, 1: middle, 2: last
 
   // 데이터 관련 상태
   const [currentSearchQuery, setCurrentSearchQuery] = useState("");
@@ -744,6 +749,35 @@ export function AISearchPage() {
     return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
+  // 로딩 중 애니메이션 단계 관리 (3초마다 전환)
+  useEffect(() => {
+    if (!isLoading) {
+      setAnimationStep(0); // 로딩 종료 시 초기화
+      return;
+    }
+
+    // 초기 상태는 0 (start animation)
+    const timers: NodeJS.Timeout[] = [];
+
+    // 3초 후 middle animation으로 변경
+    timers.push(
+      setTimeout(() => {
+        setAnimationStep(1);
+      }, 3000)
+    );
+
+    // 6초 후 last animation으로 변경
+    timers.push(
+      setTimeout(() => {
+        setAnimationStep(2);
+      }, 6000)
+    );
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [isLoading]);
+
   // contentType 변경 시 데이터 로드 (상태 복원 중이 아닐 때만)
   useEffect(() => {
     if (isRestoringState) return; // 복원 중이면 API 호출 안 함
@@ -771,7 +805,7 @@ export function AISearchPage() {
   }, [location]);
 
   return (
-    <div className="flex h-[calc(100vh-138px)] bg-gray-50">
+    <div className="flex h-[calc(100vh-147px)] bg-gray-50">
       {/* 좌측 결과 영역 */}
       <div
         ref={resultsContainerRef}
@@ -780,7 +814,20 @@ export function AISearchPage() {
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center">
-                <Loader2 className="mb-4 h-12 w-12 animate-spin text-brand-orange" />
+                <div style={{ width: "300px", height: "300px", marginBottom: "24px" }}>
+                  <Lottie
+                    animationData={
+                      animationStep === 0
+                        ? startAnimation
+                        : animationStep === 1
+                        ? middleAnimation
+                        : lastAnimation
+                    }
+                    loop={true}
+                    autoplay={true}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </div>
                 <span className="text-gray-600">
                   AI가 답변을 준비 중입니다...
                 </span>
@@ -1275,18 +1322,18 @@ export function AISearchPage() {
                     </div>
                     <span className="text-xs text-gray-500">AI 어시스턴트</span>
                   </div>
-                  <div className="flex gap-1">
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "300ms" }}
+                  <div className="flex items-center justify-center" style={{ width: "200px", height: "120px" }}>
+                    <Lottie
+                      animationData={
+                        animationStep === 0
+                          ? startAnimation
+                          : animationStep === 1
+                          ? middleAnimation
+                          : lastAnimation
+                      }
+                      loop={true}
+                      autoplay={true}
+                      style={{ width: "100%", height: "100%" }}
                     />
                   </div>
                 </div>

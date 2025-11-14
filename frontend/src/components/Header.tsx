@@ -102,12 +102,8 @@ export function Header() {
   };
 
   return (
-    <header
-      className="sticky top-0 z-50 shadow-sm"
-      style={{ backgroundColor: "#f5f6fa" }}>
-      <div
-        className="py-1.5 text-gray-900 font-semibold"
-        style={{ backgroundColor: "#f5f6fa" }}>
+    <header className="sticky top-0 z-50 shadow-sm bg-brand-main">
+      <div className="py-1.5 text-gray-900 font-semibold bg-brand-main">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 text-xs md:px-8">
           <div className="flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5" />
@@ -129,9 +125,8 @@ export function Header() {
         </div>
       </div>
 
-      <div className="border-b border-gray-100">
+      <div className="border-b border-gray-100 mt-2">
         <div className="mx-auto flex max-w-[1280px] items-center gap-8 px-6 md:px-8">
-          {/* 동그라미 없는 버전 */}
           <button
             onClick={() => goTo("/")}
             className="transition-all hover:opacity-80 flex-shrink-0 ">
@@ -183,18 +178,17 @@ export function Header() {
                   <div className="relative flex items-center">
                     <Input
                       type="text"
-                      placeholder="상품명, 카테고리로 검색"
+                      placeholder="     상품명, 카테고리로 검색"
                       value={searchQuery}
                       onChange={(event) =>
                         setSearchQueryInput(event.target.value)
                       }
-                      className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
+                      className="h-11 w-full rounded-full border pl-5 pr-14 bg-brand-main focus-visible:ring-0 transition-all"
                       style={{ borderColor: "#111827" }}
                     />
                     <Button
                       type="submit"
-                      className="absolute right-2 h-8 w-8 rounded-full p-0 text-white transition-all flex items-center justify-center"
-                      style={{ backgroundColor: "#f2641d" }}>
+                      className="absolute right-2 h-8 w-8 rounded-full p-0 text-white transition-all bg-brand-orange flex items-center justify-center">
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
@@ -217,10 +211,10 @@ export function Header() {
                   className="relative flex-1 flex items-center">
                   <Input
                     type="text"
-                    placeholder="예: 겨울에 따뜻한 코트"
+                    placeholder="   예: 겨울에 따뜻한 남성용 아우터 추천해줘, 4만원대 가성비 좋은 무선 이어폰 찾아줘"
                     value={aiSearchQuery}
                     onChange={(event) => setAiSearchQuery(event.target.value)}
-                    className="h-11 w-full rounded-full border pl-5 pr-14 bg-white focus-visible:ring-0 transition-all"
+                    className="h-11 w-full rounded-full border pl-5 pr-14 bg-brand-main focus-visible:ring-0 transition-all"
                     style={{ borderColor: "#111827" }}
                   />
                   <Button
@@ -253,7 +247,7 @@ export function Header() {
               className="relative h-8 w-8 rounded-full hover:bg-gray-100 transition-all flex items-center justify-center">
               <ShoppingCart className="!h-6 !w-6 text-gray-900" />
               {cart.length > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-sm text-white font-normal shadow-lg">
+                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-brand-orange p-0 text-sm text-white font-normal shadow-lg">
                   {cart.length}
                 </Badge>
               )}

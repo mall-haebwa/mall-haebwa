@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  MapPin,
-  Phone,
-  User,
-} from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -98,7 +90,8 @@ export function SignupPage() {
       navigate("/login", { state: { email: form.email } });
     } catch (error: any) {
       console.error("Signup error:", error);
-      const errorMessage = error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
+      const errorMessage =
+        error.response?.data?.detail || "회원가입 중 오류가 발생했습니다.";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -106,7 +99,7 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center px-6 py-12">
         <Card className="w-full border-gray-200 bg-white/95 p-8 shadow">
           <div className="mb-6 text-center">
@@ -131,7 +124,11 @@ export function SignupPage() {
                       handleChange("email", event.target.value)
                     }
                     placeholder="영문, 숫자 4-20자"
-                    className={`h-11 pl-10 ${emailError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
+                    className={`h-11 pl-10 ${
+                      emailError
+                        ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50"
+                        : ""
+                    }`}
                     required
                   />
                 </div>
@@ -306,8 +303,7 @@ export function SignupPage() {
             <Button
               type="submit"
               className="h-11 w-full bg-gray-900 text-white hover:bg-black"
-              disabled={isLoading}
-            >
+              disabled={isLoading}>
               {isLoading ? "가입 처리 중..." : "가입 완료"}
             </Button>
           </form>

@@ -242,7 +242,7 @@ export function ProductListPage() {
   };
 
   return (
-    <div className="border-t border-gray-100 bg-white">
+    <div className="border-t border-gray-100 bg-brand-main">
       <div className="mx-auto max-w-[1280px] px-6 py-8 md:px-8">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -270,8 +270,7 @@ export function ProductListPage() {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters((prev) => !prev)}
-              className="h-9 w-[120px] md:hidden"
-            >
+              className="h-9 w-[120px] md:hidden">
               <Filter className="mr-2 h-4 w-4" />
               필터
             </Button>
@@ -279,8 +278,7 @@ export function ProductListPage() {
               value={sortBy}
               onValueChange={(value) => {
                 setSortBy(value);
-              }}
-            >
+              }}>
               <SelectTrigger className="h-9 w-[150px]">
                 <SelectValue placeholder="정렬" />
               </SelectTrigger>
@@ -305,11 +303,10 @@ export function ProductListPage() {
         <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-12">
           <Card
             className={cn(
-              "w-full md:w-64 shrink-0 border-gray-200",
+              "w-full md:w-64 shrink-0 border-gray-200 bg-brand-main",
               showFilters ? "block" : "hidden md:block"
-            )}
-          >
-            <div className="flex items-center justify-between border-b px-5 py-4">
+            )}>
+            <div className="flex items-center justify-between border-b px-5 py-4 ">
               <h3 className="text-sm font-semibold text-gray-900">필터</h3>
               <Button variant="ghost" size="sm" onClick={handleResetFilters}>
                 초기화
@@ -331,8 +328,7 @@ export function ProductListPage() {
                     />
                     <label
                       htmlFor="all-category"
-                      className="cursor-pointer text-sm"
-                    >
+                      className="cursor-pointer text-sm">
                       전체
                     </label>
                   </div>
@@ -346,8 +342,7 @@ export function ProductListPage() {
                         />
                         <label
                           htmlFor={`cat-${category}`}
-                          className="ml-2 cursor-pointer text-sm"
-                        >
+                          className="ml-2 cursor-pointer text-sm">
                           {category}
                         </label>
                       </div>
@@ -375,8 +370,7 @@ export function ProductListPage() {
                         />
                         <label
                           htmlFor={`brand-${brand}`}
-                          className="ml-2 cursor-pointer text-sm"
-                        >
+                          className="ml-2 cursor-pointer text-sm">
                           {brand}
                         </label>
                       </div>
@@ -390,9 +384,7 @@ export function ProductListPage() {
               </div>
 
               <div>
-                <h4 className="mb-3 text-sm font-medium text-gray-900">
-                  가격
-                </h4>
+                <h4 className="mb-3 text-sm font-medium text-gray-900">가격</h4>
                 <Slider
                   value={priceRange}
                   onValueChange={(next) => {
@@ -425,8 +417,7 @@ export function ProductListPage() {
                 )}
                 <Button
                   variant="outline"
-                  onClick={() => loadProducts(1, { reset: true })}
-                >
+                  onClick={() => loadProducts(1, { reset: true })}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   다시 시도
                 </Button>
@@ -437,8 +428,7 @@ export function ProductListPage() {
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => navigate("/")}
-                >
+                  onClick={() => navigate("/")}>
                   홈으로 가기
                 </Button>
               </div>
@@ -463,8 +453,8 @@ export function ProductListPage() {
                 {/* 추가 데이터를 불러오는 중이면 하단에 로딩 표시 */}
                 {isLoading && hasMore && (
                   <div className="flex items-center justify-center gap-2 py-6 text-gray-500">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    더 많은 상품을 불러오는 중입니다...
+                    <Loader2 className="h-5 w-5 animate-spin" />더 많은 상품을
+                    불러오는 중입니다...
                   </div>
                 )}
 
