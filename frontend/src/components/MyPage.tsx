@@ -337,7 +337,7 @@ export function MyPage() {
           </div>
           <Button
             variant="outline"
-            className="gap-2 text-sm"
+            className="gap-2 text-sm bg-brand-main"
             onClick={() => {
               logout();
               toast.success("로그아웃되었습니다.");
@@ -501,7 +501,11 @@ function RepeatPurchaseSection({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onSeeAll}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-brand-main"
+            onClick={onSeeAll}>
             전체보기
           </Button>
         </div>
@@ -551,7 +555,11 @@ function RecentlyViewedSection({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onSeeAll}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-brand-main"
+            onClick={onSeeAll}>
             전체보기
           </Button>
           <Button variant="ghost" size="sm" onClick={onClearHistory}>

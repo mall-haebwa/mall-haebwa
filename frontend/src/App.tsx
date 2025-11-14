@@ -15,6 +15,7 @@ import { AddProductPage } from "./components/AddProductPage";
 import { CustomerServicePage } from "./components/CustomerServicePage";
 import { Toaster } from "./components/ui/sonner";
 import { AppStateProvider } from "./context/app-state";
+import { HeaderVisibilityProvider, useHeaderVisibility } from "./context/header-visibility";
 import { AISearchPage } from "./components/AiSearchPage";
 import PaymentSuccess from "./components/PaymentSuccess"; // 결제 성공 컴포넌트
 import PaymentFail from "./components/PaymentFail"; // 결제 실패 컴포넌트
@@ -30,6 +31,19 @@ function ScrollToTop() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  return null;
+}
+
+function HeaderVisibilityManager() {
+  const location = useLocation();
+  const { setHideHeader } = useHeaderVisibility();
+
+  useEffect(() => {
+    // AI Search 페이지에서는 헤더 숨김, 다른 페이지에서는 표시
+    const isAiSearchPage = location.pathname === "/aisearch";
+    setHideHeader(isAiSearchPage);
+  }, [location.pathname, setHideHeader]);
 
   return null;
 }
@@ -113,11 +127,18 @@ function useJwtRefreshInterceptor() {
 
 function AppRoutes() {
   useJwtRefreshInterceptor();
+  const location = useLocation();
+  const { hideHeader } = useHeaderVisibility();
+
+  // AI Search 페이지일 때만 hideHeader context 적용
+  const isAISearchPage = location.pathname === "/aisearch";
+  const shouldShowHeader = !isAISearchPage || !hideHeader;
 
   return (
     <>
       <ScrollToTop />
-      <Header />
+      <HeaderVisibilityManager />
+      {shouldShowHeader && <Header />}
       <main style={{ backgroundColor: "#f5f6fa" }}>
         <Routes>
           <Route path="/virus" element={<PromoPage />} />
@@ -162,7 +183,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AppStateProvider>
-      <AppRoutes />
+      <HeaderVisibilityProvider>
+        <AppRoutes />
+      </HeaderVisibilityProvider>
     </AppStateProvider>
   );
 }

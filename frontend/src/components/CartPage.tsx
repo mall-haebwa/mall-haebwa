@@ -309,7 +309,7 @@ export function CartPage() {
                       checked={selectedItems.includes(index)}
                       onCheckedChange={() => toggleItem(index)}
                     />
-                    <div className="h-20 w-20 shrink-0 overflow-hidden border border-gray-200 bg-gray-50">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden border border-gray-200 bg-brand-main">
                       <ImageWithFallback
                         src={getItemImage(item)}
                         alt={getItemName(item)}
@@ -336,7 +336,7 @@ export function CartPage() {
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 bg-brand-main"
                             onClick={() =>
                               handleQuantity(index, item.quantity - 1)
                             }>
@@ -349,7 +349,7 @@ export function CartPage() {
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 bg-brand-main"
                             onClick={() =>
                               handleQuantity(index, item.quantity + 1)
                             }>
@@ -392,7 +392,7 @@ export function CartPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10"
+                  className="h-10 bg-brand-main"
                   onClick={applyCoupon}>
                   적용
                 </Button>
