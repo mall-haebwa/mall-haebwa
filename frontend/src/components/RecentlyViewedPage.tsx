@@ -8,6 +8,14 @@ import type { RecentlyViewedItem } from "./mypage-types";
 import { useAppState } from "../context/app-state";
 import { User as UserIcon } from "lucide-react";
 import { normalizeProductSummary } from "../utils/product-normalize";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 const formatDate = (iso: string) => {
   const parsed = new Date(iso);
@@ -28,6 +36,8 @@ export function RecentlyViewedPage() {
 
   const [items, setItems] = useState<RecentlyViewedItem[]>(state.items ?? []);
   const [loading, setLoading] = useState(items.length === 0);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -96,6 +106,34 @@ export function RecentlyViewedPage() {
     [navigate],
   );
 
+  const handleClearHistoryClick = useCallback(() => {
+    setShowClearDialog(true);
+  }, []);
+
+  const handleConfirmClear = useCallback(async () => {
+    setIsClearing(true);
+    try {
+      const response = await fetch("/api/users/recently-viewed", {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear history: ${response.status}`);
+      }
+
+      console.log("[Recently Viewed] ✅ 기록 삭제 완료");
+      setItems([]);
+      setShowClearDialog(false);
+      toast.success("최근 본 상품 기록이 모두 삭제되었습니다.");
+    } catch (error) {
+      console.error("Failed to clear recently viewed history", error);
+      toast.error("기록을 삭제하는 데 실패했습니다.");
+    } finally {
+      setIsClearing(false);
+    }
+  }, []);
+
   if (!currentUser) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
@@ -135,7 +173,7 @@ export function RecentlyViewedPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => toast.info("최근 기록 비우기는 준비 중입니다.")}
+              onClick={handleClearHistoryClick}
             >
               기록 비우기
             </Button>
@@ -168,6 +206,33 @@ export function RecentlyViewedPage() {
             ))}
           </div>
         )}
+
+        <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>최근 본 상품 기록 삭제</DialogTitle>
+              <DialogDescription>
+                최근 본 상품 기록을 모두 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowClearDialog(false)}
+                disabled={isClearing}
+              >
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmClear}
+                disabled={isClearing}
+              >
+                {isClearing ? "삭제 중..." : "삭제"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

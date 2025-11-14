@@ -21,6 +21,14 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Separator } from "./ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import {
   ProductPreviewCard,
   ProductPreviewSkeleton,
 } from "./ProductPreviewCard";
@@ -122,6 +130,8 @@ export function MyPage() {
   const [recentItems, setRecentItems] = useState<RecentlyViewedItem[]>([]);
   const [repeatLoading, setRepeatLoading] = useState(false);
   const [recentLoading, setRecentLoading] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const fetchRandomProducts = useCallback(
     async (limit: number, excludeIds: string[] = []) => {
@@ -259,6 +269,34 @@ export function MyPage() {
     });
   }, [navigate, recentItems]);
 
+  const handleClearHistoryClick = useCallback(() => {
+    setShowClearDialog(true);
+  }, []);
+
+  const handleConfirmClear = useCallback(async () => {
+    setIsClearing(true);
+    try {
+      const response = await fetch("/api/users/recently-viewed", {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear history: ${response.status}`);
+      }
+
+      console.log("[MyPage] ✅ 기록 삭제 완료");
+      setRecentItems([]);
+      setShowClearDialog(false);
+      toast.success("최근 본 상품 기록이 모두 삭제되었습니다.");
+    } catch (error) {
+      console.error("Failed to clear recently viewed history", error);
+      toast.error("기록을 삭제하는 데 실패했습니다.");
+    } finally {
+      setIsClearing(false);
+    }
+  }, []);
+
   if (!currentUser) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
@@ -386,9 +424,37 @@ export function MyPage() {
             loading={recentLoading}
             onSeeAll={handleSeeAllRecent}
             onOpenProduct={handleProductOpen}
+            onClearHistory={handleClearHistoryClick}
           />
         </div>
       </div>
+
+      <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>최근 본 상품 기록 삭제</DialogTitle>
+            <DialogDescription>
+              최근 본 상품 기록을 모두 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowClearDialog(false)}
+              disabled={isClearing}
+            >
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmClear}
+              disabled={isClearing}
+            >
+              {isClearing ? "삭제 중..." : "삭제"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -405,6 +471,7 @@ interface RecentlyViewedSectionProps {
   loading: boolean;
   onSeeAll: () => void;
   onOpenProduct: (productId: string) => void;
+  onClearHistory: () => void;
 }
 
 const PreviewSkeletonRow = () => (
@@ -471,6 +538,7 @@ function RecentlyViewedSection({
   loading,
   onSeeAll,
   onOpenProduct,
+  onClearHistory,
 }: RecentlyViewedSectionProps) {
   const previewItems = items.slice(0, PREVIEW_COUNT);
 
@@ -490,9 +558,7 @@ function RecentlyViewedSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              toast.info("최근 기록 비우기는 준비 중입니다.");
-            }}>
+            onClick={onClearHistory}>
             기록 비우기
           </Button>
         </div>

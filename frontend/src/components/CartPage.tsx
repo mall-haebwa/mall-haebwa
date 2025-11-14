@@ -18,7 +18,7 @@ const withBase = (path: string) => (API_URL ? `${API_URL}${path}` : path);
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, updateCartItem, removeFromCart, currentUser, refreshCart } =
+  const { cart, updateCartItem, removeFromCart, removeItemsById, currentUser, refreshCart } =
     useAppState();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [couponCode, setCouponCode] = useState("");
@@ -42,12 +42,6 @@ export function CartPage() {
   useEffect(() => {
     setSelectedItems((prev) => {
       const safe = prev.filter((index) => index < cart.length);
-      if (safe.length === cart.length) {
-        return safe;
-      }
-      if (cart.length && safe.length === 0) {
-        return cart.map((_, index) => index);
-      }
       return safe;
     });
   }, [cart]);
@@ -267,24 +261,32 @@ export function CartPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2">
             <Card className="mb-4 border-gray-200 p-4">
-              <div className="mb-4 flex items-center gap-2 text-sm text-gray-700">
-                <Checkbox
-                  checked={selectedItems.length === cart.length}
-                  onCheckedChange={toggleAll}
-                />
-                <span>
-                  전체 선택 ({selectedItems.length}/{cart.length})
-                </span>
+              <div className="mb-4 flex items-center justify-between text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedItems.length === cart.length}
+                    onCheckedChange={toggleAll}
+                  />
+                  <span>
+                    전체 선택 ({selectedItems.length}/{cart.length})
+                  </span>
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="ml-auto h-7 text-xs"
+                  className="h-7 text-xs"
                   disabled={selectedItems.length === 0}
-                  onClick={() => {
-                    const targets = [...selectedItems].sort((a, b) => b - a);
-                    targets.forEach((index) => removeFromCart(index));
-                    toast.success("선택한 항목이 제거되었습니다.");
+                  onClick={async () => {
+                    const itemIds = selectedItems
+                      .map((index) => cart[index]?.id)
+                      .filter((id): id is string => Boolean(id));
+
+                    if (itemIds.length > 0) {
+                      await removeItemsById(itemIds);
+                      setSelectedItems([]);
+                      toast.success("선택한 항목이 제거되었습니다.");
+                    }
                   }}>
                   선택한 항목 삭제
                 </Button>
@@ -348,15 +350,16 @@ export function CartPage() {
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="text-right">
+                        <div className="flex flex-col items-end gap-1">
                           <p className="text-sm font-semibold text-gray-900">
                             {(
                               getItemPrice(item) * item.quantity
-                            ).toLocaleString()}원
+                            ).toLocaleString()}
+                            원
                           </p>
                           <button
                             type="button"
-                            className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 cursor-pointer"
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 cursor-pointer"
                             onClick={() => removeFromCart(index)}>
                             <Trash2 className="h-3 w-3" />
                             삭제

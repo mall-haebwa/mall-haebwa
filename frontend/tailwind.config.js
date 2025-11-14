@@ -10,6 +10,7 @@ export default {
       colors: {
         brand: {
           orange: "#f2641d",
+          main: "#f5f6fa",
         },
       },
     },
