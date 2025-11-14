@@ -91,8 +91,7 @@ export function OrderHistoryPage() {
         </div>
         <Button
           className="h-11 px-8 bg-gray-900 text-white hover:bg-black"
-          onClick={() => navigate("/login")}
-        >
+          onClick={() => navigate("/login")}>
           로그인하기
         </Button>
       </div>
@@ -111,11 +110,13 @@ export function OrderHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-main">
       <div className="mx-auto max-w-[1100px] px-6 py-10 md:px-8">
         <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">주문/배송 조회</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              주문/배송 조회
+            </h1>
             <p className="text-sm text-gray-600">
               최근 주문 내역과 배송 현황을 확인하세요.
             </p>
@@ -123,8 +124,7 @@ export function OrderHistoryPage() {
           <Button
             variant="outline"
             className="gap-2 text-sm"
-            onClick={() => toast.info("택배사 연동은 준비 중입니다.")}
-          >
+            onClick={() => toast.info("택배사 연동은 준비 중입니다.")}>
             <Truck className="h-4 w-4" />
             운송장 조회
           </Button>
@@ -141,8 +141,7 @@ export function OrderHistoryPage() {
             </p>
             <Button
               className="bg-gray-900 text-white hover:bg-black"
-              onClick={() => navigate("/products")}
-            >
+              onClick={() => navigate("/products")}>
               쇼핑하러 가기
             </Button>
           </Card>
@@ -154,11 +153,15 @@ export function OrderHistoryPage() {
 
             <TabsContent value="all" className="space-y-4">
               {orders.map((order) => (
-                <Card key={order.order_id} className="space-y-4 border-gray-200 p-5">
+                <Card
+                  key={order.order_id}
+                  className="space-y-4 border-gray-200 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-xs text-gray-500">주문번호</p>
-                      <p className="font-mono text-sm text-gray-800">{order.order_id}</p>
+                      <p className="font-mono text-sm text-gray-800">
+                        {order.order_id}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <RotateCcw className="h-4 w-4" />
@@ -176,12 +179,12 @@ export function OrderHistoryPage() {
                       order.items.map((item, idx) => (
                         <div
                           key={`${order.order_id}-${item.product_id}-${idx}`}
-                          className="flex gap-4 border border-gray-100 p-4 hover:bg-gray-50 transition-colors"
-                        >
+                          className="flex gap-4 border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
                           <div
                             className="h-20 w-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 cursor-pointer"
-                            onClick={() => navigate(`/product/${item.product_id}`)}
-                          >
+                            onClick={() =>
+                              navigate(`/product/${item.product_id}`)
+                            }>
                             <ImageWithFallback
                               src={item.image_url || ""}
                               alt={item.product_name}
@@ -192,13 +195,16 @@ export function OrderHistoryPage() {
                             <div>
                               <p
                                 className="text-sm font-medium text-gray-900 hover:underline cursor-pointer"
-                                onClick={() => navigate(`/product/${item.product_id}`)}
-                              >
+                                onClick={() =>
+                                  navigate(`/product/${item.product_id}`)
+                                }>
                                 {item.product_name}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {item.selected_color && `색상: ${item.selected_color}`}
-                                {item.selected_size && ` · 사이즈: ${item.selected_size}`}
+                                {item.selected_color &&
+                                  `색상: ${item.selected_color}`}
+                                {item.selected_size &&
+                                  ` · 사이즈: ${item.selected_size}`}
                               </p>
                               <p className="text-xs text-gray-500">
                                 수량: {item.quantity}개
@@ -206,7 +212,8 @@ export function OrderHistoryPage() {
                             </div>
                             <div className="flex items-center justify-between mt-2">
                               <p className="text-sm font-semibold text-gray-900">
-                                {(item.price * item.quantity).toLocaleString()}원
+                                {(item.price * item.quantity).toLocaleString()}
+                                원
                               </p>
                             </div>
                           </div>
@@ -251,8 +258,7 @@ export function OrderHistoryPage() {
                           setSelectedOrder(order);
                           setDeliveryModalOpen(true);
                         }}
-                        className="flex items-center gap-1"
-                      >
+                        className="flex items-center gap-1">
                         <Truck className="h-3 w-3" />
                         배송 현황
                       </Button>
@@ -262,15 +268,13 @@ export function OrderHistoryPage() {
                         onClick={() => {
                           navigate("/customer-service");
                           toast.info("환불/반품 문의를 작성해주세요.");
-                        }}
-                      >
+                        }}>
                         환불/반품 문의
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate("/customer-service")}
-                      >
+                        onClick={() => navigate("/customer-service")}>
                         문의하기
                       </Button>
                       <Button
@@ -278,11 +282,12 @@ export function OrderHistoryPage() {
                         size="sm"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={() => {
-                          if (window.confirm("정말로 주문을 취소하시겠습니까?")) {
+                          if (
+                            window.confirm("정말로 주문을 취소하시겠습니까?")
+                          ) {
                             toast.info("주문 취소 기능은 준비 중입니다.");
                           }
-                        }}
-                      >
+                        }}>
                         주문 취소
                       </Button>
                     </div>

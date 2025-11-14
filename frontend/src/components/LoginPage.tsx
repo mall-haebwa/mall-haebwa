@@ -15,7 +15,7 @@ export function LoginPage() {
   const location = useLocation();
   const { login } = useAppState();
   const [email, setEmail] = useState(
-    typeof location.state?.email === "string" ? location.state.email : "",
+    typeof location.state?.email === "string" ? location.state.email : ""
   );
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -75,7 +75,10 @@ export function LoginPage() {
 
       if (error.response) {
         // 서버가 응답을 반환한 경우
-        errorMessage = error.response.data?.detail || error.response.data?.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
+        errorMessage =
+          error.response.data?.detail ||
+          error.response.data?.message ||
+          "아이디 또는 비밀번호가 올바르지 않습니다.";
       } else if (error.request) {
         // 요청은 보냈지만 응답이 없는 경우
         errorMessage = "서버에 연결할 수 없습니다.";
@@ -90,7 +93,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+    <div className="min-h-screen br-brand-main">
       <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-6 py-12">
         <Card className="w-full max-w-lg border-gray-200 bg-white/95 p-8 shadow">
           <div className="mb-6 text-center">
@@ -115,7 +118,11 @@ export function LoginPage() {
                     if (loginError) setLoginError("");
                   }}
                   placeholder="아이디를 입력해주세요"
-                  className={`h-11 pl-10 ${loginError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
+                  className={`h-11 pl-10 ${
+                    loginError
+                      ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50"
+                      : ""
+                  }`}
                   required
                 />
               </div>
@@ -135,15 +142,22 @@ export function LoginPage() {
                     if (loginError) setLoginError("");
                   }}
                   placeholder="••••••••"
-                  className={`h-11 pl-10 pr-10 ${loginError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}`}
+                  className={`h-11 pl-10 pr-10 ${
+                    loginError
+                      ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50"
+                      : ""
+                  }`}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 text-gray-400"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  className="absolute right-3 text-gray-400">
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {loginError && (
@@ -165,8 +179,9 @@ export function LoginPage() {
               <button
                 type="button"
                 className="text-gray-500 hover:text-gray-700"
-                onClick={() => toast.info("비밀번호 찾기 기능은 준비 중입니다.")}
-              >
+                onClick={() =>
+                  toast.info("비밀번호 찾기 기능은 준비 중입니다.")
+                }>
                 비밀번호를 잊으셨나요?
               </button>
             </div>
@@ -174,8 +189,7 @@ export function LoginPage() {
             <Button
               type="submit"
               className="h-11 w-full bg-gray-900 text-white hover:bg-black"
-              disabled={isLoading}
-            >
+              disabled={isLoading}>
               {isLoading ? "로그인 중..." : "로그인"}
             </Button>
           </form>
@@ -186,15 +200,13 @@ export function LoginPage() {
             <Button
               variant="outline"
               className="h-11 w-full gap-2"
-              onClick={() => toast.info("카카오 로그인은 준비 중입니다.")}
-            >
+              onClick={() => toast.info("카카오 로그인은 준비 중입니다.")}>
               카카오로 시작하기
             </Button>
             <Button
               variant="outline"
               className="h-11 w-full gap-2"
-              onClick={() => toast.info("네이버 로그인은 준비 중입니다.")}
-            >
+              onClick={() => toast.info("네이버 로그인은 준비 중입니다.")}>
               네이버로 시작하기
             </Button>
           </div>
@@ -206,8 +218,7 @@ export function LoginPage() {
             <button
               type="button"
               className="font-medium text-gray-900 underline"
-              onClick={() => navigate("/signup", { state: { email } })}
-            >
+              onClick={() => navigate("/signup", { state: { email } })}>
               회원가입
             </button>
           </div>

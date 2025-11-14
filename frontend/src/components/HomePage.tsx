@@ -106,7 +106,7 @@ export function HomePage() {
         </div>
 
         {/* 컨트롤 바 */}
-        <div className="flex justify-center items-center gap-8 px-6 py-5 md:px-8 bg-white w-full">
+        <div className="flex justify-center items-center gap-8 px-6 py-5 md:px-8 bg-brand-main w-full">
           {/* 좌측 - 이전 버튼 */}
           <button
             onClick={goToPrevBanner}

@@ -73,11 +73,6 @@ export function ProductPreviewCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!currentUser) {
-      toast.error("로그인 후 장바구니에 담을 수 있습니다.");
-      return;
-    }
-
     try {
       setAddingToCart(true);
       addToCart({
