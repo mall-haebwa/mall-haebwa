@@ -8,7 +8,8 @@
       "Bash(curl:*)",
       "Bash(python3:*)",
       "Bash(docker-compose up:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(docker restart:*)"
     ],
     "deny": [],
     "ask": []

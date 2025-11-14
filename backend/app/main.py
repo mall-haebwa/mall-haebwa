@@ -173,11 +173,11 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     # Tool Handlers 준비
     tool_prep_start = time.time()
     logger.info(f"[Chat] ⏱️  🔧 Tool Handlers 준비 시작...")
-    from .tools import ToolHandlers
-    from .tool_registry import ToolRegistry
+    from .tools import ToolHandlers, SHOPPING_TOOLS, TOOL_AUTH_REQUIRED
+    # from .tool_registry import ToolRegistry  # 현재 사용 안 함
 
-    SHOPPING_TOOLS = ToolRegistry.get_tools()
-    TOOL_AUTH_REQUIRED = ToolRegistry.get_auth_required()
+    # SHOPPING_TOOLS = ToolRegistry.get_tools()  # 이전 방식 (데코레이터 미사용)
+    # TOOL_AUTH_REQUIRED = ToolRegistry.get_auth_required()
     db = get_db()
     es = get_search_client()
     tool_handlers_instance = ToolHandlers(db, es)
@@ -404,8 +404,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
             tools=filtered_tools,  # 게스트 필터링 적용
             tool_handlers=tool_handlers,
             max_iterations=MAX_TOOL_ITERATIONS,  # 환경 변수로 제어 (기본값: 5)
-            temperature=0.7,
-            max_tokens=1000
+            temperature=0.1,  # Tool Use 최적화: 0.7→0.1 (정확한 Tool 선택)
+            max_tokens=1500  # 응답 여유 확보: 1000→1500
         )
 
         bedrock_call_duration = time.time() - bedrock_call_start
