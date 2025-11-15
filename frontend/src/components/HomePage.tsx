@@ -20,10 +20,10 @@ import banner6 from "../assets/banner6.svg";
 // Reverted: directly render RandomSections without in-view lazy mount
 
 const promoBanners = [
-  {
-    id: 1,
-    imageUrl: banner6,
-  },
+  // {
+  //   id: 1,
+  //   imageUrl: banner6,
+  // },
   {
     id: 2,
     imageUrl: banner2,
@@ -86,7 +86,7 @@ export function HomePage() {
       {/* 프로모션 배너 캐러셀 */}
       <div className="relative overflow-hidden bg-white w-full">
         {/* 슬라이드 */}
-        <div className="relative h-[500px] w-full">
+        <div className="relative aspect-[9/2] w-full bg-brand-main">
           {promoBanners.map((banner, index) => {
             const isActive = index === currentBanner;
             return (
@@ -98,7 +98,7 @@ export function HomePage() {
                 <img
                   src={banner.imageUrl}
                   alt={`프로모션 배너 ${banner.id}`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               </div>
             );
@@ -145,33 +145,39 @@ export function HomePage() {
       <div className="border-t border-gray-100 py-12">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-6 md:grid-cols-3 md:px-8">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900/10">
-              <Sparkles className="h-6 w-6 text-gray-900" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-sub/10">
+              <Sparkles className="h-6 w-6 text-brand-sub" />
             </div>
             <div>
-              <h3 className="mb-2">AI 자연어 검색</h3>
+              <h3 className="mb-2">
+                <span className="text-brand-sub">AI</span> 자연어 검색
+              </h3>
               <p className="text-sm text-gray-600">
                 말하듯 자연어로 검색하면 AI가 정확한 상품을 찾아드립니다.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900/10">
-              <TrendingUp className="h-6 w-6 text-gray-900" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-sub/10">
+              <TrendingUp className="h-6 w-6 text-brand-sub" />
             </div>
             <div>
-              <h3 className="mb-2">취향 맞춤 추천</h3>
+              <h3 className="mb-2">
+                <span className="text-brand-sub">취향</span> 맞춤 추천
+              </h3>
               <p className="text-sm text-gray-600">
                 구매 패턴과 취향을 분석해 딱 맞는 상품을 추천해 드립니다.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900/10">
-              <Star className="h-6 w-6 text-gray-900" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-sub/10">
+              <Star className="h-6 w-6 text-brand-sub" />
             </div>
             <div>
-              <h3 className="mb-2">실시간 리뷰</h3>
+              <h3 className="mb-2">
+                <span className="text-brand-sub">실시간</span> 리뷰
+              </h3>
               <p className="text-sm text-gray-600">
                 실제 구매자들의 생생한 후기를 확인할 수 있습니다.
               </p>

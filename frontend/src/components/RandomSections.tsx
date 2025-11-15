@@ -82,22 +82,22 @@ export function RandomSections() {
             <h2 className="text-xl font-bold">
               {section.title.includes("랜덤") && (
                 <>
-                  <span className=" text-xl font-bold">추천</span> 상품
+                  <span className="text-xl font-bold text-brand-sub">추천</span> 상품
                 </>
               )}
               {section.title.includes("오늘") && (
                 <>
-                  <span className=" text-xl font-bold">오늘의 행사</span> 상품
+                  <span className="text-xl font-bold text-brand-sub">오늘의 행사</span> 상품
                 </>
               )}
               {section.title.includes("주목") && (
                 <>
-                  <span className=" text-xl font-bold">주목할 만한</span> 상품
+                  <span className="text-xl font-bold text-brand-sub">주목할 만한</span> 상품
                 </>
               )}
               {section.title.includes("급상승") && (
                 <>
-                  <span className=" text-xl font-bold">인기 급상승</span> 상품
+                  <span className="text-xl font-bold text-brand-sub">인기 급상승</span> 상품
                 </>
               )}
             </h2>
