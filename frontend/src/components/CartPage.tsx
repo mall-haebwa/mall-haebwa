@@ -46,10 +46,10 @@ export function CartPage() {
   }, [currentUser, refreshCart]);
 
   useEffect(() => {
-    setSelectedItems((prev) => {
-      const safe = prev.filter((index) => index < cart.length);
-      return safe;
-    });
+    // 장바구니 상품이 로드되면 모두 자동으로 선택
+    if (cart.length > 0) {
+      setSelectedItems(cart.map((_, index) => index));
+    }
   }, [cart]);
 
   // 토스페이먼츠 초기화
