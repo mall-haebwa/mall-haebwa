@@ -118,6 +118,7 @@ export function AISearchPage() {
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isRestoringState, setIsRestoringState] = useState(false);
   const [animationStep, setAnimationStep] = useState<0 | 1 | 2>(0); // 0: main2, 1: ai_main1, 2: last
+  const animationIndexRef = useRef(0); // 애니메이션 인덱스 추적 (클로저 문제 해결)
 
   // 데이터 관련 상태
   const [currentSearchQuery, setCurrentSearchQuery] = useState("");
@@ -731,6 +732,14 @@ export function AISearchPage() {
     restoreState();
   }, [currentUser?.id]);
 
+  // 컴포넌트 언마운트 시 모든 Object URL 정리 (메모리 누수 방지)
+  useEffect(() => {
+    return () => {
+      // 컴포넌트 언마운트 시 모든 업로드된 이미지의 Object URL 정리
+      uploadedImages.forEach((img) => URL.revokeObjectURL(img.preview));
+    };
+  }, [uploadedImages]);
+
   // 이미지 붙여넣기 이벤트 리스너
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
@@ -756,21 +765,22 @@ export function AISearchPage() {
   useEffect(() => {
     if (!isLoading) {
       setAnimationStep(0); // 로딩 종료 시 초기화
+      animationIndexRef.current = 0; // ref도 초기화
       return;
     }
 
     // 순환 순서: ai_main1(1) -> last(2) -> main2(0) -> last(2) -> ...
     const animationSequence: (0 | 1 | 2)[] = [1, 2, 0, 2];
-    let currentIndex = 0;
+    animationIndexRef.current = 0;
 
     // 초기 애니메이션 설정
     setAnimationStep(animationSequence[0]);
-    currentIndex = 1;
+    animationIndexRef.current = 1;
 
-    // 5초마다 다음 애니메이션으로 변경
+    // 5초마다 다음 애니메이션으로 변경 (useRef로 클로저 문제 해결)
     const interval = setInterval(() => {
-      setAnimationStep(animationSequence[currentIndex]);
-      currentIndex = (currentIndex + 1) % animationSequence.length;
+      setAnimationStep(animationSequence[animationIndexRef.current]);
+      animationIndexRef.current = (animationIndexRef.current + 1) % animationSequence.length;
     }, 5000);
 
     return () => {
@@ -988,7 +998,7 @@ export function AISearchPage() {
                   <p className="text-gray-600">검색 결과가 없습니다.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
                   {products.map((product) => (
                     <ProductPreviewCard
                       key={product.id}
@@ -1195,7 +1205,7 @@ export function AISearchPage() {
                     <h3 className="mb-4 text-lg font-semibold text-gray-900">
                       추천 상품
                     </h3>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
                       {multiSearchQueries.map((query) => {
                         const products = multiSearchResults[query] || [];
                         const representativeProduct = products[0];
@@ -1243,7 +1253,7 @@ export function AISearchPage() {
                         {multiSearchResults[selectedMultiCategory]?.length || 0}
                         개)
                       </h3>
-                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
                         {(multiSearchResults[selectedMultiCategory] || []).map(
                           (product) => (
                             <ProductPreviewCard
@@ -1292,14 +1302,9 @@ export function AISearchPage() {
                   <div
                     className={`max-w-[85%] rounded-lg p-3 ${
                       msg.role === "user"
-                        ? "text-gray-900"
+                        ? "bg-brand-orange text-white"
                         : "bg-gray-100 text-gray-900"
-                    }`}
-                    style={
-                      msg.role === "user"
-                        ? { backgroundColor: "#f2641d", color: "#fff" }
-                        : {}
-                    }>
+                    }`}>
                     {msg.role === "assistant" && (
                       <div className="mb-2 flex items-center gap-2">
                         <div

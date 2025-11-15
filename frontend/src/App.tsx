@@ -127,12 +127,11 @@ function useJwtRefreshInterceptor() {
 
 function AppRoutes() {
   useJwtRefreshInterceptor();
-  const location = useLocation();
   const { hideHeader } = useHeaderVisibility();
 
-  // AI Search 페이지일 때만 hideHeader context 적용
-  const isAISearchPage = location.pathname === "/aisearch";
-  const shouldShowHeader = !isAISearchPage || !hideHeader;
+  // HeaderVisibilityManager가 이미 pathname을 감시해서 hideHeader를 설정하므로
+  // 여기서는 hideHeader 상태만 확인하면 됨
+  const shouldShowHeader = !hideHeader;
 
   return (
     <>
