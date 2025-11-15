@@ -64,7 +64,8 @@ class BedrockClient:
         tool_handlers: Dict[str, Callable],
         max_iterations: int = 5,
         temperature: float = 0.7,
-        max_tokens: int = 2000
+        max_tokens: int = 2000,
+        enable_caching: bool = True
     ) -> Dict[str, Any]:
         """
         Tool Use를 지원하는 채팅 (자동 Tool 실행 루프)
@@ -127,7 +128,14 @@ class BedrockClient:
 
                 # System prompt 추가
                 if system_prompt:
-                    request_params["system"] = [{"text": system_prompt}]
+                    if enable_caching:
+                        request_params["system"] = [
+                            {"text": system_prompt},
+                            {"cachePoint": {"type": "default"}}
+                        ]
+                        logger.info(f"[Bedrock] Prompt Caching enabled")
+                    else:
+                        request_params["system"] = [{"text": system_prompt}]
 
                 # Tools 추가
                 if tools:
@@ -143,7 +151,18 @@ class BedrockClient:
                     try:
                         response = self.client.converse(**request_params)
                         self.last_api_call_time = time.time()
+
+                        usage = response.get("usage", {})
+                        cache_read = usage.get("cacheReadInputTokenCount", 0)
+                        cache_write = usage.get("cacheCreationInputTokenCount", 0)
+                        
+                        if cache_read > 0:
+                            logger.info(f"[Bedrock] 💾 Cache HIT - Read: {cache_read} tokens (90% 할인!)")
+                        elif cache_write > 0:
+                            logger.info(f"[Bedrock] 💾 Cache MISS - Write: {cache_write} tokens")
+                        
                         break
+
                     except ClientError as e:
                         error_code = e.response.get('Error', {}).get('Code', '')
                         if error_code == 'ThrottlingException':

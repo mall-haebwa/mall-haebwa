@@ -345,7 +345,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
             tool_handlers=tool_handlers,
             max_iterations=MAX_TOOL_ITERATIONS,  # 환경 변수로 제어 (기본값: 5)
             temperature=0.7,
-            max_tokens=1000
+            max_tokens=1000,
+            enable_caching=True
         )
 
         reply = result["response"]
