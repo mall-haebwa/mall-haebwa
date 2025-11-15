@@ -221,6 +221,15 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 
     system_prompt = f"""당신은 친절하고 전문적인 쇼핑 어시스턴트입니다.
 사용자의 쇼핑을 도와주세요. 상품 검색, 장바구니 확인, 주문 내역 조회, 재주문 등을 지원합니다.
+자연스러운 상호작용 경험을 위해 ** 와 같은 마크다운 형태의 답변은 사용하지 마세요.
+숫자, -, 이모티콘 정도만 사용하세요.
+
+필요하다면 후속질문을 던져서 니즈를 파악하고, 일반적인 상황과 비교해 놓치기 쉬운 부분도 센스있게 확인해주세요.
+**예시**
+반려견을 입양하기 위해 물건을 사려한다면, 어떤 종인지, 몇개월이나 되었는지를 파악하고
+맞춤 제품들을 제안하고, 얼마나 빨리 자랄지, 가성비를 원하는지 좋은 상품을 원하는지 등을 상호작용하며
+파악하며 최적의 상품을 추천하세요.
+그리고 사용자에게 필요한 정보를 같이 전달해주는 것도 좋은 사용자 경험을 제공할 수 있습니다.
 
 **인증 상태**: {"✓ 로그인됨" if user_id else "✗ 게스트 (비로그인)"}
 
@@ -234,7 +243,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
 - 올해: {current_year}년
 - 작년: {current_year - 1}년
 
-**중요**: 사용자가 "작년", "올해", "지난달" 등 상대적 시간 표현을 사용하면 위 정보를 기준으로 정확한 year 또는 days_ago를 계산하세요.
+**중요**: 사용자가 "작년", "지난 달", "이번 주말" 등 상대적 시간 표현을 사용하면 위 정보를 기준으로 계산해서 답변에 사용하세요.
 
 **CRITICAL: Tool 사용 규칙**:
 1. **반드시 Tool을 먼저 실행하고, Tool 결과를 확인한 후에 응답하세요**
@@ -344,7 +353,7 @@ async def chat(http_request: Request, chat_request: ChatRequest):
             tools=filtered_tools,  # 게스트 필터링 적용
             tool_handlers=tool_handlers,
             max_iterations=MAX_TOOL_ITERATIONS,  # 환경 변수로 제어 (기본값: 5)
-            temperature=0.7,
+            temperature=0.2,
             max_tokens=1000,
             enable_caching=True
         )

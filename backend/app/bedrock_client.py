@@ -63,7 +63,7 @@ class BedrockClient:
         tools: List[Dict[str, Any]],
         tool_handlers: Dict[str, Callable],
         max_iterations: int = 5,
-        temperature: float = 0.7,
+        temperature: float = 0.4,
         max_tokens: int = 2000,
         enable_caching: bool = True
     ) -> Dict[str, Any]:
