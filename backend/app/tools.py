@@ -9,6 +9,8 @@ import functools
 import asyncio
 import boto3
 import json
+import httpx
+import os
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -358,6 +360,39 @@ SHOPPING_TOOLS = [
                         }
                     },
                     "required": ["indices"]
+                }
+            }
+        }
+    },
+    {
+        "toolSpec": {
+            "name": "web_search",
+            "description": """웹 검색을 수행합니다. 상품 데이터베이스에 없는 일반적인 질문이나 최신 정보가 필요할 때 사용하세요.
+            
+            **사용해야 할 때:**
+            - 날씨, 뉴스, 시사 등 실시간 정보
+            - 일반 상식, 백과사전적 질문
+            - 상품 외 정보 (예: "김치찌개 레시피", "겨울 코디 추천")
+            - 트렌드, 리뷰 비교 등
+            
+            **사용하지 말아야 할 때:**
+            - 상품 검색 → search_products 사용
+            - 장바구니/주문 조회 → 전용 Tool 사용""",
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "검색할 키워드 또는 질문 (예: 오늘 날씨, 갤럭시 S24 리뷰)"
+                        },
+                        "num_results": {
+                            "type": "number",
+                            "description": "가져올 검색 결과 개수 (기본: 3, 최대: 10)",
+                            "default": 3
+                        }
+                    },
+                    "required": ["query"]
                 }
             }
         }
@@ -1509,6 +1544,89 @@ class ToolHandlers:
                 f"[Tool] add_from_recent_search error: {e}", exc_info=True)
             return {"error": str(e), "success": False}
 
+    async def web_search(self, query: str, num_results: int = 3) -> Dict[str, Any]:
+            """Google Custom Search API를 사용한 웹 검색"""
+            api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+            search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+
+            if not api_key or not search_engine_id:
+                logger.error("[web_search] API key or Search Engine ID not configured")
+                return {
+                    "success": False,
+                    "error": "웹 검색 기능이 설정되지 않았습니다. 관리자에게 문의하세요."
+                }
+
+            try:
+                # 최대 10개로 제한
+                num_results = min(num_results, 10)
+
+                logger.info(f"[web_search] Query: {query}, Results: {num_results}")
+
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.get(
+                        "https://www.googleapis.com/customsearch/v1",
+                        params={
+                            "key": api_key,
+                            "cx": search_engine_id,
+                            "q": query,
+                            "num": num_results,
+                            "hl": "ko",  # 한국어 우선
+                            "lr": "lang_ko"  # 한국어 결과 우선
+                        }
+                    )
+
+                    if response.status_code != 200:
+                        error_data = response.json() if response.text else {}
+                        error_message = error_data.get("error", {}).get("message", "알 수 없는 오류")
+                        logger.error(f"[web_search] API Error: {response.status_code} - {error_message}")
+                        return {
+                            "success": False,
+                            "error": f"검색 실패: {error_message}"
+                        }
+
+                    data = response.json()
+                    items = data.get("items", [])
+
+                    if not items:
+                        return {
+                            "success": True,
+                            "query": query,
+                            "total_results": 0,
+                            "results": [],
+                            "message": "검색 결과가 없습니다."
+                        }
+
+                    results = []
+                    for item in items:
+                        results.append({
+                            "title": item.get("title", ""),
+                            "url": item.get("link", ""),
+                            "snippet": item.get("snippet", ""),
+                            "displayUrl": item.get("displayLink", "")
+                        })
+
+                    logger.info(f"[web_search] Found {len(results)} results")
+
+                    return {
+                        "success": True,
+                        "query": query,
+                        "total_results": len(results),
+                        "results": results
+                    }
+
+            except httpx.TimeoutException:
+                logger.error("[web_search] Timeout")
+                return {
+                    "success": False,
+                    "error": "검색 시간이 초과되었습니다. 다시 시도해주세요."
+                }
+            except Exception as e:
+                logger.error(f"[web_search] Unexpected error: {e}", exc_info=True)
+                return {
+                    "success": False,
+                    "error": f"검색 중 오류가 발생했습니다: {str(e)}"
+                }
+
     def get_handlers_dict(self) -> Dict[str, Any]:
         """Tool 이름 → Handler 함수 매핑 반환"""
         return {
@@ -1524,5 +1642,6 @@ class ToolHandlers:
             "add_from_recent_search": self.add_from_recent_search,
             "get_order_detail": self.get_order_detail,
             "get_recently_viewed": self.get_recently_viewed,
-            "semantic_search": self.semantic_search
+            "semantic_search": self.semantic_search,
+            "web_search": self.web_search
         }
