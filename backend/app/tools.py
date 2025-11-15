@@ -279,7 +279,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "get_wishlist",
-            "description": "사용자의 찜 목록을 조회합니다. **로그인 필요**",
+            "description": "사용자의 찜 목록을 조회합니다. **로그인 필요**. 상품명 외에는 다른 정보 나열하지 마세요.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -673,26 +673,44 @@ class ToolHandlers:
         try:
             logger.info(f"[Tool] get_wishlist: user_id={user_id}")
 
-            # IMPORTANT: wishlist uses ObjectId(user_id) for user_id field
-            wishlist = await self.db.wishlists.find_one({"user_id": ObjectId(user_id)})
-            if not wishlist:
+            # IMPORTANT: Each wishlist item is a separate document (not an array in a single document)
+            # Use aggregation to join with products collection (same as wishlist_router.py)
+            pipeline = [
+                {"$match": {"user_id": ObjectId(user_id)}},
+                {
+                    "$lookup": {
+                        "from": "products",
+                        "localField": "product_id",
+                        "foreignField": "_id",
+                        "as": "product_info"
+                    }
+                },
+                {"$unwind": "$product_info"},
+                {"$sort": {"created_at": -1}},
+                {"$limit": 10}  # 최대 10개만
+            ]
+
+            cursor = self.db.wishlists.aggregate(pipeline)
+            wishlist_items = await cursor.to_list(length=10)
+
+            if not wishlist_items:
                 logger.info(f"[Tool] get_wishlist: empty wishlist")
                 return {"items": [], "total": 0}
 
-            items = wishlist.get("items", [])
-            logger.info(f"[Tool] get_wishlist: found {len(items)} items")
+            logger.info(f"[Tool] get_wishlist: found {len(wishlist_items)} items")
 
-            # Format items for LLM readability
+            # Format items for LLM readability (keep original field names)
             formatted_items = []
-            for item in items[:10]:  # 최대 10개만
+            for item in wishlist_items:
+                product = item.get("product_info", {})
                 formatted_items.append({
-                    "product_id": str(item.get("product_id", "")),
-                    "name": item.get("name", ""),
-                    "price": item.get("price", 0),
-                    "image": item.get("image", "")
+                    "product_id": str(product.get("_id", "")),
+                    "name": product.get("title", ""),
+                    "price": product.get("lprice", 0),
+                    "image": product.get("image", "")
                 })
 
-            return {"items": formatted_items, "total": len(items)}
+            return {"items": formatted_items, "total": len(wishlist_items)}
 
         except Exception as e:
             logger.error(f"[Tool] get_wishlist error: {e}", exc_info=True)
