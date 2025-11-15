@@ -732,7 +732,7 @@ export function AdminPage() {
               <div className="border-b p-4">
                 <h2 className="text-lg font-semibold">상품 수정</h2>
               </div>
-              <div className="max-h-[70vh] overflow-y-auto p-6 space-y-4">
+              <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-6 space-y-4">
                 {/* 상품명 */}
                 <div>
                   <label className="text-sm font-medium">상품명</label>

@@ -183,7 +183,7 @@ export function OrderManagementTab() {
   return (
     <div className="p-8">
       {/* 상태별 탭 */}
-      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
+      <div className="mb-6 flex gap-2 overflow-x-auto custom-scrollbar border-b border-gray-200">
         {ORDER_TABS.map((tab) => {
           const isActive = orderTab === tab.value;
           const count =
@@ -260,7 +260,7 @@ export function OrderManagementTab() {
           <div className="p-6 text-center text-gray-500">주문이 없습니다.</div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full">
                 <thead className="border-b border-gray-200 bg-brand-main">
                   <tr>

@@ -246,7 +246,7 @@ export function Header({ isFixed = false, hideHeader = false }: HeaderProps) {
               className="relative h-8 w-8 rounded-full text-3xl hover:bg-gray-100 transition-all flex items-center justify-center">
               <Heart className="!h-6 !w-6 text-gray-900" />
               {wishlist.length > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-4 w-4 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-xs text-white font-normal shadow-lg">
+                <Badge className="absolute -right-2 -top-2 flex h-4 w-4 rounded-full items-center justify-center bg-brand-orange p-0 text-xs text-white font-normal shadow-lg">
                   {wishlist.length}
                 </Badge>
               )}

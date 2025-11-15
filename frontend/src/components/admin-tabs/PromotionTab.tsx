@@ -461,7 +461,7 @@ export function PromotionTab() {
                     아직 등록된 상품이 없습니다.
                   </div>
                 ) : (
-                  <div className="max-h-52 divide-y divide-gray-100 overflow-y-auto">
+                  <div className="max-h-52 divide-y divide-gray-100 overflow-y-auto custom-scrollbar">
                     {sellerProducts.map((product) => {
                       const checked = couponForm.applicableProducts.includes(
                         product.id
@@ -584,7 +584,7 @@ export function PromotionTab() {
           <h2 className="text-lg font-semibold text-gray-900">쿠폰 목록</h2>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {isLoadingCoupons ? (
             <div className="p-6 text-center text-gray-500">
               쿠폰 목록을 불러오는 중...
