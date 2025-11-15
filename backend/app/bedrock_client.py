@@ -133,7 +133,8 @@ class BedrockClient:
                             {"text": system_prompt},
                             {"cachePoint": {"type": "default"}}
                         ]
-                        logger.info(f"[Bedrock] Prompt Caching enabled")
+                        if iteration == 1:
+                            logger.info(f"[Bedrock] Prompt Caching enabled")
                     else:
                         request_params["system"] = [{"text": system_prompt}]
 
