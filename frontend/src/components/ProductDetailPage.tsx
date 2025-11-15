@@ -113,7 +113,7 @@ const normalizerProdectDtail = (raw: unknown): Product => {
 export function ProductDetailPage() {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
-  const { addToCart, currentUser, setSelectedCategory, setSearchQuery } = useAppState();
+  const { addToCart, currentUser, setSelectedCategory, setSearchQuery, wishlistMap, addToWishlist, removeFromWishlist } = useAppState();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,8 +122,10 @@ export function ProductDetailPage() {
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [selectedSize, setSelectedSize] = useState(DEFAULT_SIZE);
   const [activeImage, setActiveImage] = useState(0);
-  const [wishlist, setWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // ✅ Context의 wishlistMap에서 직접 읽기
+  const isWishlisted = productId ? (wishlistMap[productId] ?? false) : false;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -159,14 +161,7 @@ export function ProductDetailPage() {
         }
 
         setProduct(normalized);
-        if (currentUser) {
-          fetch(`/api/wishlist/check/${normalized.id}`, {
-            credentials: "include",
-          })
-            .then(res => res.ok ? res.json() : { isWishlisted: false })
-            .then(data => setWishlist(data.isWishlisted))
-            .catch(() => setWishlist(false));
-        }
+        // ✅ wishlist는 Context의 wishlistMap에서 자동으로 관리됨
       } catch (err) {
         if (controller.signal.aborted) {
           return;
@@ -465,28 +460,12 @@ export function ProductDetailPage() {
 
                   setWishlistLoading(true);
                   try {
-                    if (wishlist) {
-                      // 찜 해제
-                      const res = await fetch(`/api/wishlist/remove/${product.id}`, {
-                        method: "DELETE",
-                        credentials: "include",
-                      });
-                      if (!res.ok) throw new Error("찜 해제 실패");
-                      setWishlist(false);
+                    // ✅ Context 함수 사용 (wishlistMap 자동 업데이트)
+                    if (isWishlisted) {
+                      await removeFromWishlist(product.id);
                       toast.success("찜 목록에서 제거되었습니다.");
                     } else {
-                      // 찜 추가
-                      const res = await fetch(`/api/wishlist/add`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({ product_id: product.id }),
-                      });
-                      if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.detail || "찜 추가 실패");
-                      }
-                      setWishlist(true);
+                      await addToWishlist(product.id);
                       toast.success("찜 목록에 추가되었습니다.");
                     }
                   } catch (error: any) {
@@ -500,10 +479,10 @@ export function ProductDetailPage() {
               >
                 <Heart
                   className={`h-4 w-4 ${
-                    wishlist ? "fill-gray-900 text-gray-900" : ""
+                    isWishlisted ? "fill-gray-900 text-gray-900" : ""
                   }`}
                 />
-                {wishlist ? "찜 완료" : "찜하기"}
+                {isWishlisted ? "찜 완료" : "찜하기"}
               </Button>
               
               <Button
