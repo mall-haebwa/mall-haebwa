@@ -1,8 +1,6 @@
 ﻿import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Sparkles,
-  Search,
-  TrendingUp,
   Loader2,
   Package,
   ChevronDown,
@@ -98,8 +96,8 @@ const EXAMPLE_SEARCHES = [
 export function AISearchPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hideHeader, toggleHeader } = useHeaderVisibility();
   const { currentUser, setSearchQuery, refreshCart } = useAppState();
-  const { toggleHeader } = useHeaderVisibility();
   const [searchInput, setSearchInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -780,7 +778,8 @@ export function AISearchPage() {
     // 5초마다 다음 애니메이션으로 변경 (useRef로 클로저 문제 해결)
     const interval = setInterval(() => {
       setAnimationStep(animationSequence[animationIndexRef.current]);
-      animationIndexRef.current = (animationIndexRef.current + 1) % animationSequence.length;
+      animationIndexRef.current =
+        (animationIndexRef.current + 1) % animationSequence.length;
     }, 5000);
 
     return () => {
@@ -816,14 +815,20 @@ export function AISearchPage() {
 
   return (
     <div className="flex flex-col h-screen bg-brand-main">
-      {/* 상단 헤더 토글 바 */}
-      <div className="flex items-center justify-center bg-brand-main border-b border-gray-200 py-3 px-4">
+      {/* 토글 버튼 (헤더와 함께 이동) */}
+      <div
+        className="flex items-center justify-center bg-brand-main py-3 px-4 z-40 transition-all duration-300"
+        style={{
+          top: hideHeader ? "0px" : "140px",
+        }}>
         <button
           onClick={toggleHeader}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-orange text-white hover:bg-orange-600 transition-colors"
-          title="헤더 표시/숨김 토글">
-          <ChevronUp className="h-4 w-4" />
-          <span className="text-sm font-medium">헤더 표시</span>
+          className="flex items-center gap-2 px-2 py-1 rounded-full bg-brand-orange text-white hover:bg-orange-400 transition-colors">
+          {hideHeader ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
         </button>
       </div>
 
@@ -1290,7 +1295,7 @@ export function AISearchPage() {
         <div className="flex w-[400px] flex-col border-l border-gray-200 bg-brand-main">
           {/* 채팅 메시지 영역 */}
           <div
-            className="flex-1 overflow-y-auto px-4 py-4"
+            className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide"
             ref={chatContainerRef}>
             <div className="space-y-4">
               {messages.map((msg, idx) => (
