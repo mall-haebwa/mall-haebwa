@@ -16,33 +16,43 @@ import banner2 from "../assets/banner2.svg";
 import banner3 from "../assets/banner3.svg";
 import banner4 from "../assets/banner4.svg";
 import banner5 from "../assets/banner5.svg";
-import banner6 from "../assets/banner6.svg";
+import banner7 from "../assets/banner7.svg";
+import banner8 from "../assets/banner8.svg";
+import banner9 from "../assets/banner9.svg";
 // Reverted: directly render RandomSections without in-view lazy mount
 
 const promoBanners = [
-  // {
-  //   id: 1,
-  //   imageUrl: banner6,
-  // },
   {
-    id: 2,
+    id: 1,
     imageUrl: banner2,
   },
   {
-    id: 3,
-    imageUrl: banner3,
-  },
-  {
-    id: 4,
+    id: 2,
     imageUrl: banner4,
   },
   {
+    id: 3,
+    imageUrl: banner7,
+  },
+  {
+    id: 4,
+    imageUrl: banner9,
+  },
+  {
     id: 5,
-    imageUrl: banner5,
+    imageUrl: banner8,
   },
   {
     id: 6,
     imageUrl: banner1,
+  },
+  {
+    id: 7,
+    imageUrl: banner3,
+  },
+  {
+    id: 8,
+    imageUrl: banner5,
   },
 ];
 
@@ -57,7 +67,7 @@ export function HomePage() {
 
     const interval = setInterval(() => {
       setCurrentBanner((prev) => (prev + 1) % promoBanners.length);
-    }, 5000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [isAutoPlay]);
 

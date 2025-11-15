@@ -35,17 +35,18 @@ def requires_authentication(func):
 
 # 인증이 필요한 Tool 목록 (별도 관리)
 
+
 TOOL_AUTH_REQUIRED = {
-	"get_cart",
-	"get_orders",
-	"search_orders_by_product",
-	"add_to_cart",
-	"add_multiple_to_cart",
-	"add_recommended_to_cart",
-	"add_from_recent_search",
-	"get_order_detail",
-	"get_wishlist",
-	"get_recently_viewed"
+    "get_cart",
+    "get_orders",
+    "search_orders_by_product",
+    "add_to_cart",
+    "add_multiple_to_cart",
+    "add_recommended_to_cart",
+    "add_from_recent_search",
+    "get_order_detail",
+    "get_wishlist",
+    "get_recently_viewed"
 }
 
 
@@ -405,7 +406,8 @@ class BedrockEmbeddingService:
             if embedding and len(embedding) == self.embedding_dimension:
                 return embedding
             else:
-                logger.error(f"Invalid embedding dimension: expected {self.embedding_dimension}, got {len(embedding) if embedding else 0}")
+                logger.error(
+                    f"Invalid embedding dimension: expected {self.embedding_dimension}, got {len(embedding) if embedding else 0}")
                 return None
 
         except Exception as e:
@@ -441,7 +443,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """상품 검색 Tool (일반 검색과 동일한 로직)"""
         try:
-            logger.info(f"[Tool] search_products: query={query}, category={category}")
+            logger.info(
+                f"[Tool] search_products: query={query}, category={category}")
 
             # 필터 구성
             filter_clauses = []
@@ -449,7 +452,8 @@ class ToolHandlers:
             # 가격 필터
             price_min = min_price if min_price is not None else 0
             price_max = max_price if max_price is not None else 1_000_000_000
-            filter_clauses.append({"range": {"numericPrice": {"gte": price_min, "lte": price_max}}})
+            filter_clauses.append(
+                {"range": {"numericPrice": {"gte": price_min, "lte": price_max}}})
 
             # 카테고리 필터
             if category:
@@ -621,7 +625,8 @@ class ToolHandlers:
                         products
                     )
                 except Exception as redis_error:
-                    logger.error(f"[Tool] search_products: Redis 저장 실패: {redis_error}")
+                    logger.error(
+                        f"[Tool] search_products: Redis 저장 실패: {redis_error}")
 
             return {
                 "total": total,
@@ -647,9 +652,11 @@ class ToolHandlers:
 
             items = cart.get("items", [])
             # Cart items use "priceSnapshot" not "price"
-            total_amount = sum(item.get("priceSnapshot", 0) * item.get("quantity", 0) for item in items)
+            total_amount = sum(item.get("priceSnapshot", 0)
+                               * item.get("quantity", 0) for item in items)
 
-            logger.info(f"[Tool] get_cart: {len(items)} items, total {total_amount}")
+            logger.info(
+                f"[Tool] get_cart: {len(items)} items, total {total_amount}")
 
             # Format items for LLM readability
             formatted_items = []
@@ -677,7 +684,8 @@ class ToolHandlers:
         try:
             logger.info(f"[Tool] get_orders: user_id={user_id}, limit={limit}")
 
-            cursor = self.db.orders.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
+            cursor = self.db.orders.find({"user_id": user_id}).sort(
+                "created_at", -1).limit(limit)
             orders = await cursor.to_list(length=limit)
 
             order_list = []
@@ -728,7 +736,8 @@ class ToolHandlers:
                 logger.info(f"[Tool] get_wishlist: empty wishlist")
                 return {"items": [], "total": 0}
 
-            logger.info(f"[Tool] get_wishlist: found {len(wishlist_items)} items")
+            logger.info(
+                f"[Tool] get_wishlist: found {len(wishlist_items)} items")
 
             # Format items for LLM readability (keep original field names)
             formatted_items = []
@@ -750,19 +759,20 @@ class ToolHandlers:
     async def multi_search_products(self, queries: List[str], main_query: str) -> Dict[str, Any]:
         """다중 상품 검색 Tool (MULTISEARCH용)"""
         try:
-            logger.info(f"[Tool] multi_search_products: queries={queries}, main_query={main_query}")
+            logger.info(
+                f"[Tool] multi_search_products: queries={queries}, main_query={main_query}")
 
             results = {}
             recommended_products = []  # 각 카테고리의 첫 번째 상품
 
             # 병렬 검색 실행 (asyncio.gather 사용)
             search_tasks = [
-                self.search_products(query=query, limit=20)
-                for query in queries[:5]    # 최대 5개까지만
+                self.search_products(query=query, limit=50)
+                for query in queries[:10]    # 최대 5개까지만
             ]
             search_results = await asyncio.gather(*search_tasks)
 
-            for query, search_result in zip(queries[:5], search_results):
+            for query, search_result in zip(queries[:10], search_results):
                 products = search_result.get("products", [])
                 results[query] = products
 
@@ -777,9 +787,11 @@ class ToolHandlers:
                         "category": query
                     }
                     recommended_products.append(product_info)
-                    logger.info(f"[Tool] multi_search_products: Saved product '{product_info['name']}' with price {product_info['price']}")
+                    logger.info(
+                        f"[Tool] multi_search_products: Saved product '{product_info['name']}' with price {product_info['price']}")
 
-                logger.info(f"[Tool] multi_search_products: {query} → {len(products)} products")
+                logger.info(
+                    f"[Tool] multi_search_products: {query} → {len(products)} products")
 
             # Redis에 추천 상품 저장 (user_id와 conversation_id가 있을 때만)
             if self.redis_client and self.user_id and self.conversation_id and recommended_products:
@@ -789,9 +801,11 @@ class ToolHandlers:
                         self.conversation_id,
                         recommended_products
                     )
-                    logger.info(f"[Tool] multi_search_products: Saved {len(recommended_products)} recommended products to Redis")
+                    logger.info(
+                        f"[Tool] multi_search_products: Saved {len(recommended_products)} recommended products to Redis")
                 except Exception as redis_error:
-                    logger.error(f"[Tool] multi_search_products: Failed to save to Redis: {redis_error}")
+                    logger.error(
+                        f"[Tool] multi_search_products: Failed to save to Redis: {redis_error}")
 
             # Redis에 전체 검색 결과 저장 (번호 선택 담기용)
             if self.redis_client and self.user_id and self.conversation_id:
@@ -807,9 +821,11 @@ class ToolHandlers:
                             self.conversation_id,
                             all_products
                         )
-                        logger.info(f"[Tool] multi_search_products: Saved {len(all_products)} total products to Redis")
+                        logger.info(
+                            f"[Tool] multi_search_products: Saved {len(all_products)} total products to Redis")
                 except Exception as redis_error:
-                    logger.error(f"[Tool] multi_search_products: 전체 결과 Redis 저장 실패: {redis_error}")
+                    logger.error(
+                        f"[Tool] multi_search_products: 전체 결과 Redis 저장 실패: {redis_error}")
 
             return {
                 "results": results,  # {"김치": [...], "돼지고기": [...]}
@@ -819,7 +835,8 @@ class ToolHandlers:
             }
 
         except Exception as e:
-            logger.error(f"[Tool] multi_search_products error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] multi_search_products error: {e}", exc_info=True)
             return {"error": str(e), "results": {}, "queries": queries}
 
     @requires_authentication
@@ -835,7 +852,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """주문 검색 Tool (상품명, 연도, 가격 필터 지원)"""
         try:
-            logger.info(f"[Tool] search_orders_by_product: user_id={user_id}, keyword={product_keyword}, days_ago={days_ago}, year={year}, min_price={min_price}, max_price={max_price}")
+            logger.info(
+                f"[Tool] search_orders_by_product: user_id={user_id}, keyword={product_keyword}, days_ago={days_ago}, year={year}, min_price={min_price}, max_price={max_price}")
 
             # 날짜 필터 구성
             query_filter = {"user_id": user_id}
@@ -845,7 +863,8 @@ class ToolHandlers:
                 # 특정 연도 필터링
                 year_start = datetime(year, 1, 1)
                 year_end = datetime(year + 1, 1, 1)
-                query_filter["created_at"] = {"$gte": year_start, "$lt": year_end}
+                query_filter["created_at"] = {
+                    "$gte": year_start, "$lt": year_end}
             elif days_ago:
                 # 여유를 두고 +10일 더 검색 (경계 케이스 대비)
                 cutoff_date = datetime.now() - timedelta(days=days_ago + 10)
@@ -912,7 +931,8 @@ class ToolHandlers:
                 if len(matching_orders) >= limit:
                     break
 
-            logger.info(f"[Tool] search_orders_by_product: found {len(matching_orders)} matching orders")
+            logger.info(
+                f"[Tool] search_orders_by_product: found {len(matching_orders)} matching orders")
 
             return {
                 "orders": matching_orders[:limit],
@@ -924,7 +944,8 @@ class ToolHandlers:
             }
 
         except Exception as e:
-            logger.error(f"[Tool] search_orders_by_product error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] search_orders_by_product error: {e}", exc_info=True)
             return {"error": str(e), "orders": [], "total": 0}
 
     @requires_authentication
@@ -939,7 +960,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """장바구니에 상품 추가 Tool"""
         try:
-            logger.info(f"[Tool] add_to_cart: user_id={user_id}, product_id={product_id}, quantity={quantity}, price={price}")
+            logger.info(
+                f"[Tool] add_to_cart: user_id={user_id}, product_id={product_id}, quantity={quantity}, price={price}")
 
             # 상품 정보 조회 (MongoDB에서) - 파라미터로 제공되지 않은 정보만 조회
             product = None
@@ -954,9 +976,12 @@ class ToolHandlers:
                     return {"error": "상품을 찾을 수 없습니다.", "success": False}
 
             # 가격, 이름, 이미지 결정 (파라미터 우선, 없으면 DB에서)
-            final_price = price if price is not None else (product.get("numericPrice", 0) if product else 0)
-            final_name = product_name or (product.get("title", "") if product else "")
-            final_image = image_url or (product.get("image", "") if product else "")
+            final_price = price if price is not None else (
+                product.get("numericPrice", 0) if product else 0)
+            final_name = product_name or (
+                product.get("title", "") if product else "")
+            final_image = image_url or (
+                product.get("image", "") if product else "")
 
             # 장바구니 조회 또는 생성
             cart = await self.db.carts.find_one({"userId": user_id})
@@ -1012,7 +1037,8 @@ class ToolHandlers:
                     }
                 )
 
-            logger.info(f"[Tool] add_to_cart: successfully added {quantity}x {final_name[:30]}")
+            logger.info(
+                f"[Tool] add_to_cart: successfully added {quantity}x {final_name[:30]}")
 
             return {
                 "success": True,
@@ -1034,7 +1060,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """여러 상품을 한번에 장바구니에 추가 Tool"""
         try:
-            logger.info(f"[Tool] add_multiple_to_cart: user_id={user_id}, count={len(products)}")
+            logger.info(
+                f"[Tool] add_multiple_to_cart: user_id={user_id}, count={len(products)}")
 
             success_count = 0
             failed_count = 0
@@ -1044,10 +1071,13 @@ class ToolHandlers:
                 product_id = product_data.get("product_id")
                 quantity = product_data.get("quantity", 1)
                 price = product_data.get("price")
-                product_name = product_data.get("product_name") or product_data.get("name")
-                image_url = product_data.get("image_url") or product_data.get("image")
+                product_name = product_data.get(
+                    "product_name") or product_data.get("name")
+                image_url = product_data.get(
+                    "image_url") or product_data.get("image")
 
-                logger.info(f"[Tool] add_multiple_to_cart: Processing product {product_name} (ID: {product_id}, Price: {price})")
+                logger.info(
+                    f"[Tool] add_multiple_to_cart: Processing product {product_name} (ID: {product_id}, Price: {price})")
 
                 if not product_id:
                     failed_count += 1
@@ -1069,7 +1099,8 @@ class ToolHandlers:
                 else:
                     failed_count += 1
 
-            logger.info(f"[Tool] add_multiple_to_cart: success={success_count}, failed={failed_count}")
+            logger.info(
+                f"[Tool] add_multiple_to_cart: success={success_count}, failed={failed_count}")
 
             if success_count == 0:
                 return {
@@ -1094,7 +1125,8 @@ class ToolHandlers:
             }
 
         except Exception as e:
-            logger.error(f"[Tool] add_multiple_to_cart error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] add_multiple_to_cart error: {e}", exc_info=True)
             return {"error": str(e), "success": False, "success_count": 0, "failed_count": len(products)}
 
     @requires_authentication
@@ -1121,9 +1153,11 @@ class ToolHandlers:
                     "error": "저장된 추천 상품이 없습니다. 먼저 '김치찌개 재료 찾아줘' 같은 검색을 해주세요."
                 }
 
-            logger.info(f"[Tool] add_recommended_to_cart: Found {len(recommended_products)} recommended products")
+            logger.info(
+                f"[Tool] add_recommended_to_cart: Found {len(recommended_products)} recommended products")
             for p in recommended_products:
-                logger.info(f"[Tool] add_recommended_to_cart: Product {p.get('name')} - Price: {p.get('price')}")
+                logger.info(
+                    f"[Tool] add_recommended_to_cart: Product {p.get('name')} - Price: {p.get('price')}")
 
             # add_multiple_to_cart 재사용 (가격, 이름, 이미지 정보 포함)
             products_to_add = [
@@ -1142,14 +1176,16 @@ class ToolHandlers:
             return result
 
         except Exception as e:
-            logger.error(f"[Tool] add_recommended_to_cart error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] add_recommended_to_cart error: {e}", exc_info=True)
             return {"error": str(e), "success": False}
 
     @requires_authentication
     async def get_order_detail(self, user_id: str, order_id: str) -> Dict[str, Any]:
         """주문 상세 조회 Tool (배송 현황 포함)"""
         try:
-            logger.info(f"[Tool] get_order_detail: user_id={user_id}, order_id={order_id}")
+            logger.info(
+                f"[Tool] get_order_detail: user_id={user_id}, order_id={order_id}")
 
             # 본인 주문만 조회
             order = await self.db.orders.find_one({
@@ -1185,7 +1221,8 @@ class ToolHandlers:
                 "items": order.get("items", [])
             }
 
-            logger.info(f"[Tool] get_order_detail: order found, status={order.get('status')}")
+            logger.info(
+                f"[Tool] get_order_detail: order found, status={order.get('status')}")
 
             return {
                 "order": order_detail,
@@ -1200,7 +1237,8 @@ class ToolHandlers:
     async def get_recently_viewed(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
         """최근 본 상품 조회 Tool"""
         try:
-            logger.info(f"[Tool] get_recently_viewed: user_id={user_id}, limit={limit}")
+            logger.info(
+                f"[Tool] get_recently_viewed: user_id={user_id}, limit={limit}")
 
             # 사용자 정보 조회
             user = await self.db.users.find_one({"_id": ObjectId(user_id)})
@@ -1210,11 +1248,13 @@ class ToolHandlers:
 
             recently_viewed = user.get("recentlyViewed", [])
             if not recently_viewed:
-                logger.info(f"[Tool] get_recently_viewed: no recently viewed products")
+                logger.info(
+                    f"[Tool] get_recently_viewed: no recently viewed products")
                 return {"items": [], "total": 0}
 
             # viewedAt 기준 내림차순 정렬 (최신순)
-            recently_viewed.sort(key=lambda x: x.get("viewedAt", datetime.min), reverse=True)
+            recently_viewed.sort(key=lambda x: x.get(
+                "viewedAt", datetime.min), reverse=True)
 
             # limit 적용
             recently_viewed = recently_viewed[:limit]
@@ -1225,7 +1265,8 @@ class ToolHandlers:
                 try:
                     product_ids.append(ObjectId(entry.get("productId")))
                 except:
-                    logger.warning(f"[Tool] get_recently_viewed: invalid product ID {entry.get('productId')}")
+                    logger.warning(
+                        f"[Tool] get_recently_viewed: invalid product ID {entry.get('productId')}")
                     continue
 
             # MongoDB에서 상품 정보 조회
@@ -1253,7 +1294,8 @@ class ToolHandlers:
                         "viewed_at": entry.get("viewedAt").isoformat() if entry.get("viewedAt") else None
                     })
 
-            logger.info(f"[Tool] get_recently_viewed: found {len(formatted_items)} products")
+            logger.info(
+                f"[Tool] get_recently_viewed: found {len(formatted_items)} products")
 
             return {
                 "items": formatted_items,
@@ -1261,7 +1303,8 @@ class ToolHandlers:
             }
 
         except Exception as e:
-            logger.error(f"[Tool] get_recently_viewed error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] get_recently_viewed error: {e}", exc_info=True)
             return {"error": str(e), "items": [], "total": 0}
 
     async def semantic_search(
@@ -1274,7 +1317,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """의미 기반 검색 Tool (벡터 검색)"""
         try:
-            logger.info(f"[Tool] semantic_search: query={query}, category={category}")
+            logger.info(
+                f"[Tool] semantic_search: query={query}, category={category}")
 
             # 1. 쿼리 텍스트 임베딩 생성
             query_embedding = await run_in_threadpool(
@@ -1282,7 +1326,8 @@ class ToolHandlers:
             )
 
             if not query_embedding:
-                logger.error("[Tool] semantic_search: embedding generation failed")
+                logger.error(
+                    "[Tool] semantic_search: embedding generation failed")
                 return {
                     "error": "임베딩 생성에 실패했습니다.",
                     "items": [],
@@ -1373,7 +1418,8 @@ class ToolHandlers:
                         products_for_redis
                     )
                 except Exception as redis_error:
-                    logger.error(f"[Tool] semantic_search: Redis 저장 실패: {redis_error}")
+                    logger.error(
+                        f"[Tool] semantic_search: Redis 저장 실패: {redis_error}")
 
             return {
                 "items": items,
@@ -1393,7 +1439,8 @@ class ToolHandlers:
     ) -> Dict[str, Any]:
         """최근 검색 결과에서 인덱스로 상품 선택해서 장바구니에 담기 Tool"""
         try:
-            logger.info(f"[Tool] add_from_recent_search: user_id={user_id}, indices={indices}")
+            logger.info(
+                f"[Tool] add_from_recent_search: user_id={user_id}, indices={indices}")
 
             # 1. Redis에서 최근 검색 결과 조회
             if not self.redis_client or not self.conversation_id:
@@ -1413,7 +1460,8 @@ class ToolHandlers:
                     "error": "저장된 검색 결과가 없습니다. 먼저 상품을 검색해주세요."
                 }
 
-            logger.info(f"[Tool] add_from_recent_search: Found {len(recent_products)} products in Redis")
+            logger.info(
+                f"[Tool] add_from_recent_search: Found {len(recent_products)} products in Redis")
 
             # 2. 인덱스 유효성 검증 및 상품 추출
             products_to_add = []
@@ -1429,10 +1477,12 @@ class ToolHandlers:
                         "name": product.get("name"),
                         "image": product.get("image")
                     })
-                    logger.info(f"[Tool] add_from_recent_search: Selected [{idx}] {product.get('name')}")
+                    logger.info(
+                        f"[Tool] add_from_recent_search: Selected [{idx}] {product.get('name')}")
                 else:
                     invalid_indices.append(idx)
-                    logger.warning(f"[Tool] add_from_recent_search: Invalid index {idx} (max: {len(recent_products)-1})")
+                    logger.warning(
+                        f"[Tool] add_from_recent_search: Invalid index {idx} (max: {len(recent_products)-1})")
 
             if not products_to_add:
                 if invalid_indices:
@@ -1455,7 +1505,8 @@ class ToolHandlers:
             return result
 
         except Exception as e:
-            logger.error(f"[Tool] add_from_recent_search error: {e}", exc_info=True)
+            logger.error(
+                f"[Tool] add_from_recent_search error: {e}", exc_info=True)
             return {"error": str(e), "success": False}
 
     def get_handlers_dict(self) -> Dict[str, Any]:

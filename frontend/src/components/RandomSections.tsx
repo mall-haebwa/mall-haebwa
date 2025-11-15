@@ -9,19 +9,7 @@ import { useAppState } from "../context/app-state";
 import type { Product } from "../types";
 import { ProductPreviewCard } from "./ProductPreviewCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-async function fetchRandom(
-  limit: number,
-  excludeIds: string[]
-): Promise<Product[]> {
-  const params = new URLSearchParams({ limit: String(limit) });
-  if (excludeIds.length > 0) params.set("exclude", excludeIds.join(","));
-  const resp = await fetch(`/api/products/random?${params.toString()}`, {
-    credentials: "include",
-  });
-  if (!resp.ok) return [];
-  const data = await resp.json();
-  return Array.isArray(data.items) ? data.items : [];
-}
+import { MOCK_SECTION_PRODUCTS } from "../data/mockProducts";
 
 export function RandomSections() {
   const navigate = useNavigate();
@@ -34,20 +22,11 @@ export function RandomSections() {
   const swiperRefs = useRef<any[]>([]);
 
   useEffect(() => {
-    (async () => {
-      // 병렬 실행으로 변경 (순차 대기 제거)
-      const [s1, s2, s3, s4] = await Promise.all([
-        fetchRandom(24, []),
-        fetchRandom(24, []),
-        fetchRandom(24, []),
-        fetchRandom(24, []),
-      ]);
-
-      setDeals(s1);
-      setRandoms(s2);
-      setNotables(s3);
-      setRisings(s4);
-    })();
+    // 고정 목데이터 사용
+    setDeals(MOCK_SECTION_PRODUCTS.deals);
+    setRandoms(MOCK_SECTION_PRODUCTS.recommended);
+    setNotables(MOCK_SECTION_PRODUCTS.notables);
+    setRisings(MOCK_SECTION_PRODUCTS.risings);
   }, []);
 
   const goAll = () => {
