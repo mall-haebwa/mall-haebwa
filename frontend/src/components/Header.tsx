@@ -14,7 +14,12 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import mallLogo from "../assets/mall6.svg";
 
-export function Header() {
+interface HeaderProps {
+  isFixed?: boolean;
+  hideHeader?: boolean;
+}
+
+export function Header({ isFixed = false, hideHeader = false }: HeaderProps) {
   const navigate = useNavigate();
   const {
     currentUser,
@@ -102,7 +107,11 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 shadow-sm bg-brand-main">
+    <header
+      className={`${isFixed ? 'fixed left-0 right-0' : 'sticky'} z-50 shadow-sm bg-brand-main transition-all duration-300`}
+      style={{
+        top: isFixed ? (hideHeader ? '-170px' : '0px') : '0px'
+      }}>
       <div className="py-1.5 text-gray-900 font-semibold bg-brand-main">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 text-xs md:px-8">
           <div className="flex items-center gap-2">
