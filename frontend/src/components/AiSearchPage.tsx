@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHeaderVisibility } from "../context/header-visibility";
+import { Header } from "./Header";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useAppState } from "../context/app-state";
@@ -815,11 +816,14 @@ export function AISearchPage() {
 
   return (
     <div className="flex flex-col h-screen bg-brand-main">
+      {/* Header (fixed position) */}
+      <Header isFixed={true} hideHeader={hideHeader} />
+
       {/* 토글 버튼 (헤더와 함께 이동) */}
       <div
-        className="flex items-center justify-center bg-brand-main py-3 px-4 z-40 transition-all duration-300"
+        className="flex items-center justify-center bg-brand-main py-3 px-4 z-40 transition-all duration-300 fixed left-0 right-0"
         style={{
-          top: hideHeader ? "0px" : "140px",
+          top: hideHeader ? "0px" : "145px",
         }}>
         <button
           onClick={toggleHeader}
@@ -833,7 +837,11 @@ export function AISearchPage() {
       </div>
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div
+        className="flex flex-1 overflow-hidden transition-all duration-300"
+        style={{
+          marginTop: "48px",
+        }}>
         {/* 좌측 결과 영역 */}
         <div
           ref={resultsContainerRef}
