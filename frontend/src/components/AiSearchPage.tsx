@@ -821,13 +821,13 @@ export function AISearchPage() {
 
       {/* 토글 버튼 (헤더와 함께 이동) */}
       <div
-        className="flex items-center justify-center bg-brand-main py-3 px-4 z-40 transition-all duration-300 fixed left-0 right-0"
+        className="flex items-center justify-center bg-brand-main py-0 z-40 transition-all duration-300 fixed left-0 right-0"
         style={{
           top: hideHeader ? "0px" : "145px",
         }}>
         <button
           onClick={toggleHeader}
-          className="flex items-center gap-2 px-2 py-1 rounded-full bg-brand-orange text-white hover:bg-orange-400 transition-colors">
+          className="absolute top-1 flex items-center gap-2 px-1 py-1 rounded-full bg-brand-orange text-white hover:bg-orange-400 transition-colors">
           {hideHeader ? (
             <ChevronDown className="h-4 w-4" />
           ) : (
@@ -840,7 +840,7 @@ export function AISearchPage() {
       <div
         className="flex flex-1 overflow-hidden transition-all duration-300"
         style={{
-          marginTop: "48px",
+          marginTop: hideHeader ? "0" : "0",
         }}>
         {/* 좌측 결과 영역 */}
         <div
