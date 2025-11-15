@@ -10,6 +10,10 @@ export default {
       colors: {
         brand: {
           orange: "#f2641d",
+          orange_light: "#f88650",
+          orange_soft: "#f9a577",
+          orange_hover: "#f9a577",
+          orange_bg: "#fbc3a5",
           main: "#f5f6fa",
           sub1: "#8b1b33",
           sub2: "#a32745",

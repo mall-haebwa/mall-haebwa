@@ -1,10 +1,5 @@
 import { Package, Truck, CheckCircle2, Clock } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { generateDeliveryStatus } from "../utils/generateDeliveryStatus";
 import { Badge } from "./ui/badge";
 
@@ -47,7 +42,7 @@ export function DeliveryTrackingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">배송 조회</DialogTitle>
         </DialogHeader>
@@ -77,10 +72,12 @@ export function DeliveryTrackingModal({
               <span className="font-semibold text-lg">{delivery.courier}</span>
             </div>
             <p className="text-sm text-gray-600">
-              송장번호: <span className="font-mono">{delivery.trackingNumber}</span>
+              송장번호:{" "}
+              <span className="font-mono">{delivery.trackingNumber}</span>
             </p>
             <p className="text-sm text-gray-600">
-              예상 배송일: <span className="font-medium">{delivery.estimatedDelivery}</span>
+              예상 배송일:{" "}
+              <span className="font-medium">{delivery.estimatedDelivery}</span>
             </p>
           </div>
 

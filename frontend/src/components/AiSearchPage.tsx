@@ -845,7 +845,7 @@ export function AISearchPage() {
         {/* 좌측 결과 영역 */}
         <div
           ref={resultsContainerRef}
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50 via-pink-50 to-white">
+          className="flex-1 overflow-y-auto custom-scrollbar custom-scrollbar bg-gradient-to-b from-purple-50 via-pink-50 to-white">
           {contentType === "idle" && (
             <div className="flex h-full flex-col items-center justify-center px-6 py-12 md:px-8">
               {isLoading ? (
@@ -1303,7 +1303,7 @@ export function AISearchPage() {
         <div className="flex w-[400px] flex-col border-l border-gray-200 bg-brand-main">
           {/* 채팅 메시지 영역 */}
           <div
-            className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide"
+            className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 scrollbar-hide"
             ref={chatContainerRef}>
             <div className="space-y-4">
               {messages.map((msg, idx) => (
