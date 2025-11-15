@@ -9,7 +9,7 @@ interface HeaderVisibilityContextType {
 const HeaderVisibilityContext = createContext<HeaderVisibilityContextType | undefined>(undefined);
 
 export function HeaderVisibilityProvider({ children }: { children: ReactNode }) {
-  const [hideHeader, setHideHeader] = useState(true); // AI Search 페이지는 기본 숨김
+  const [hideHeader, setHideHeader] = useState(false); // 기본값은 헤더 표시, AI Search 페이지에서만 숨김
 
   const toggleHeader = () => {
     setHideHeader((prev) => !prev);
