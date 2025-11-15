@@ -58,7 +58,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "search_products",
-            "description": "단일 상품을 검색합니다. 사용자가 특정 상품 하나를 찾고 싶을 때 사용하세요.",
+            "description": "단일 상품을 검색합니다. 사용 시기: '노트북 추천', '청바지 찾아줘' 같은 단일 상품 요청. 키워드 규칙: 3단어 이하, 구체적 수치 제외 (2개월, 15cm 등).",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -92,7 +92,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "multi_search_products",
-            "description": "여러 상품을 동시에 검색합니다. '김치찌개 재료', '파티 준비물'처럼 여러 카테고리의 상품이 필요할 때 사용하세요.",
+            "description": "여러 상품을 동시에 검색합니다. 사용 시기: 요리 재료 ('김치찌개 해먹고싶어'), 복합 쇼핑 ('파티 준비물', '캠핑 갈건데'). 키워드 규칙: 각 키워드 3단어 이하, 수치 제외, 최대 5개 키워드.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -146,7 +146,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "search_orders_by_product",
-            "description": "과거 주문을 검색합니다. **로그인 필요**. 상품명, 연도, 가격 등으로 필터링 가능합니다.",
+            "description": "과거 주문을 검색합니다. **로그인 필요**. 사용 시기: 재주문 요청 ('작년에 산 커피'), 주문 내역 확인. 필터: product_keyword, year, min_price, max_price. 주의: year와 days_ago 동시 사용 불가.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -184,7 +184,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "add_to_cart",
-            "description": "상품을 장바구니에 추가합니다. **로그인 필요**. 재주문 시에는 search_orders_by_product 결과의 matched_item 정보를 사용하세요.",
+            "description": "상품을 장바구니에 추가합니다. **로그인 필요**. 사용 시기: 검색 결과나 재주문에서 상품 선택 시. 재주문 시 matched_item의 모든 정보 (product_id, price, product_name, image_url) 전달 필수.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -250,7 +250,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "add_recommended_to_cart",
-            "description": "최근 multi_search로 찾은 추천 상품들을 장바구니에 담습니다. **로그인 필요**. '추천 상품들 담아줘', '전부 담아줘' 같은 요청에 반드시 이 tool을 사용하세요. multi_search_products 실행 후에만 사용 가능합니다.",
+            "description": "최근 multi_search로 찾은 추천 상품들을 장바구니에 담습니다. **로그인 필요**. 사용 시기: '추천 상품 담아줘', '전부 담아줘'. 주의: multi_search_products 실행 직후에만 사용 가능.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -281,7 +281,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "get_wishlist",
-            "description": "사용자의 찜 목록을 조회합니다. **로그인 필요**. 상품명 외에는 다른 정보 나열하지 마세요.",
+            "description": "찜 목록을 조회합니다. **로그인 필요**. 사용 시기: '찜한 상품', '위시리스트' 요청.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -294,7 +294,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "get_recently_viewed",
-            "description": "사용자가 최근에 본 상품 목록을 조회합니다. **로그인 필요**. '지난번에 봤던 상품', '최근 본 상품' 등의 요청에 사용하세요.",
+            "description": "최근에 본 상품 목록을 조회합니다. **로그인 필요**. 사용 시기: '지난번에 봤던 상품', '최근 본 상품' 요청.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -312,7 +312,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "semantic_search",
-            "description": "의미 기반 검색으로 상품을 찾습니다. **다음과 같은 경우에 반드시 사용하세요**: (1) '비슷한 제품', '유사한 상품', '추천' 같은 요청, (2) '편안한 집에서 입는 옷', '여름에 시원한 음료' 같은 의미적 표현, (3) 이전 대화에서 언급된 상품과 비슷한 제품 찾기. 키워드 검색(search_products)보다 의미적 유사성 기반으로 더 정확한 추천이 가능합니다.",
+            "description": "의미 기반 검색으로 상품을 찾습니다. 사용 시기: (1) '비슷한 제품', '유사 상품' 요청, (2) '편안한 옷', '여름 음료' 같은 의미적 표현, (3) 이전 대화 상품과 유사한 제품 찾기. 키워드 검색보다 의미적 유사성 기반으로 더 정확합니다.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -346,7 +346,7 @@ SHOPPING_TOOLS = [
     {
         "toolSpec": {
             "name": "add_from_recent_search",
-            "description": "최근 검색 결과에서 특정 번호의 상품들을 장바구니에 담습니다. **로그인 필요**. 사용자가 '1번, 3번, 5번 담아줘' 또는 '첫 번째, 세 번째 상품 담아줘' 같이 번호로 지정할 때 사용하세요.",
+            "description": "최근 검색 결과에서 번호로 상품을 선택해 장바구니에 담습니다. **로그인 필요**. 사용 시기: '1번, 3번 담아줘', '첫 번째 상품 담아줘'. 주의: indices는 0부터 시작 (사용자 '1번' = indices [0]).",
             "inputSchema": {
                 "json": {
                     "type": "object",
