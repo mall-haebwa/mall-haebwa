@@ -299,11 +299,12 @@ export function ProductListPage() {
             </Select>
           </div>
         </div>
-
-        <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-12">
+      
+      <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-12">
+        <div className="lg:sticky lg:top-[150px] self-start">
           <Card
             className={cn(
-              "w-full md:w-64 shrink-0 border-gray-200 bg-brand-main",
+              "w-full md:w-64 shrink-0 border-gray-200 bg-brand-main lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto",
               showFilters ? "block" : "hidden md:block"
             )}>
             <div className="flex items-center justify-between border-b px-5 py-4 ">
@@ -402,6 +403,7 @@ export function ProductListPage() {
               </div>
             </div>
           </Card>
+        </div>
 
           <div className="flex-1">
             {status === "loading" ? (
