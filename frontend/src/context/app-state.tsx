@@ -25,6 +25,7 @@ interface AppStateValue {
   removeItemsById: (ids: string[]) => Promise<void>;
   refreshCart: () => Promise<void>;
   wishlist: Product[];
+  wishlistMap: Record<string, boolean>;  // ✅ 추가: product_id → isWishlisted
   refreshWishlist: () => Promise<void>;
   addToWishlist: (productId: string) => Promise<void>;
   removeFromWishlist: (productId: string) => Promise<void>;
@@ -185,6 +186,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});  // ✅ 추가
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -265,6 +267,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       );
       const products = response.data.items.map((item) => item.product);
       setWishlist(products);
+
+      // ✅ wishlistMap 구성 (product.id → true)
+      const map: Record<string, boolean> = {};
+      products.forEach((product) => {
+        if (product.id) {
+          map[product.id] = true;
+        }
+      });
+      setWishlistMap(map);
     } catch (error) {
       console.error("Failed to fetch wishlist:", error);
     }
@@ -275,16 +286,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!currentUser) {
         return;
       }
+
+      // ✅ Optimistic Update: 즉시 Map 업데이트
+      setWishlistMap((prev) => ({ ...prev, [productId]: true }));
+
       try {
         await axios.post(
           withBase("/api/wishlist/add"),
           { product_id: productId },
           { withCredentials: true },
         );
-        // 찜 목록 새로고침
+        // 찜 목록 새로고침 (전체 리스트는 여전히 동기화)
         await fetchWishlistFromServer();
       } catch (error) {
         console.error("Failed to add to wishlist:", error);
+        // ✅ 실패 시 롤백
+        setWishlistMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[productId];
+          return newMap;
+        });
         throw error;
       }
     },
@@ -296,6 +317,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!currentUser) {
         return;
       }
+
+      // ✅ Optimistic Update: 즉시 Map 업데이트
+      setWishlistMap((prev) => {
+        const newMap = { ...prev };
+        delete newMap[productId];
+        return newMap;
+      });
+
       try {
         await axios.delete(
           withBase(`/api/wishlist/remove/${productId}`),
@@ -305,6 +334,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         await fetchWishlistFromServer();
       } catch (error) {
         console.error("Failed to remove from wishlist:", error);
+        // ✅ 실패 시 롤백
+        setWishlistMap((prev) => ({ ...prev, [productId]: true }));
         throw error;
       }
     },
@@ -375,6 +406,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentUser) {
       setWishlist([]);
+      setWishlistMap({});  // ✅ 로그아웃 시 Map도 초기화
       return;
     }
     fetchWishlistFromServer();
@@ -602,6 +634,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeItemsById,
       refreshCart: fetchCartFromServer,
       wishlist,
+      wishlistMap,  // ✅ 추가
       refreshWishlist: fetchWishlistFromServer,
       addToWishlist,
       removeFromWishlist,
@@ -621,6 +654,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeItemsById,
       fetchCartFromServer,
       wishlist,
+      wishlistMap,  // ✅ 추가
       fetchWishlistFromServer,
       addToWishlist,
       removeFromWishlist,

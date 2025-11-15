@@ -31,40 +31,18 @@ export function ProductPreviewCard({
   reviewCount,
   originalPrice,
 }: ProductPreviewCardProps) {
-  const { addToCart, currentUser, addToWishlist, removeFromWishlist } =
+  const { addToCart, currentUser, addToWishlist, removeFromWishlist, wishlistMap } =
     useAppState();
-  const [wishlist, setWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+
+  // ✅ Context의 wishlistMap에서 직접 읽기 (API 호출 없음!)
+  const isWishlisted = wishlistMap[product.id] ?? false;
 
   const imageSrc =
     product.image ||
     (Array.isArray(product.images) && product.images[0]) ||
     "https://via.placeholder.com/400x400?text=No+Image";
-
-  useEffect(() => {
-    if (!currentUser || !product.id) {
-      setWishlist(false);
-      return;
-    }
-
-    const checkWishlist = async () => {
-      try {
-        const res = await fetch(`/api/wishlist/check/${product.id}`, {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setWishlist(data.isWishlisted ?? false);
-        }
-      } catch (error) {
-        console.error("Failed to check wishlist:", error);
-        setWishlist(false);
-      }
-    };
-
-    void checkWishlist();
-  }, [currentUser, product.id]);
 
   const handleOpen = () => {
     onOpen(product.id);
@@ -102,13 +80,12 @@ export function ProductPreviewCard({
 
     setWishlistLoading(true);
     try {
-      if (wishlist) {
+      // ✅ Context의 wishlistMap이 자동으로 업데이트되므로 setState 불필요
+      if (isWishlisted) {
         await removeFromWishlist(product.id);
-        setWishlist(false);
         toast.success("찜 목록에서 제거되었습니다.");
       } else {
         await addToWishlist(product.id);
-        setWishlist(true);
         toast.success("찜 목록에 추가되었습니다.");
       }
     } catch (error: any) {
@@ -154,7 +131,7 @@ export function ProductPreviewCard({
             type="button"
             disabled={wishlistLoading}
             className={`flex-1 text-xs font-semibold py-2 px-2 rounded transition disabled:opacity-50 flex items-center justify-center ${
-              wishlist
+              isWishlisted
                 ? "bg-red-500 text-white hover:bg-red-600"
                 : "bg-white text-black hover:bg-white/50"
             }`}
@@ -163,7 +140,7 @@ export function ProductPreviewCard({
               <span className="flex items-center justify-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
               </span>
-            ) : wishlist ? (
+            ) : isWishlisted ? (
               <Heart className="h-3 w-3 fill-white" />
             ) : (
               "찜"
