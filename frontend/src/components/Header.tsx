@@ -108,9 +108,11 @@ export function Header({ isFixed = false, hideHeader = false }: HeaderProps) {
 
   return (
     <header
-      className={`${isFixed ? 'fixed left-0 right-0' : 'sticky'} z-50 shadow-sm bg-brand-main transition-all duration-300`}
+      className={`${
+        isFixed ? "fixed left-0 right-0" : "sticky"
+      } z-50 shadow-sm bg-brand-main transition-all duration-300`}
       style={{
-        top: isFixed ? (hideHeader ? '-170px' : '0px') : '0px'
+        top: isFixed ? (hideHeader ? "-170px" : "0px") : "0px",
       }}>
       <div className="py-1.5 text-gray-900 font-semibold bg-brand-main">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 text-xs md:px-8">
@@ -243,11 +245,11 @@ export function Header({ isFixed = false, hideHeader = false }: HeaderProps) {
               onClick={() => goTo("/wishlist")}
               className="relative h-8 w-8 rounded-full text-3xl hover:bg-gray-100 transition-all flex items-center justify-center">
               <Heart className="!h-6 !w-6 text-gray-900" />
-              {/* {wishlist.length > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-sm text-white font-normal shadow-lg">
+              {wishlist.length > 0 && (
+                <Badge className="absolute -right-2 -top-2 flex h-4 w-4 rounded-full items-center justify-center bg-[rgb(242,100,29)] p-0 text-xs text-white font-normal shadow-lg">
                   {wishlist.length}
                 </Badge>
-              )} */}
+              )}
             </Button>
 
             <Button
@@ -256,7 +258,7 @@ export function Header({ isFixed = false, hideHeader = false }: HeaderProps) {
               className="relative h-8 w-8 rounded-full hover:bg-gray-100 transition-all flex items-center justify-center">
               <ShoppingCart className="!h-6 !w-6 text-gray-900" />
               {cart.length > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 rounded-full items-center justify-center bg-brand-orange p-0 text-sm text-white font-normal shadow-lg">
+                <Badge className="absolute -right-2 -top-2 flex h-4 w-4 rounded-full items-center justify-center bg-brand-orange p-0 text-xs text-white font-normal shadow-lg">
                   {cart.length}
                 </Badge>
               )}
