@@ -42,6 +42,7 @@ TOOL_AUTH_REQUIRED = {
 	"add_to_cart",
 	"add_multiple_to_cart",
 	"add_recommended_to_cart",
+	"add_from_recent_search",
 	"get_order_detail",
 	"get_wishlist",
 	"get_recently_viewed"
@@ -340,6 +341,25 @@ SHOPPING_TOOLS = [
                 }
             }
         }
+    },
+    {
+        "toolSpec": {
+            "name": "add_from_recent_search",
+            "description": "최근 검색 결과에서 특정 번호의 상품들을 장바구니에 담습니다. **로그인 필요**. 사용자가 '1번, 3번, 5번 담아줘' 또는 '첫 번째, 세 번째 상품 담아줘' 같이 번호로 지정할 때 사용하세요.",
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {
+                        "indices": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "description": "담을 상품의 인덱스 (0부터 시작). 사용자가 '1번'이라고 하면 0, '3번'이라고 하면 2를 전달. 예: [0, 2, 4]는 1번, 3번, 5번 상품"
+                        }
+                    },
+                    "required": ["indices"]
+                }
+            }
+        }
     }
 ]
 
@@ -592,6 +612,17 @@ class ToolHandlers:
             total = response["hits"]["total"]["value"]
             logger.info(f"[Tool] search_products: found {total} products")
 
+            # Redis에 검색 결과 저장 (번호 선택 담기용)
+            if self.redis_client and self.user_id and self.conversation_id and products:
+                try:
+                    await self.redis_client.set_recent_search_results(
+                        self.user_id,
+                        self.conversation_id,
+                        products
+                    )
+                except Exception as redis_error:
+                    logger.error(f"[Tool] search_products: Redis 저장 실패: {redis_error}")
+
             return {
                 "total": total,
                 "products": products,
@@ -761,6 +792,24 @@ class ToolHandlers:
                     logger.info(f"[Tool] multi_search_products: Saved {len(recommended_products)} recommended products to Redis")
                 except Exception as redis_error:
                     logger.error(f"[Tool] multi_search_products: Failed to save to Redis: {redis_error}")
+
+            # Redis에 전체 검색 결과 저장 (번호 선택 담기용)
+            if self.redis_client and self.user_id and self.conversation_id:
+                try:
+                    # 모든 카테고리의 상품을 하나의 리스트로 합치기
+                    all_products = []
+                    for query_products in results.values():
+                        all_products.extend(query_products)
+
+                    if all_products:
+                        await self.redis_client.set_recent_search_results(
+                            self.user_id,
+                            self.conversation_id,
+                            all_products
+                        )
+                        logger.info(f"[Tool] multi_search_products: Saved {len(all_products)} total products to Redis")
+                except Exception as redis_error:
+                    logger.error(f"[Tool] multi_search_products: 전체 결과 Redis 저장 실패: {redis_error}")
 
             return {
                 "results": results,  # {"김치": [...], "돼지고기": [...]}
@@ -1302,6 +1351,30 @@ class ToolHandlers:
 
             logger.info(f"[Tool] semantic_search: found {len(items)} products")
 
+            # Redis에 검색 결과 저장 (번호 선택 담기용)
+            if self.redis_client and self.user_id and self.conversation_id and items:
+                try:
+                    # items의 필드명을 products 형식에 맞게 변환
+                    products_for_redis = []
+                    for item in items:
+                        products_for_redis.append({
+                            "id": item.get("product_id"),
+                            "name": item.get("name"),
+                            "price": item.get("price"),
+                            "category": item.get("category"),
+                            "brand": item.get("brand"),
+                            "image": item.get("image"),
+                            "rating": item.get("rating"),
+                            "reviewCount": item.get("reviewCount")
+                        })
+                    await self.redis_client.set_recent_search_results(
+                        self.user_id,
+                        self.conversation_id,
+                        products_for_redis
+                    )
+                except Exception as redis_error:
+                    logger.error(f"[Tool] semantic_search: Redis 저장 실패: {redis_error}")
+
             return {
                 "items": items,
                 "total": len(items),
@@ -1311,6 +1384,79 @@ class ToolHandlers:
         except Exception as e:
             logger.error(f"[Tool] semantic_search error: {e}", exc_info=True)
             return {"error": str(e), "items": [], "total": 0}
+
+    @requires_authentication
+    async def add_from_recent_search(
+        self,
+        user_id: str,
+        indices: List[int]
+    ) -> Dict[str, Any]:
+        """최근 검색 결과에서 인덱스로 상품 선택해서 장바구니에 담기 Tool"""
+        try:
+            logger.info(f"[Tool] add_from_recent_search: user_id={user_id}, indices={indices}")
+
+            # 1. Redis에서 최근 검색 결과 조회
+            if not self.redis_client or not self.conversation_id:
+                return {
+                    "success": False,
+                    "error": "검색 결과 정보를 찾을 수 없습니다. 먼저 상품 검색을 해주세요."
+                }
+
+            recent_products = await self.redis_client.get_recent_search_results(
+                user_id,
+                self.conversation_id
+            )
+
+            if not recent_products:
+                return {
+                    "success": False,
+                    "error": "저장된 검색 결과가 없습니다. 먼저 상품을 검색해주세요."
+                }
+
+            logger.info(f"[Tool] add_from_recent_search: Found {len(recent_products)} products in Redis")
+
+            # 2. 인덱스 유효성 검증 및 상품 추출
+            products_to_add = []
+            invalid_indices = []
+
+            for idx in indices:
+                if 0 <= idx < len(recent_products):
+                    product = recent_products[idx]
+                    products_to_add.append({
+                        "product_id": product.get("id"),
+                        "quantity": 1,
+                        "price": product.get("price"),
+                        "name": product.get("name"),
+                        "image": product.get("image")
+                    })
+                    logger.info(f"[Tool] add_from_recent_search: Selected [{idx}] {product.get('name')}")
+                else:
+                    invalid_indices.append(idx)
+                    logger.warning(f"[Tool] add_from_recent_search: Invalid index {idx} (max: {len(recent_products)-1})")
+
+            if not products_to_add:
+                if invalid_indices:
+                    return {
+                        "success": False,
+                        "error": f"잘못된 번호입니다. 1번부터 {len(recent_products)}번까지 선택 가능합니다."
+                    }
+                return {
+                    "success": False,
+                    "error": "선택된 상품이 없습니다."
+                }
+
+            # 3. add_multiple_to_cart 호출
+            result = await self.add_multiple_to_cart(user_id=user_id, products=products_to_add)
+
+            # 4. 결과에 경고 추가 (일부 인덱스가 유효하지 않은 경우)
+            if invalid_indices and result.get("success"):
+                result["warning"] = f"일부 번호가 유효하지 않아 제외되었습니다: {invalid_indices}"
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[Tool] add_from_recent_search error: {e}", exc_info=True)
+            return {"error": str(e), "success": False}
 
     def get_handlers_dict(self) -> Dict[str, Any]:
         """Tool 이름 → Handler 함수 매핑 반환"""
@@ -1324,6 +1470,7 @@ class ToolHandlers:
             "add_to_cart": self.add_to_cart,
             "add_multiple_to_cart": self.add_multiple_to_cart,
             "add_recommended_to_cart": self.add_recommended_to_cart,
+            "add_from_recent_search": self.add_from_recent_search,
             "get_order_detail": self.get_order_detail,
             "get_recently_viewed": self.get_recently_viewed,
             "semantic_search": self.semantic_search
