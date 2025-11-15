@@ -202,13 +202,8 @@ async def chat(http_request: Request, chat_request: ChatRequest):
     tool_handlers = {}
 
     for tool_name, handler in original_handlers.items():
-        # user_id가 필요한 Tool에만 주입
-        user_required_tools = [
-            "get_cart", "get_orders", "get_wishlist",
-            "search_orders_by_product", "add_to_cart", "add_multiple_to_cart",
-            "add_recommended_to_cart", "get_order_detail", "get_recently_viewed"
-        ]
-        if tool_name in user_required_tools:
+        # user_id가 필요한 Tool에만 주입 (TOOL_AUTH_REQUIRED 사용)
+        if tool_name in TOOL_AUTH_REQUIRED:
             # functools.partial을 사용하여 user_id를 바인딩 (closure 버그 방지)
             tool_handlers[tool_name] = functools.partial(handler, user_id=user_id)
         else:
@@ -307,7 +302,19 @@ async def chat(http_request: Request, chat_request: ChatRequest):
    - multi_search_products를 먼저 실행하지 않으면 add_recommended_to_cart는 실패합니다.
    - 사용자가 "추천 상품", "전부", "다" 같은 표현을 쓰면 이 Tool을 사용하세요.
 
-3. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
+3. "1번, 3번, 5번 상품 담아줘" 또는 "첫 번째, 세 번째 담아줘" (검색 후 번호로 선택)
+   → **add_from_recent_search** Tool 사용
+   → 이 Tool은 가장 최근에 실행한 search_products, multi_search_products, semantic_search 결과에서 번호로 상품을 선택해 장바구니에 담습니다.
+   → 사용자가 "1번"이라고 하면 indices=[0], "3번"이라고 하면 indices=[2]로 전달하세요 (0부터 시작)
+   → 응답 예시: "1번, 3번 상품을 장바구니에 담았습니다."
+
+   **중요**:
+   - 검색 Tool (search_products, multi_search_products, semantic_search)을 먼저 실행하지 않으면 실패합니다.
+   - 사용자가 "1번", "첫 번째", "3번째" 같은 표현을 쓰면 이 Tool을 사용하세요.
+   - 번호는 1부터 시작하지만, indices는 0부터 시작하므로 1을 빼서 전달하세요.
+   - 예: "1번, 3번, 5번" → indices=[0, 2, 4]
+
+4. "작년에 구매했던 커피 재주문 해줘" (결과 1개)
    → Step 1: search_orders_by_product(product_keyword="커피", year={current_year - 1})
    → Step 2: (결과가 1개이면) add_to_cart(
         product_id=orders[0].matched_item.product_id,
@@ -365,13 +372,13 @@ async def chat(http_request: Request, chat_request: ChatRequest):
         logger.info(f"[Chat] Reply: {reply[:50]}")
 
         # Action 생성 (Tool 호출 기반) - 프론트엔드와 일치하는 타입 사용
-        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart가 있으면 항상 장바구니 표시 (우선순위)
+        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart, add_from_recent_search가 있으면 항상 장바구니 표시 (우선순위)
         action = {"type": "CHAT", "params": {}}
 
-        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart 우선 확인
+        # add_to_cart, add_multiple_to_cart, add_recommended_to_cart, add_from_recent_search 우선 확인
         add_to_cart_tool = None
         for tool in tool_calls:
-            if tool["name"] in ["add_to_cart", "add_multiple_to_cart", "add_recommended_to_cart"]:
+            if tool["name"] in ["add_to_cart", "add_multiple_to_cart", "add_recommended_to_cart", "add_from_recent_search"]:
                 add_to_cart_tool = tool
                 break
 
@@ -539,6 +546,16 @@ async def chat(http_request: Request, chat_request: ChatRequest):
                         "total": tool_result.get("total", 0),
                         "keyword": tool_result.get("keyword", ""),
                         "year": tool_result.get("year_searched"),
+                        "error": tool_result.get("error")
+                    }
+                }
+            elif tool_name == "get_order_detail":
+                # 주문 상세 조회 - 배송 현황 포함
+                order = tool_result.get("order")
+                action = {
+                    "type": "VIEW_ORDER_DETAIL",
+                    "params": {
+                        "order": order,
                         "error": tool_result.get("error")
                     }
                 }
