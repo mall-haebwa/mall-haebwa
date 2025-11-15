@@ -153,13 +153,18 @@ class BedrockClient:
                         self.last_api_call_time = time.time()
 
                         usage = response.get("usage", {})
-                        cache_read = usage.get("cacheReadInputTokenCount", 0)
-                        cache_write = usage.get("cacheCreationInputTokenCount", 0)
-                        
+                        cache_read = usage.get("cacheReadInputTokens", 0)
+                        cache_write = usage.get("cacheWriteInputTokens", 0)
+                        input_tokens = usage.get("inputTokens", 0)
+                        output_tokens = usage.get("outputTokens", 0)
+                        total_tokens = usage.get("totalTokens", 0)
+
                         if cache_read > 0:
-                            logger.info(f"[Bedrock] 💾 Cache HIT - Read: {cache_read} tokens (90% 할인!)")
+                            logger.info(f"[Bedrock] 💾 Prompt Cache HIT ({cache_read:,} tokens cached) | In: {input_tokens:,}, Out: {output_tokens:,}, Total: {total_tokens:,}")
                         elif cache_write > 0:
-                            logger.info(f"[Bedrock] 💾 Cache MISS - Write: {cache_write} tokens")
+                            logger.info(f"[Bedrock] 💾 Prompt Cache MISS (writing {cache_write:,} tokens) | In: {input_tokens:,}, Out: {output_tokens:,}, Total: {total_tokens:,}")
+                        else:
+                            logger.info(f"[Bedrock] 📊 Tokens | In: {input_tokens:,}, Out: {output_tokens:,}, Total: {total_tokens:,}")
                         
                         break
 
