@@ -115,6 +115,7 @@ export function RandomSections() {
                     reviewCount={p.reviewCount}
                     originalPrice={p.originalPrice}
                     className="h-full"
+                    isHomeLarge={true}
                   />
                 </SwiperSlide>
               ))}

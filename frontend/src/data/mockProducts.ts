@@ -3,7 +3,7 @@ import type { Product } from "../types";
 // 고정 목데이터 - 이쁜 상품들로 선정
 export const MOCK_PRODUCTS: Product[] = [
   {
-    id: "80363960989",
+    id: "6911ecf37b999c71f32a36c4",
     name: "디자인누비 보스 형상기억 클라로 암막커튼 140X200 열차단 호텔식 100% 맞춤커튼",
     price: 19900,
     originalPrice: undefined,
@@ -20,7 +20,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "83142318187",
+    id: "6911eced7b999c71f32a3321",
     name: "먼지없는 대형 사계절 사이잘룩 워셔블 러그 매트 거실 침실 카페트 트위드 100x150 아이보리",
     price: 22900,
     originalPrice: undefined,
@@ -37,7 +37,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "85375409732",
+    id: "690ae3069eca0c3d862fd97e",
     name: "찻잔 커피잔소서 세트 베어 티타임 아메리카노 커피잔 카푸치노 홈카페 선물",
     price: 12800,
     originalPrice: undefined,
@@ -53,7 +53,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "32085639619",
+    id: "690ad7329eca0c3d862f824e",
     name: "뷰하우스 데일리 3중직 사계절 암막커튼 무지형 230",
     price: 19000,
     originalPrice: undefined,
@@ -71,7 +71,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "82250264065",
+    id: "6911ecf37b999c71f32a36bf",
     name: "[내가그린집] 히든형상기억암막커튼 핀형 150x200 맞춤제작",
     price: 20900,
     originalPrice: undefined,
@@ -88,7 +88,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "12236947760",
+    id: "6911ecfa7b999c71f32a3a94",
     name: "아라크네 라운드 우드 블라인드 암막 오동나무 원목 거실 베란다 창문 40x40",
     price: 11400,
     originalPrice: undefined,
@@ -105,7 +105,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "48999863779",
+    id: "690ad6649eca0c3d862f4620",
     name: "하루의공간 규조토 발매트 화장실 욕실 주방 빨아쓰는 미끄럼방지",
     price: 7900,
     originalPrice: undefined,
@@ -123,7 +123,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "22290001873",
+    id: "690ad6649eca0c3d862f4621",
     name: "모던홀릭 욕실 화장실 규조토 발매트 단면컬러 M",
     price: 6500,
     originalPrice: undefined,
@@ -141,7 +141,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "82286008703",
+    id: "6911ecf37b999c71f32a36c1",
     name: "국내생산 먼지없는 도톰 쉬폰커튼 이음선없는 차르르 나비주름 거실 카페커튼 맞춤 60cm",
     price: 17100,
     originalPrice: undefined,
@@ -158,7 +158,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "84835792459",
+    id: "690ad6dd9eca0c3d862f6953",
     name: "오가닉 순면 누빔 베개커버 무형광 베겟잎 베갯잇 큰 베개피 피그먼트 줄누빔 5070",
     price: 10500,
     originalPrice: undefined,
@@ -175,7 +175,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "53396464075",
+    id: "690ad74b9eca0c3d862f8a23",
     name: "벽걸이액자 포스터 A1 알루미늄 프레임 맞춤 개폐형",
     price: 17500,
     originalPrice: undefined,
@@ -193,7 +193,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "88582376077",
+    id: "691853f49e06a9c8600352c1",
     name: "한일 오방난로 전기 카본 탄소 히터 가정용 사무실 거실 난방기 6방난로",
     price: 159000,
     originalPrice: undefined,
@@ -208,7 +208,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-15",
   },
   {
-    id: "82511759014",
+    id: "6911ebf97b999c71f329b2e1",
     name: "브리츠 BA-R9 데스크탑 사운드바 PC스피커 유선 USB 게이밍 컴퓨터 스피커",
     price: 21900,
     originalPrice: undefined,
@@ -225,7 +225,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "83646124815",
+    id: "690ae5989eca0c3d86302a2a",
     name: "LG그램 프로360 울트라5 투인원 대학생 노트북 애로우레이크 터치",
     price: 1879000,
     originalPrice: undefined,
@@ -242,7 +242,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "57339424240",
+    id: "690ad6939eca0c3d862f51db",
     name: "네이쳐리빙 릴리브 실리콘 조리도구 7종 세트",
     price: 17900,
     originalPrice: undefined,
@@ -260,7 +260,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "82289526921",
+    id: "6911ed087b999c71f32a4266",
     name: "제니스 인조대리석 욕실선반 일자 젠다이 화장실선반 모던 화이트 600mm",
     price: 20900,
     originalPrice: undefined,
@@ -277,7 +277,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "84502154996",
+    id: "691842b39e06a9c86002b47b",
     name: "강아지노즈워크 당근밭 농장 당근뽑기 장난감 12구",
     price: 12900,
     originalPrice: undefined,
@@ -294,7 +294,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-15",
   },
   {
-    id: "82013473574",
+    id: "6911ed2d7b999c71f32a5183",
     name: "씨에스리빙 튼튼한 대형 접이식 빨래건조대 이불건조대 홀직",
     price: 51800,
     originalPrice: undefined,
@@ -312,7 +312,7 @@ export const MOCK_PRODUCTS: Product[] = [
   },
   // ===== 새로운 상품들 시작 (num: 20~40) =====
   {
-    id: "87906442655",
+    id: "690ad69f9eca0c3d862f55c4",
     name: "[커피쿠폰증정] 락앤락 메트로 카페 세라믹 텀블러 500ml",
     price: 28700,
     originalPrice: undefined,
@@ -329,7 +329,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "86317295794",
+    id: "6911ed267b999c71f32a4d99",
     name: "15개+15개 살림의기술 어깨뿔방지 논슬립 링클 라운드 니트 옷걸이",
     price: 9900,
     originalPrice: undefined,
@@ -344,7 +344,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "88832921791",
+    id: "6911f74c7bf5a9e55897ed5f",
     name: "하양솝 천연 수제비누 동그라미 90g",
     price: 18900,
     originalPrice: undefined,
@@ -361,7 +361,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "81264841239",
+    id: "690ae5389eca0c3d86301599",
     name: "머그컵제작 도자기 머그잔 소량 인쇄 주문 카페 돌답례품 350ml",
     price: 2000,
     originalPrice: undefined,
@@ -378,7 +378,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "82226815009",
+    id: "6911ec8e7b999c71f32a01c5",
     name: "손잡이 투명유리커피잔 물컵 홈카페 내열유리컵 360ml",
     price: 4900,
     originalPrice: undefined,
@@ -395,7 +395,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "54367891914",
+    id: "690ad6279eca0c3d862f329e",
     name: "브이티 PDRN 리들샷 헤어 앰플 100dL",
     price: 19600,
     originalPrice: undefined,
@@ -412,7 +412,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "81465258452",
+    id: "690ad4839eca0c3d862eb3d6",
     name: "++1등급 국거리 투뿔 투쁠 한우 소고기 양지머리 설도",
     price: 9900,
     originalPrice: undefined,
@@ -429,7 +429,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "89967253922",
+    id: "6911ee4a7b999c71f32ae302",
     name: "메디힐 콜라겐 캡슐 패치 레티놀 PDRN 겔 아이패치 60매",
     price: 16400,
     originalPrice: undefined,
@@ -444,7 +444,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "10149900705",
+    id: "6911ed2d7b999c71f32a5182",
     name: "두리펀 더블퀵 튼튼한 빨래건조대 6단 와이드 이불봉 스텐",
     price: 26900,
     originalPrice: undefined,
@@ -461,7 +461,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "82344608450",
+    id: "6911ec7f7b999c71f329f9f3",
     name: "골든벨 로마 수저세트 신혼부부 집들이 선물 백화점 고급",
     price: 24200,
     originalPrice: undefined,
@@ -478,7 +478,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "84099600836",
+    id: "690ae36b9eca0c3d862ff653",
     name: "강아지 하네스 앞섬방지 가슴줄 H형 애견 반려견 소형견",
     price: 24900,
     originalPrice: undefined,
@@ -495,7 +495,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "82410496153",
+    id: "690c5cb3a592124f28ba3042",
     name: "지리산 흑돼지 삼겹살 오겹살 목살 통 선물세트",
     price: 18900,
     originalPrice: undefined,
@@ -512,7 +512,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-06",
   },
   {
-    id: "89189347533",
+    id: "6911eff37b999c71f32bae1e",
     name: "맥세이프 차량용 거치대 진공흡착 360도 헤드회전 대시보드",
     price: 22900,
     originalPrice: undefined,
@@ -527,7 +527,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "82979320575",
+    id: "690ad64c9eca0c3d862f3e5d",
     name: "아떼 어센틱 에어리 립밤 8colors",
     price: 9900,
     originalPrice: undefined,
@@ -544,7 +544,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "89619031963",
+    id: "6911ee4a7b999c71f32ae2f7",
     name: "메디힐 베스트 에센셜 마스크팩 3종 30매",
     price: 28900,
     originalPrice: undefined,
@@ -559,7 +559,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "85852784400",
+    id: "6911ee807b999c71f32afae1",
     name: "헤라 톤업 선크림 유브이 프로텍터 톤업 50ml",
     price: 24700,
     originalPrice: undefined,
@@ -576,7 +576,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "51929209381",
+    id: "6911ee877b999c71f32aff7e",
     name: "네쉬 에어리 텍스처 헤어 왁스 50g",
     price: 18000,
     originalPrice: undefined,
@@ -594,7 +594,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "83205956398",
+    id: "6911ec867b999c71f329fddc",
     name: "시라쿠스 메이플 빈티지 접시 원형 S 예쁜 카페 디저트 플레이트",
     price: 8600,
     originalPrice: undefined,
@@ -611,7 +611,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "82508869538",
+    id: "690ad6d19eca0c3d862f6569",
     name: "[단독]홈앤미 특허받은 튼튼한 대형 접이식 4단 빨래건조대+건조망",
     price: 59800,
     originalPrice: undefined,
@@ -628,7 +628,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-05",
   },
   {
-    id: "84431678761",
+    id: "6911ee617b999c71f32aebbb",
     name: "일상팩토리 대용량 약산성 샴푸 화이트머스크 1000ml",
     price: 9900,
     originalPrice: undefined,
@@ -645,7 +645,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "86984968362",
+    id: "6911ecb27b999c71f32a13cd",
     name: "미스터데코 빨래바구니 이동식 2단 세탁바구니",
     price: 39900,
     originalPrice: undefined,
@@ -662,7 +662,7 @@ export const MOCK_PRODUCTS: Product[] = [
     createdAt: "2025-11-10",
   },
   {
-    id: "83511995762",
+    id: "6911f2537bf5a9e558957532",
     name: "가르르 고양이 원목 캣폴 갤럭시캣타워",
     price: 276000,
     originalPrice: undefined,

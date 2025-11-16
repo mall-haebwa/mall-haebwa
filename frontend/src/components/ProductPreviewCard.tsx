@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Star, Heart, Loader2 } from "lucide-react";
+import { Star, Heart, Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -18,6 +18,7 @@ interface ProductPreviewCardProps {
   rating?: number;
   reviewCount?: number;
   originalPrice?: number;
+  isHomeLarge?: boolean;
 }
 
 export function ProductPreviewCard({
@@ -30,9 +31,15 @@ export function ProductPreviewCard({
   rating,
   reviewCount,
   originalPrice,
+  isHomeLarge,
 }: ProductPreviewCardProps) {
-  const { addToCart, currentUser, addToWishlist, removeFromWishlist, wishlistMap } =
-    useAppState();
+  const {
+    addToCart,
+    currentUser,
+    addToWishlist,
+    removeFromWishlist,
+    wishlistMap,
+  } = useAppState();
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
 
@@ -99,7 +106,7 @@ export function ProductPreviewCard({
   return (
     <div
       className={cn(
-        "flex flex-col h-full cursor-pointer overflow-hidden rounded text-left transition hover:shadow-lg group",
+        "flex flex-col h-full cursor-pointer overflow-hidden rounded text-left transition hover:shadow-lg group bg-white/5 backdrop-blur-sm border border-white/10",
         className
       )}>
       <div
@@ -119,37 +126,59 @@ export function ProductPreviewCard({
           </Badge>
         )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-        <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-2 p-3 bg-gradient-to-t from-black/80 to-transparent">
+        <div
+          className={cn(
+            "absolute flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+            isHomeLarge ? "bottom-3 right-3" : "bottom-2 right-2"
+          )}>
           <button
             type="button"
             disabled={addingToCart}
-            className="flex-1 bg-white text-gray-900 text-xs font-semibold py-2 px-2 rounded hover:bg-white/30 transition disabled:opacity-50"
+            className={cn(
+              "rounded-full bg-white/30 backdrop-blur-sm text-black font-bold border border-white/40 hover:bg-white/40 transition disabled:opacity-50 flex items-center justify-center",
+              isHomeLarge ? "w-11 h-11 text-xs" : "w-8 h-8 text-xs"
+            )}
             onClick={handleAddToCart}>
-            {addingToCart ? "추가 중..." : "담기"}
+            {addingToCart ? (
+              <Loader2
+                className={
+                  isHomeLarge ? "h-4 w-4 animate-spin" : "h-3 w-3 animate-spin"
+                }
+              />
+            ) : (
+              <ShoppingCart className={isHomeLarge ? "h-4 w-4" : "h-3 w-3"} />
+            )}
           </button>
           <button
             type="button"
             disabled={wishlistLoading}
-            className={`flex-1 text-xs font-semibold py-2 px-2 rounded transition disabled:opacity-50 flex items-center justify-center ${
+            className={cn(
+              "rounded-full font-semibold transition disabled:opacity-50 flex items-center justify-center backdrop-blur-sm border ",
+              isHomeLarge ? "w-11 h-11 text-xs" : "w-8 h-8 text-xs",
               isWishlisted
-                ? "bg-red-500 text-white hover:bg-red-600"
-                : "bg-white text-black hover:bg-white/50"
-            }`}
+                ? "bg-red-500/60 text-white hover:bg-red-500/80 border-red-400/50"
+                : "bg-white/30 text-black hover:bg-white/40 border-white/40"
+            )}
             onClick={handleToggleWishlist}>
             {wishlistLoading ? (
-              <span className="flex items-center justify-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-              </span>
-            ) : isWishlisted ? (
-              <Heart className="h-3 w-3 fill-white" />
+              <Loader2
+                className={
+                  isHomeLarge ? "h-4 w-4 animate-spin" : "h-3 w-3 animate-spin"
+                }
+              />
             ) : (
-              "찜"
+              <Heart
+                className={cn(
+                  isHomeLarge ? "h-4 w-4" : "h-3 w-3",
+                  isWishlisted ? "fill-white" : ""
+                )}
+              />
             )}
           </button>
         </div>
       </div>
 
-      <div className="p-4 flex-1 flex flex-col justify-between min-h-[120px]">
+      <div className="p-4 flex-1 flex flex-col justify-between min-h-[120px] bg-white/5 backdrop-blur-sm border-t border-white/10">
         <div className="space-y-1">
           {product.brand && (
             <p className="text-xs uppercase tracking-wide text-gray-500">
